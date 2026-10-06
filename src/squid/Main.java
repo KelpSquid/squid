@@ -38,6 +38,8 @@ public final class Main {
         String gameClasspath = System.getProperty("squid.gameClasspath");
         if (gameClasspath == null) throw new IllegalStateException("Squid needs -Dsquid.gameClasspath from the launcher");
 
+        registerBuiltInHooks();
+
         Path modsFolder = gameFolder(args).resolve("mods");
         mods = Mods.find(modsFolder);
         System.out.println("[Squid] Squid " + VERSION + " found " + mods.size() + " mod(s) in " + modsFolder);
@@ -63,6 +65,13 @@ public final class Main {
         } catch (InvocationTargetException e) {
             throw e.getCause(); // show Minecraft's own error, not the reflection wrapper
         }
+    }
+
+    /** Squid's own hooks, set up before any mod's. */
+    static void registerBuiltInHooks() {
+        // Tell Minecraft it's modded, so the F3 screen and crash reports say "squid" instead of "vanilla"
+        Transformers.add("net.minecraft.client.ClientBrandRetriever", new Transformers.HookPatch(
+                "getClientModName", null, false, Hooks.register("squid", call -> call.setReturnValue("squid"))));
     }
 
     /** The --gameDir Minecraft was given, or the current folder. */

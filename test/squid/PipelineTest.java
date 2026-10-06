@@ -48,6 +48,7 @@ public class PipelineTest {
         for (ModInfo m : mods) urls.add(m.jar().toUri().toURL());
         SquidClassLoader loader = new SquidClassLoader(urls.toArray(URL[]::new));
         Thread.currentThread().setContextClassLoader(loader);
+        Main.registerBuiltInHooks();
 
         // Hooks on the demo class, registered the way a mod would
         Squid test = new Squid(mod("test"));
@@ -95,6 +96,10 @@ public class PipelineTest {
         Object component = text.get(splash);
         Method getString = component.getClass().getMethod("getString");
         check("Minecraft's splash says", getString.invoke(component), "Squid is working!");
+
+        // Squid tells Minecraft it's modded
+        Object brand = loader.loadClass("net.minecraft.client.ClientBrandRetriever").getMethod("getClientModName").invoke(null);
+        check("Minecraft's brand", brand, "squid");
 
         // Mods start after the mods they depend on, and problems get explained
         List<ModInfo> ordered = Mods.inStartOrder(List.of(mod("addon", "library"), mod("library"), mod("solo")));
