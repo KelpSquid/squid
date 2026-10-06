@@ -36,6 +36,8 @@ A Squid mod is a `.jar` with a `squid.json` inside:
 }
 ```
 
+If your mod needs another mod, list its id in `"depends": ["other-mod"]`. Squid starts that mod first, and tells you if it's missing.
+
 `main` is a class that implements `SquidMod`:
 
 ```java

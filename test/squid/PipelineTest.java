@@ -25,6 +25,19 @@ public class PipelineTest {
         System.out.println((ok ? "PASS " : "FAIL ") + what + " -> " + got + (ok ? "" : " (expected " + expected + ")"));
     }
 
+    static ModInfo mod(String id, String... depends) {
+        return new ModInfo(id, id, "1", "", List.of(), List.of(depends), "x", Path.of("."));
+    }
+
+    static String problem(List<ModInfo> mods) {
+        try {
+            Mods.inStartOrder(mods);
+            return "no problem found";
+        } catch (java.io.IOException e) {
+            return e.getMessage();
+        }
+    }
+
     public static void main(String[] a) throws Throwable {
         List<URL> urls = new ArrayList<>();
         for (String e : a[0].split(File.pathSeparator)) urls.add(Path.of(e).toUri().toURL());
@@ -37,7 +50,7 @@ public class PipelineTest {
         Thread.currentThread().setContextClassLoader(loader);
 
         // Hooks on the demo class, registered the way a mod would
-        Squid test = new Squid(new ModInfo("test", "Test", "1", "", List.of(), "x", Path.of(".")));
+        Squid test = new Squid(mod("test"));
         List<Object> seen = new ArrayList<>();
         test.atEnd("demo.Target", "add", c -> c.setReturnValue((Integer) c.returnValue() * 10));
         test.atStart("demo.Target", "greet", c -> { if ("skip".equals(c.args()[0])) c.cancel("skipped"); });
@@ -82,6 +95,14 @@ public class PipelineTest {
         Object component = text.get(splash);
         Method getString = component.getClass().getMethod("getString");
         check("Minecraft's splash says", getString.invoke(component), "Squid is working!");
+
+        // Mods start after the mods they depend on, and problems get explained
+        List<ModInfo> ordered = Mods.inStartOrder(List.of(mod("addon", "library"), mod("library"), mod("solo")));
+        check("dependencies start first", ordered.stream().map(ModInfo::id).toList().toString(), "[library, addon, solo]");
+        check("a missing dependency is explained", problem(List.of(mod("addon", "library"))),
+                "addon needs the mod \"library\", but it isn't in the mods folder.");
+        check("a dependency loop is explained", problem(List.of(mod("a", "b"), mod("b", "a"))),
+                "These mods need each other in a loop, so none of them can start first: a -> b -> a");
 
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);
