@@ -40,24 +40,38 @@ public final class Main {
 
         registerBuiltInHooks();
 
-        Path modsFolder = gameFolder(args).resolve("mods");
-        mods = Mods.find(modsFolder);
-        System.out.println("[Squid] Squid " + VERSION + " found " + mods.size() + " mod(s) in " + modsFolder);
+        Path gameFolder = gameFolder(args);
+        Report report = new Report(gameFolder);
+        report.loading();
+        ModInfo starting = null; // the mod being started right now, to blame if something breaks
+        SquidClassLoader loader;
+        try {
+            Path modsFolder = gameFolder.resolve("mods");
+            mods = Mods.find(modsFolder);
+            System.out.println("[Squid] Squid " + VERSION + " found " + mods.size() + " mod(s) in " + modsFolder);
 
-        List<URL> urls = new ArrayList<>();
-        for (String entry : gameClasspath.split(File.pathSeparator)) urls.add(Path.of(entry).toUri().toURL());
-        for (ModInfo mod : mods) urls.add(mod.jar().toUri().toURL());
-        SquidClassLoader loader = new SquidClassLoader(urls.toArray(URL[]::new));
-        Thread.currentThread().setContextClassLoader(loader);
+            List<URL> urls = new ArrayList<>();
+            for (String entry : gameClasspath.split(File.pathSeparator)) urls.add(Path.of(entry).toUri().toURL());
+            for (ModInfo mod : mods) urls.add(mod.jar().toUri().toURL());
+            loader = new SquidClassLoader(urls.toArray(URL[]::new));
+            Thread.currentThread().setContextClassLoader(loader);
 
-        for (ModInfo mod : mods) {
-            System.out.println("[Squid] Starting " + mod.name() + " " + mod.version());
-            Object instance = loader.loadClass(mod.main()).getDeclaredConstructor().newInstance();
-            if (!(instance instanceof SquidMod squidMod)) {
-                throw new IllegalStateException(mod.main() + " (from " + mod.id() + ") doesn't implement SquidMod");
+            for (ModInfo mod : mods) {
+                starting = mod;
+                System.out.println("[Squid] Starting " + mod.name() + " " + mod.version());
+                Object instance = loader.loadClass(mod.main()).getDeclaredConstructor().newInstance();
+                if (!(instance instanceof SquidMod squidMod)) {
+                    throw new IllegalStateException(mod.main() + " (from " + mod.id() + ") doesn't implement SquidMod");
+                }
+                squidMod.init(new Squid(mod));
             }
-            squidMod.init(new Squid(mod));
+            starting = null;
+        } catch (Throwable problem) {
+            if (problem instanceof InvocationTargetException wrapped) problem = wrapped.getCause(); // the mod's own error
+            report.failed(mods, starting == null ? null : starting.name(), describe(problem));
+            throw problem;
         }
+        report.running(mods);
 
         Method main = loader.loadClass(mainClass).getMethod("main", String[].class);
         try {
@@ -65,6 +79,13 @@ public final class Main {
         } catch (InvocationTargetException e) {
             throw e.getCause(); // show Minecraft's own error, not the reflection wrapper
         }
+    }
+
+    /** A short explanation of an error for the report. Squid's own messages are already written for people. */
+    static String describe(Throwable problem) {
+        String message = problem.getMessage();
+        if (problem instanceof java.io.IOException && message != null) return message;
+        return problem.getClass().getSimpleName() + (message != null ? ": " + message : "");
     }
 
     /** Squid's own hooks, set up before any mod's. */

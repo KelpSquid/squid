@@ -109,6 +109,17 @@ public class PipelineTest {
         check("a dependency loop is explained", problem(List.of(mod("a", "b"), mod("b", "a"))),
                 "These mods need each other in a loop, so none of them can start first: a -> b -> a");
 
+        // The report Kelp reads
+        Path reportFolder = java.nio.file.Files.createTempDirectory("squid-report-test");
+        Report report = new Report(reportFolder);
+        report.running(List.of(mod("library"), mod("addon", "library")));
+        java.util.Map<String, Object> running = Json.object(Json.parse(java.nio.file.Files.readString(reportFolder.resolve("squid-report.json"))));
+        check("report while running", running.get("status") + " with " + Json.array(running.get("mods")).size() + " mods", "running with 2 mods");
+        report.failed(List.of(), "Hello \"Squid\"", Main.describe(new NullPointerException("oops\nline two")));
+        java.util.Map<String, Object> failed = Json.object(Json.parse(java.nio.file.Files.readString(reportFolder.resolve("squid-report.json"))));
+        check("report after a crash", failed.get("status") + " | " + failed.get("mod") + " | " + failed.get("error"),
+                "failed | Hello \"Squid\" | NullPointerException: oops\nline two");
+
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);
     }
