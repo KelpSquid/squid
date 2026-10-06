@@ -1,0 +1,64 @@
+package squid.api;
+
+import org.objectweb.asm.tree.ClassNode;
+import squid.Hooks;
+import squid.Transformers;
+
+import java.util.List;
+import java.util.function.Consumer;
+
+/**
+ * What a mod gets in {@link SquidMod#init}: the way to hook into Minecraft.
+ * Class names are written the normal way, like "net.minecraft.client.gui.screens.TitleScreen".
+ * Set hooks up before touching any Minecraft class, or that class will already be loaded without them.
+ */
+public final class Squid {
+    private final ModInfo mod;
+
+    public Squid(ModInfo mod) {
+        this.mod = mod;
+    }
+
+    /** This mod's details from its squid.json. */
+    public ModInfo mod() {
+        return mod;
+    }
+
+    /** Every mod Squid loaded. */
+    public List<ModInfo> mods() {
+        return squid.Main.mods();
+    }
+
+    /** Runs the hook at the start of every method with this name. It can cancel the method. */
+    public void atStart(String className, String methodName, Hook hook) {
+        atStart(className, methodName, null, hook);
+    }
+
+    /**
+     * Like {@link #atStart(String, String, Hook)} but only for the method with this descriptor,
+     * like "(I)V" for a method that takes an int and returns nothing. Constructors can't have start hooks.
+     */
+    public void atStart(String className, String methodName, String descriptor, Hook hook) {
+        Transformers.add(className, new Transformers.HookPatch(methodName, descriptor, true, Hooks.register(mod.id(), hook)));
+    }
+
+    /** Runs the hook every time a method with this name returns. It can change what gets returned. */
+    public void atEnd(String className, String methodName, Hook hook) {
+        atEnd(className, methodName, null, hook);
+    }
+
+    /** Like {@link #atEnd(String, String, Hook)} but only for the method with this descriptor. */
+    public void atEnd(String className, String methodName, String descriptor, Hook hook) {
+        Transformers.add(className, new Transformers.HookPatch(methodName, descriptor, false, Hooks.register(mod.id(), hook)));
+    }
+
+    /** For advanced mods: change a class's bytecode directly with ASM before it loads. */
+    public void patch(String className, Consumer<ClassNode> patch) {
+        Transformers.add(className, new Transformers.RawPatch(mod.id(), patch));
+    }
+
+    /** Prints a line to the game's output, labeled with this mod's id. */
+    public void log(String message) {
+        System.out.println("[" + mod.id() + "] " + message);
+    }
+}

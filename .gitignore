@@ -1,1 +1,10 @@
+# Made by build.bat
+build/
+lib/
 
+# Compiled class files
+*.class
+
+# Editor folders
+.vscode/
+.idea/
