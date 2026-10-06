@@ -1,0 +1,8 @@
+{
+    "id": "hello-squid",
+    "name": "Hello Squid",
+    "version": "1.0.0",
+    "description": "Changes the title screen splash to prove Squid works.",
+    "authors": ["Samuel"],
+    "main": "hello.HelloSquid"
+}
