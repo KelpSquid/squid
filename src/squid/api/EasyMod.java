@@ -216,6 +216,24 @@ public abstract class EasyMod implements SquidMod {
         return ThreadLocalRandom.current().nextInt(min, max + 1);
     }
 
+    /**
+     * A setting players can switch in Squid's Mods screen, like setting("Show map", true). Ask for it whenever you need
+     * it: it gives back what the player picked, or the default.
+     */
+    protected boolean setting(String name, boolean defaultValue) {
+        return squid.settings().toggle(name, defaultValue);
+    }
+
+    /** A number setting players pick with a slider, from min to max, like setting("Zoom", 4, 1, 10). */
+    protected int setting(String name, int defaultValue, int min, int max) {
+        return squid.settings().number(name, defaultValue, min, max);
+    }
+
+    /** A setting with a few choices, like setting("Corner", "Top left", "Top left", "Top right"). */
+    protected String setting(String name, String defaultValue, String... choices) {
+        return squid.settings().choice(name, defaultValue, choices);
+    }
+
     /** For bigger mods: everything Squid can do, like hooks and drawing on the screen. */
     protected Squid squid() {
         return squid;

@@ -1,0 +1,8 @@
+{
+    "id": "squid-mods",
+    "name": "Squid Mods",
+    "version": "1.0.0",
+    "description": "The Mods screen, built into Squid: see your mods, turn them on and off, and change their settings in-game.",
+    "authors": ["Samuel"],
+    "main": "squidmods.ModsMenu"
+}

@@ -639,6 +639,36 @@ public class PipelineTest {
         new Squid(hooker).atStart("net.minecraft.client.resources.SplashManager", "brandNewHook", call -> { });
         check("a new hook in a loaded class needs a restart", Slots.endReload("hooker").toString(), "[net.minecraft.client.resources.SplashManager]");
 
+        // The Mods screen's list, and mod settings
+        Path modsGame = java.nio.file.Files.createTempDirectory("squid-mods-screen");
+        Path modsFolder = java.nio.file.Files.createDirectories(modsGame.resolve("mods"));
+        java.nio.file.Files.writeString(modsFolder.resolve("RainbowSheep.java"), "x");
+        java.nio.file.Files.createDirectories(modsFolder.resolve("MegaMod/src"));
+        java.nio.file.Files.writeString(modsFolder.resolve("MegaMod/squid.json"), "{\"name\": \"Mega Mod\", \"version\": \"2.0\"}");
+        jar(modsFolder.resolve("xray.jar.disabled"), "squid.json", "{\"id\": \"xray\", \"name\": \"X-Ray\", \"version\": \"1.0\", \"main\": \"x\"}");
+        jar(modsFolder.resolve("sodium.jar"), "fabric.mod.json", "{}");
+        List<squidmods.ModFiles.ModFile> listed = squidmods.ModFiles.list(modsFolder);
+        check("the Mods screen lists every mod, on or off", listed.stream().map(m -> m.id() + ":" + m.name() + ":" + m.enabled() + ":" + m.fromCode() + ":" + m.squid())
+                .toList().toString(), "[mega-mod:Mega Mod:true:true:true, rainbowsheep:Rainbow Sheep:true:true:true, sodium:sodium:true:false:false, xray:X-Ray:false:false:true]");
+        squidmods.ModFiles.ModFile xray = listed.get(3);
+        squidmods.ModFiles.toggle(xray);
+        check("a mod can be turned on from the Mods screen", java.nio.file.Files.exists(modsFolder.resolve("xray.jar")), true);
+
+        Main.setGameFolder(modsGame);
+        squid.api.ModSettings settings = squid.api.ModSettings.of("settings-test");
+        check("settings start at their defaults", settings.toggle("Show map", true) + " " + settings.number("Zoom", 4, 1, 10) + " "
+                + settings.choice("Corner", "Top left", "Top left", "Top right"), "true 4 Top left");
+        settings.set("Zoom", 9);
+        settings.set("Show map", false);
+        settings.set("Corner", "Top right");
+        check("changed settings are used right away", settings.toggle("Show map", true) + " " + settings.number("Zoom", 4, 1, 10) + " "
+                + settings.choice("Corner", "Top left", "Top left", "Top right"), "false 9 Top right");
+        settings.set("Zoom", 99);
+        check("numbers stay between their limits", settings.number("Zoom", 4, 1, 10), 10);
+        check("settings are saved in the instance's config folder", java.nio.file.Files.exists(modsGame.resolve("config/squid/settings-test.properties")), true);
+        check("the Mods screen knows which mods have settings", squid.api.ModSettings.has("settings-test") + " " + squid.api.ModSettings.has("nothing"), "true false");
+        Main.setGameFolder(Path.of("."));
+
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
         check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
                 + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");
@@ -674,5 +704,14 @@ public class PipelineTest {
     /** The {0}, {1}... in a text, sorted. */
     static List<String> placeholders(String text) {
         return java.util.regex.Pattern.compile("\\{\\d}").matcher(text).results().map(r -> r.group()).sorted().toList();
+    }
+
+    /** A jar with one text file in it. */
+    static void jar(Path file, String entry, String text) throws java.io.IOException {
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(file))) {
+            zip.putNextEntry(new java.util.zip.ZipEntry(entry));
+            zip.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            zip.closeEntry();
+        }
     }
 }

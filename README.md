@@ -41,6 +41,7 @@ public class RainbowSheep extends EasyMod {
 | `every(10, () -> { ... })` | Runs every 10 seconds |
 | `onTick(() -> { ... })` | Runs 20 times a second |
 | `x()`, `y()`, `z()`, `health()`, `playerName()`, `random(1, 6)` | Things to know |
+| `setting("Show map", true)`, `setting("Zoom", 4, 1, 10)` | A setting players change in the Mods screen (top-left of the title screen and pause menu) |
 
 If there's a mistake, the game still opens. The title screen and Kelp say which line it's on and what's wrong, like *"there's a mistake on line 3: a ; is missing at the end of the line"*. A mod that goes wrong while you play says so in the chat and switches that part off.
 

@@ -21,6 +21,11 @@ public final class Squid {
         this.mod = mod;
     }
 
+    /** This mod's settings, which players change in Squid's Mods screen. See {@link ModSettings}. */
+    public ModSettings settings() {
+        return ModSettings.of(mod.id());
+    }
+
     /** This mod's details from its squid.json. */
     public ModInfo mod() {
         return mod;

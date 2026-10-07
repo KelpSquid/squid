@@ -70,6 +70,11 @@ public final class Main {
         return minecraftVersion;
     }
 
+    /** Where the game keeps its files. Only tests set this. */
+    static void setGameFolder(Path folder) {
+        gameFolder = folder;
+    }
+
     static void setGameLoader(ClassLoader loader) {
         gameLoader = loader;
     }
