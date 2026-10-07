@@ -708,6 +708,24 @@ public class PipelineTest {
                 + " " + new String(avi, 0, avi.length, java.nio.charset.StandardCharsets.ISO_8859_1).contains("MJPG")
                 + " " + (new String(avi, 0, avi.length, java.nio.charset.StandardCharsets.ISO_8859_1).split("00dc", -1).length - 1), "RIFF AVI  true true 82");
 
+        // Replays: the last few minutes, smooth in slow motion, with blocks put back in order
+        squidreplay.Timeline replayTimeline = new squidreplay.Timeline();
+        for (int tick = 1; tick <= 30; tick++) {
+            squidreplay.Timeline.Thing pig = new squidreplay.Timeline.Thing(7, "pig", null, null, tick, 64, 0, tick == 30 ? 10 : 350, 0, 0, 0,
+                    0, 0, 0, 0, 0, null, null);
+            replayTimeline.add(new squidreplay.Timeline.Frame(tick, new squidreplay.Timeline.Thing[] {pig}), 20);
+            if (tick == 15 || tick == 25) replayTimeline.add(new squidreplay.Timeline.Change(tick, "block at " + tick, "air", "stone"));
+            if (tick == 5) replayTimeline.add(new squidreplay.Timeline.Change(tick, "too old", "air", "dirt"));
+        }
+        squidreplay.Timeline.Recording replayRecording = replayTimeline.freeze();
+        check("a replay keeps only the last ticks, and the block changes in them", replayRecording.length() + " " + replayRecording.changesBy(Long.MAX_VALUE)
+                + " " + replayRecording.tickAt(0), "20 2 11");
+        squidreplay.Timeline.Thing halfway = replayRecording.at(18.5).get(0);
+        check("between two ticks, things are halfway, turning the short way round", halfway.x + " " + halfway.yRot, "29.5 360.0"); // from 350 to 10 through 360, not back through 180
+        check("blocks changed by a tick are counted in order", replayRecording.changesBy(14) + " " + replayRecording.changesBy(15) + " "
+                + replayRecording.changesBy(24) + " " + replayRecording.changesBy(25), "0 1 1 2");
+        check("angles turn the short way", squidreplay.Timeline.angle(10, 350, 0.5f) + " " + squidreplay.Timeline.angle(90, 180, 0.5f), "0.0 135.0");
+
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
         check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
                 + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");
