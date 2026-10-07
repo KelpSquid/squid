@@ -72,6 +72,13 @@ public final class Timeline {
     public record Change(long tick, Object pos, Object before, Object after) {
     }
 
+    /** A particle that appeared (smoke, sparks, splashes...): which, where, and which way it was flying. */
+    public record Spark(long tick, Object options, double x, double y, double z, double dx, double dy, double dz) {
+    }
+
+    /** At most this many particles are kept per tick, so a huge explosion can't fill the memory. */
+    static final int SPARKS_PER_TICK = 300;
+
     /** A sound that played: which, how loud and high, and where (the Minecraft details ride along as Objects). */
     public record Noise(long tick, Object id, Object source, float volume, float pitch, double x, double y, double z,
                         Object attenuation, boolean relative) {
@@ -80,6 +87,9 @@ public final class Timeline {
     private final ArrayDeque<Frame> frames = new ArrayDeque<>();
     private final ArrayDeque<Change> changes = new ArrayDeque<>();
     private final ArrayDeque<Noise> noises = new ArrayDeque<>();
+    private final ArrayDeque<Spark> sparks = new ArrayDeque<>();
+    private long sparkTick;
+    private int sparksThisTick;
 
     /** Adds a tick, and lets go of the ticks more than keep ticks old (and the block changes before them). */
     public synchronized void add(Frame frame, int keep) {
@@ -88,6 +98,15 @@ public final class Timeline {
         long oldest = frames.peekFirst().tick();
         while (!changes.isEmpty() && changes.peekFirst().tick() < oldest) changes.removeFirst();
         while (!noises.isEmpty() && noises.peekFirst().tick() < oldest) noises.removeFirst();
+        while (!sparks.isEmpty() && sparks.peekFirst().tick() < oldest) sparks.removeFirst();
+    }
+
+    public synchronized void add(Spark spark) {
+        if (spark.tick() != sparkTick) {
+            sparkTick = spark.tick();
+            sparksThisTick = 0;
+        }
+        if (sparksThisTick++ < SPARKS_PER_TICK) sparks.addLast(spark);
     }
 
     public synchronized void add(Noise noise) {
@@ -102,6 +121,7 @@ public final class Timeline {
         frames.clear();
         changes.clear();
         noises.clear();
+        sparks.clear();
     }
 
     public synchronized int size() {
@@ -110,7 +130,7 @@ public final class Timeline {
 
     /** A still copy to play back, which keeps working while recording goes on. */
     public synchronized Recording freeze() {
-        return new Recording(frames.toArray(new Frame[0]), changes.toArray(new Change[0]), noises.toArray(new Noise[0]));
+        return new Recording(frames.toArray(new Frame[0]), changes.toArray(new Change[0]), noises.toArray(new Noise[0]), sparks.toArray(new Spark[0]));
     }
 
     /** A frozen stretch of time to play back. */
@@ -118,11 +138,22 @@ public final class Timeline {
         final Frame[] frames;
         final Change[] changes;
         final Noise[] noises;
+        final Spark[] sparks;
 
-        Recording(Frame[] frames, Change[] changes, Noise[] noises) {
+        Recording(Frame[] frames, Change[] changes, Noise[] noises, Spark[] sparks) {
             this.frames = frames;
             this.changes = changes;
             this.noises = noises;
+            this.sparks = sparks;
+        }
+
+        /** The particles that appeared after one tick, up to and including another. */
+        public List<Spark> sparksBetween(long after, long upTo) {
+            List<Spark> out = new ArrayList<>();
+            for (Spark spark : sparks) {
+                if (spark.tick() > after && spark.tick() <= upTo) out.add(spark);
+            }
+            return out;
         }
 
         /** The sounds that played after one tick, up to and including another. */

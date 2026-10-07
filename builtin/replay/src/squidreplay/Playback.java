@@ -178,6 +178,27 @@ final class Playback {
         }
     }
 
+    /**
+     * Brings back the particles from between two moments, and (while singleplayer is paused, when Minecraft doesn't
+     * move them) moves every particle along one step for each tick that passed, so smoke rises and sparks fly.
+     */
+    void playParticles(double from, double to) {
+        long after = recording.tickAt(from);
+        long upTo = recording.tickAt(to);
+        if (upTo <= after) return;
+        for (Timeline.Spark spark : recording.sparksBetween(after, upTo)) {
+            try {
+                minecraft.particleEngine.createParticle((net.minecraft.core.particles.ParticleOptions) spark.options(), spark.x(), spark.y(), spark.z(),
+                        spark.dx(), spark.dy(), spark.dz());
+            } catch (RuntimeException e) {
+                // one that can't be made again: skip it
+            }
+        }
+        if (minecraft.isPaused()) {
+            for (long t = after; t < upTo && t < after + 5; t++) minecraft.particleEngine.tick();
+        }
+    }
+
     /** Puts blocks back (or forward) until exactly the first count changes have happened. */
     private void showBlocks(int count) {
         while (appliedChanges > count) {

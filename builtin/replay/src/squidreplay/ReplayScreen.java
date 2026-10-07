@@ -239,6 +239,7 @@ final class ReplayScreen extends Screen {
             double before = time;
             time += seconds * 20 * SPEEDS[speed] * (backward ? -1 : 1);
             if (!backward && SPEEDS[speed] >= 0.25f && SPEEDS[speed] <= 2) playback.playSounds(before, Math.min(time, out), SPEEDS[speed]);
+            if (!backward) playback.playParticles(before, Math.min(time, out));
             if (time >= out || time <= in) {
                 time = Math.max(in, Math.min(out, time));
                 playing = false;
@@ -312,6 +313,7 @@ final class ReplayScreen extends Screen {
     private void exportStep() {
         if (!captureNext) {
             aim(1.0 / EXPORT_FPS);
+            playback.playParticles(exportTime - 20.0 / EXPORT_FPS * SPEEDS[speed], exportTime);
             playback.show(exportTime);
             captureNext = true;
             return;

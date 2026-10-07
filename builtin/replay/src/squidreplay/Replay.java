@@ -50,6 +50,12 @@ public class Replay implements SquidMod {
                         recorder.soundPlayed(Minecraft.getInstance(), (net.minecraft.client.resources.sounds.SoundInstance) call.args()[0]);
                     }
                 });
+        // Every particle, so smoke, sparks and splashes come back too
+        squid.atStart("net.minecraft.client.particle.ParticleEngine", "createParticle", call -> {
+            if (Playback.current() != null) return;
+            Object[] a = call.args();
+            recorder.particleMade(Minecraft.getInstance(), a[0], (double) a[1], (double) a[2], (double) a[3], (double) a[4], (double) a[5], (double) a[6]);
+        });
         // While a replay plays, only its look-alikes are drawn
         squid.atStart("net.minecraft.client.renderer.entity.EntityRenderDispatcher", "shouldRender", call -> {
             if (Playback.hides(call.args()[0])) call.cancel(false);

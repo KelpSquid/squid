@@ -70,6 +70,13 @@ final class Recorder {
                 sound.getZ(), sound.getAttenuation(), sound.isRelative()));
     }
 
+    /** A particle appearing in the recorded world (Squid calls this from Minecraft's ParticleEngine.createParticle). */
+    void particleMade(Minecraft minecraft, Object options, double x, double y, double z, double dx, double dy, double dz) {
+        if (minecraft.level != level || timeline.size() == 0 || minecraft.player == null) return;
+        if (minecraft.player.distanceToSqr(x, y, z) > RANGE * RANGE) return;
+        timeline.add(new Timeline.Spark(tick, options, x, y, z, dx, dy, dz));
+    }
+
     void clear() {
         timeline.clear();
         last = new HashMap<>();

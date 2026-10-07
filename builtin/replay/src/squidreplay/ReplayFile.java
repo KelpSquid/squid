@@ -104,6 +104,14 @@ final class ReplayFile {
             buf.writeBoolean(n.relative());
         }
 
+        List<Timeline.Spark> sparks = recording.sparksBetween(fromTick - 1, toTick);
+        buf.writeVarInt(sparks.size());
+        for (Timeline.Spark s : sparks) {
+            buf.writeVarLong(s.tick() - fromTick);
+            net.minecraft.core.particles.ParticleTypes.STREAM_CODEC.encode(buf, (net.minecraft.core.particles.ParticleOptions) s.options());
+            for (double d : new double[] {s.x(), s.y(), s.z(), s.dx(), s.dy(), s.dz()}) buf.writeDouble(d);
+        }
+
         Files.createDirectories(folder());
         String name = "replay-" + DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss").format(LocalDateTime.now()) + ".sqreplay";
         Path file = folder().resolve(name);
@@ -221,7 +229,12 @@ final class ReplayFile {
                         buf.readFloat(), buf.readDouble(), buf.readDouble(), buf.readDouble(), SoundInstance.Attenuation.valueOf(buf.readUtf()),
                         buf.readBoolean());
             }
-            return new Timeline.Recording(frames, changes, noises);
+            Timeline.Spark[] sparks = new Timeline.Spark[buf.readVarInt()];
+            for (int i = 0; i < sparks.length; i++) {
+                sparks[i] = new Timeline.Spark(buf.readVarLong(), net.minecraft.core.particles.ParticleTypes.STREAM_CODEC.decode(buf), buf.readDouble(),
+                        buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble());
+            }
+            return new Timeline.Recording(frames, changes, noises, sparks);
         } catch (RuntimeException e) {
             throw new IOException("the file is damaged (" + e.getMessage() + ")", e);
         } finally {
