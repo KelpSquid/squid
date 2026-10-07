@@ -1,5 +1,8 @@
 <p align="center"><img src="branding/squid.png" width="160" alt="Squid logo"></p>
 
+ > **NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.**
+  > Minecraft is a trademark of Microsoft Corporation.
+
 # Squid
 
 A Minecraft mod loader, made from scratch. It works with the [Kelp](https://github.com/SamuelArther/kelp) launcher and Minecraft 26.3.
