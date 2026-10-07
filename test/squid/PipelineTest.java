@@ -800,6 +800,36 @@ public class PipelineTest {
                 "2 44100 22050 true");
         check("something that isn't sound is turned away", squid.audio.Audio.canDecode("hello".getBytes()) + "", "false");
 
+        // Squid Voice: our own voice codec, 24 kbps, close to the original on a voice-like sound
+        squid.audio.VoiceCodec.Encoder voiceIn = new squid.audio.VoiceCodec.Encoder();
+        squid.audio.VoiceCodec.Decoder voiceOut = new squid.audio.VoiceCodec.Decoder();
+        int voiceFrames = 100;
+        short[] talking = new short[voiceFrames * squid.audio.VoiceCodec.FRAME];
+        for (int i = 0; i < talking.length; i++) { // a "voice": a buzzing note with harmonics, its pitch wobbling
+            double sec = i / 16000.0;
+            double pitch = 140 + 20 * Math.sin(2 * Math.PI * 3 * sec);
+            double v = 0;
+            for (int h = 1; h <= 12; h++) v += Math.sin(2 * Math.PI * pitch * h * sec) / h;
+            talking[i] = (short) (v * 5000);
+        }
+        short[] heard = new short[talking.length];
+        int packetBytes = 0;
+        for (int f = 0; f < voiceFrames; f++) {
+            byte[] packet = voiceIn.encode(java.util.Arrays.copyOfRange(talking, f * 320, f * 320 + 320));
+            packetBytes = packet.length;
+            System.arraycopy(voiceOut.decode(packet), 0, heard, f * 320, 320);
+        }
+        double voiceError = 0;
+        double voiceSignal = 0;
+        for (int i = 320; i < heard.length; i++) { // one frame later: the overlap
+            double d = heard[i] - talking[i - 320];
+            voiceError += d * d;
+            voiceSignal += (double) talking[i - 320] * talking[i - 320];
+        }
+        check("Squid Voice packs 20 ms into 60 bytes (24 kbps) and sounds close to the original", packetBytes + " " + (10 * Math.log10(voiceSignal / voiceError) > 12),
+                "60 true");
+        check("a lost packet just fades out, without breaking", voiceOut.decode(null).length, 320);
+
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
         check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
                 + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");
