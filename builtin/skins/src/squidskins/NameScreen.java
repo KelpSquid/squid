@@ -39,7 +39,7 @@ final class NameScreen extends Screen {
             try {
                 Wardrobe.Fetched fetched = Skins.wardrobe.fetchSkin(typed);
                 Wardrobe.Choice now = Skins.choice(Skins.myId());
-                Skins.choose(Skins.myId(), new Wardrobe.Choice(fetched.file(), fetched.slim(), now.cape()));
+                Skins.choose(Skins.myId(), new Wardrobe.Choice(fetched.file(), fetched.slim(), now.cape(), now.effects()));
                 parent.say("Now wearing " + fetched.file().replaceAll("(?i)\\.png$", "") + "'s skin!", 0xFF55FF55);
                 minecraft.execute(this::onClose);
             } catch (Exception e) {

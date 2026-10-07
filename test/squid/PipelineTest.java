@@ -431,13 +431,39 @@ public class PipelineTest {
         } catch (java.io.IOException e) {
             oddProblem = e.getMessage();
         }
-        check("a picture that's neither is explained", oddProblem, "That picture is 100x75. Skins are 64x64, capes are 64x32.");
+        check("a picture that's neither is explained", oddProblem, "That picture is 100x75. Skins are 64x64, capes are 64x32 (animated ones stack their frames: 64x96, 64x128...).");
         check("the wardrobe lists them", squidskins.Wardrobe.pictures(wardrobe.skins()) + " " + squidskins.Wardrobe.pictures(wardrobe.capes()),
                 "[cool skin (2).png, cool skin.png] [my cape.png]");
         wardrobe.choose("abc", new squidskins.Wardrobe.Choice("cool skin.png", true, "kelp"));
         squidskins.Wardrobe reopened = new squidskins.Wardrobe(wardrobeHome);
         check("picks are remembered per player", reopened.choice("abc") + " | " + reopened.choice("someone-else"),
-                "Choice[skin=cool skin.png, slim=true, cape=kelp] | Choice[skin=, slim=false, cape=]");
+                "Choice[skin=cool skin.png, slim=true, cape=kelp, effects=[]] | Choice[skin=, slim=false, cape=, effects=[]]");
+        wardrobe.choose("abc", reopened.choice("abc").toggled(squidskins.CapeEffects.Effect.ENCHANTED).toggled(squidskins.CapeEffects.Effect.BUBBLES)
+                .withCape("squid"));
+        squidskins.Wardrobe.Choice withEffects = new squidskins.Wardrobe(wardrobeHome).choice("abc");
+        check("cape effects are remembered", withEffects.cape() + " " + withEffects.effects(), "squid [enchanted, bubbles]");
+        check("an effect switches off again", withEffects.toggled(squidskins.CapeEffects.Effect.ENCHANTED).effects().toString(), "[bubbles]");
+        check("effects Squid doesn't know are left out", squidskins.CapeEffects.parse(List.of("snow", "lasers", "glow")).toString(), "[GLOW, SNOW]");
+
+        // Animated capes: frames stacked top to bottom, played at 10 a second
+        check("cape shapes", squidskins.CapeEffects.frames(64, 32) + " " + squidskins.CapeEffects.frames(64, 64) + " "
+                + squidskins.CapeEffects.frames(64, 96) + " " + squidskins.CapeEffects.frames(128, 640) + " " + squidskins.CapeEffects.frames(64, 50), "1 0 3 10 0");
+        java.awt.image.BufferedImage animated = new java.awt.image.BufferedImage(64, 96, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 96; y++) for (int x = 0; x < 64; x++) animated.setRGB(x, y, 0xFF000000 | (y / 32 + 1));
+        Path animatedPicture = pictures.resolve("waves.png");
+        javax.imageio.ImageIO.write(animated, "png", animatedPicture.toFile());
+        wardrobe.bringIn(animatedPicture, kind);
+        check("an animated cape is a cape", kind[0], squidskins.Wardrobe.Kind.CAPE);
+        int[] strip = animated.getRGB(0, 0, 64, 96, null, 0, 64);
+        check("each frame is cut out in turn", squidskins.CapeEffects.frame(strip, 64, squidskins.CapeEffects.frameAt(3, 0))[5] + " "
+                + squidskins.CapeEffects.frame(strip, 64, squidskins.CapeEffects.frameAt(3, 150))[5] + " "
+                + squidskins.CapeEffects.frame(strip, 64, squidskins.CapeEffects.frameAt(3, 250))[5] + " "
+                + squidskins.CapeEffects.frame(strip, 64, squidskins.CapeEffects.frameAt(3, 300))[5],
+                (0xFF000001) + " " + (0xFF000002) + " " + (0xFF000003) + " " + (0xFF000001));
+        int[] gray = {0xFF808080, 0x00000000, 0xFF808080, 0xFF808080};
+        squidskins.CapeEffects.paint(gray, 2, List.of(squidskins.CapeEffects.Effect.RAINBOW), 0);
+        check("rainbow colors a cape and keeps see-through parts", (gray[0] != 0xFF808080) + " " + gray[1] + " " + (gray[0] != gray[2]) + " " + (gray[0] >>> 24),
+                "true 0 true 255");
 
         byte[] fakeSkin;
         try (java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream()) {
@@ -506,7 +532,8 @@ public class PipelineTest {
         Main.setGameLoader(skinLoader);
         ((SquidMod) skinLoader.loadClass("squidskins.Skins").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-skins")));
         for (String name : new String[] {"net.minecraft.client.player.AbstractClientPlayer", "net.minecraft.client.gui.screens.options.SkinCustomizationScreen",
-                "squidskins.WardrobeScreen", "squidskins.PaintScreen", "squidskins.NameScreen", "squidskins.FilePicker"}) {
+                "squidskins.WardrobeScreen", "squidskins.PaintScreen", "squidskins.NameScreen", "squidskins.FilePicker", "squidskins.EffectsScreen",
+                "net.minecraft.client.renderer.entity.layers.CapeLayer"}) {
             // Minecraft's player class can't be started without the whole game, so it's only loaded (which applies the patch)
             Class<?> loaded = Class.forName(name, !name.startsWith("net.minecraft.client.player"), skinLoader);
             check(name.substring(name.lastIndexOf('.') + 1) + " loads with the wardrobe", loaded.getClassLoader() == skinLoader, true);

@@ -31,9 +31,32 @@ public final class Wardrobe {
     /** The two capes that come with Squid. */
     public static final List<String> BUILT_IN_CAPES = List.of("kelp", "squid");
 
-    /** One player's picks. skin is a file name in the skins folder ("" for their own skin). cape is "", "kelp", "squid" or "file:name.png". */
-    public record Choice(String skin, boolean slim, String cape) {
+    /**
+     * One player's picks. skin is a file name in the skins folder ("" for their own skin). cape is "", "kelp", "squid"
+     * or "file:name.png". effects are the cape's effects by id, like "enchanted" or "bubbles" (see {@link CapeEffects}).
+     */
+    public record Choice(String skin, boolean slim, String cape, List<String> effects) {
         public static final Choice NONE = new Choice("", false, "");
+
+        public Choice {
+            effects = List.copyOf(effects);
+        }
+
+        public Choice(String skin, boolean slim, String cape) {
+            this(skin, slim, cape, List.of());
+        }
+
+        /** The same picks with another cape, keeping its effects. */
+        public Choice withCape(String newCape) {
+            return new Choice(skin, slim, newCape, effects);
+        }
+
+        /** The same picks with this effect switched on or off. */
+        public Choice toggled(CapeEffects.Effect effect) {
+            List<String> changed = new ArrayList<>(effects);
+            if (!changed.remove(effect.id())) changed.add(effect.id());
+            return new Choice(skin, slim, cape, changed);
+        }
     }
 
     // Mojang's servers. Tests point these at a pretend server.
@@ -90,8 +113,12 @@ public final class Wardrobe {
     public Choice choice(String playerId) {
         Map<String, Object> player = Json.object(loadChoices().get(playerId));
         if (player == null) return Choice.NONE;
+        List<String> effects = new ArrayList<>();
+        if (player.get("effects") != null) {
+            for (Object effect : Json.array(player.get("effects"))) effects.add(String.valueOf(effect));
+        }
         return new Choice(player.get("skin") instanceof String s ? s : "", Boolean.TRUE.equals(player.get("slim")),
-                player.get("cape") instanceof String c ? c : "");
+                player.get("cape") instanceof String c ? c : "", effects);
     }
 
     public void choose(String playerId, Choice choice) throws IOException {
@@ -100,6 +127,7 @@ public final class Wardrobe {
         player.put("skin", choice.skin());
         player.put("slim", choice.slim());
         player.put("cape", choice.cape());
+        player.put("effects", choice.effects());
         all.put(playerId, player);
         StringBuilder json = new StringBuilder("{");
         boolean first = true;
@@ -107,7 +135,13 @@ public final class Wardrobe {
             Map<String, Object> p = Json.object(entry.getValue());
             json.append(first ? "\n" : ",\n").append("    ").append(quote(entry.getKey())).append(": {\"skin\": ")
                     .append(quote(String.valueOf(p.get("skin")))).append(", \"slim\": ").append(Boolean.TRUE.equals(p.get("slim")))
-                    .append(", \"cape\": ").append(quote(String.valueOf(p.get("cape")))).append("}");
+                    .append(", \"cape\": ").append(quote(String.valueOf(p.get("cape"))))
+                    .append(", \"effects\": [");
+            List<String> effects = new ArrayList<>();
+            if (p.get("effects") != null) {
+                for (Object effect : Json.array(p.get("effects"))) effects.add(quote(String.valueOf(effect)));
+            }
+            json.append(String.join(", ", effects)).append("]}");
             first = false;
         }
         json.append(first ? "}\n" : "\n}\n");
@@ -131,7 +165,10 @@ public final class Wardrobe {
 
     // ---- Bringing pictures in ----
 
-    /** What a picture is, by its shape: square ones are skins, twice-as-wide ones are capes. */
+    /**
+     * What a picture is, by its shape: square ones are skins, twice-as-wide ones are capes, and capes with their frames
+     * stacked top to bottom are animated capes.
+     */
     public enum Kind { SKIN, CAPE }
 
     /**
@@ -143,7 +180,7 @@ public final class Wardrobe {
         Kind is = kindOf(image);
         if (is == null) {
             throw new IOException("That picture is " + image.getWidth() + "x" + image.getHeight()
-                    + ". Skins are 64x64, capes are 64x32.");
+                    + ". Skins are 64x64, capes are 64x32 (animated ones stack their frames: 64x96, 64x128...).");
         }
         kind[0] = is;
         Path folder = is == Kind.SKIN ? skins() : capes();
@@ -157,7 +194,7 @@ public final class Wardrobe {
         int w = image.getWidth();
         int h = image.getHeight();
         if (w >= 64 && w == h && w % 64 == 0) return Kind.SKIN;
-        if (w >= 64 && w == 2 * h && w % 64 == 0) return Kind.CAPE;
+        if (CapeEffects.frames(w, h) >= 1) return Kind.CAPE;
         return null;
     }
 

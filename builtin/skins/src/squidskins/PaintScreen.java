@@ -124,8 +124,8 @@ final class PaintScreen extends Screen {
             ImageIO.write(image, "png", file.toFile());
             Wardrobe.Choice now = Skins.choice(Skins.myId());
             String name = file.getFileName().toString();
-            Skins.choose(Skins.myId(), isCape ? new Wardrobe.Choice(now.skin(), now.slim(), "file:" + name)
-                    : new Wardrobe.Choice(name, now.slim(), now.cape()));
+            Skins.choose(Skins.myId(), isCape ? now.withCape("file:" + name)
+                    : new Wardrobe.Choice(name, now.slim(), now.cape(), now.effects()));
             parent.say("Saved " + name.replaceAll("(?i)\\.png$", "") + " and put it on!", 0xFF55FF55);
             onClose();
         } catch (IOException e) {

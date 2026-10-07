@@ -60,15 +60,18 @@ final class WardrobeScreen extends Screen {
         List<String> skins = new ArrayList<>(List.of(""));
         skins.addAll(Wardrobe.pictures(Skins.wardrobe.skins()));
         addRenderableWidget(Button.builder(Component.literal("Skin: " + (now.skin().isEmpty() ? "Yours" : shortName(now.skin()))),
-                b -> pick(new Wardrobe.Choice(next(skins, now.skin()), now.slim(), now.cape()))).bounds(x, y, 200, 20).build());
+                b -> pick(new Wardrobe.Choice(next(skins, now.skin()), now.slim(), now.cape(), now.effects()))).bounds(x, y, 200, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Arms: " + (now.slim() ? "Slim" : "Wide")),
-                b -> pick(new Wardrobe.Choice(now.skin(), !now.slim(), now.cape()))).bounds(x, y + 24, 200, 20).build());
+                b -> pick(new Wardrobe.Choice(now.skin(), !now.slim(), now.cape(), now.effects()))).bounds(x, y + 24, 200, 20).build());
 
         List<String> capes = new ArrayList<>(List.of(""));
         capes.addAll(Wardrobe.BUILT_IN_CAPES);
         for (String file : Wardrobe.pictures(Skins.wardrobe.capes())) capes.add("file:" + file);
         addRenderableWidget(Button.builder(Component.literal("Cape: " + capeName(now.cape())),
-                b -> pick(new Wardrobe.Choice(now.skin(), now.slim(), next(capes, now.cape())))).bounds(x, y + 48, 200, 20).build());
+                b -> pick(now.withCape(next(capes, now.cape())))).bounds(x, y + 48, 134, 20).build());
+        String effects = now.effects().isEmpty() ? "Effects" : "Effects: " + now.effects().size();
+        addRenderableWidget(Button.builder(Component.literal(effects),
+                b -> minecraft.setScreenAndShow(new EffectsScreen(this))).bounds(x + 138, y + 48, 62, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal("Get Skin by Name..."),
                 b -> minecraft.setScreenAndShow(new NameScreen(this))).bounds(x, y + 80, 200, 20).build());
@@ -99,7 +102,10 @@ final class WardrobeScreen extends Screen {
 
     private static String capeName(String cape) {
         if (cape.isEmpty()) return "None";
-        if (cape.startsWith("file:")) return shortName(cape.substring(5));
+        if (cape.startsWith("file:")) {
+            String name = shortName(cape.substring(5));
+            return name.length() > 14 ? name.substring(0, 13) + "..." : name;
+        }
         return Character.toUpperCase(cape.charAt(0)) + cape.substring(1);
     }
 
@@ -112,10 +118,10 @@ final class WardrobeScreen extends Screen {
                 String name = Skins.wardrobe.bringIn(file, kind);
                 Wardrobe.Choice now = choice();
                 if (kind[0] == Wardrobe.Kind.SKIN) {
-                    pick(new Wardrobe.Choice(name, now.slim(), now.cape()));
+                    pick(new Wardrobe.Choice(name, now.slim(), now.cape(), now.effects()));
                     say("Added the skin " + shortName(name) + "!", 0xFF55FF55);
                 } else {
-                    pick(new Wardrobe.Choice(now.skin(), now.slim(), "file:" + name));
+                    pick(now.withCape("file:" + name));
                     say("Added the cape " + shortName(name) + "!", 0xFF55FF55);
                 }
             } catch (IOException e) {
