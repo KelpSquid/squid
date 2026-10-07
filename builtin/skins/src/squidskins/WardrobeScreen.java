@@ -64,11 +64,8 @@ final class WardrobeScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Arms: " + (now.slim() ? "Slim" : "Wide")),
                 b -> pick(new Wardrobe.Choice(now.skin(), !now.slim(), now.cape(), now.effects()))).bounds(x, y + 24, 200, 20).build());
 
-        List<String> capes = new ArrayList<>(List.of(""));
-        capes.addAll(Wardrobe.BUILT_IN_CAPES);
-        for (String file : Wardrobe.pictures(Skins.wardrobe.capes())) capes.add("file:" + file);
-        addRenderableWidget(Button.builder(Component.literal("Cape: " + capeName(now.cape())),
-                b -> pick(now.withCape(next(capes, now.cape())))).bounds(x, y + 48, 134, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Cape: " + capeName(now.cape()) + "..."),
+                b -> minecraft.setScreenAndShow(new CapeBrowserScreen(this))).bounds(x, y + 48, 134, 20).build());
         String effects = now.effects().isEmpty() ? "Effects" : "Effects: " + now.effects().size();
         addRenderableWidget(Button.builder(Component.literal(effects),
                 b -> minecraft.setScreenAndShow(new EffectsScreen(this))).bounds(x + 138, y + 48, 62, 20).build());
@@ -102,6 +99,7 @@ final class WardrobeScreen extends Screen {
 
     private static String capeName(String cape) {
         if (cape.isEmpty()) return "None";
+        if (OfficialCapes.isOfficial(cape)) return "Official";
         if (cape.startsWith("file:")) {
             String name = shortName(cape.substring(5));
             return name.length() > 14 ? name.substring(0, 13) + "..." : name;

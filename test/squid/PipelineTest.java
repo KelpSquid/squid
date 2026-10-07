@@ -445,6 +445,48 @@ public class PipelineTest {
         check("an effect switches off again", withEffects.toggled(squidskins.CapeEffects.Effect.ENCHANTED).effects().toString(), "[bubbles]");
         check("effects Squid doesn't know are left out", squidskins.CapeEffects.parse(List.of("snow", "lasers", "glow")).toString(), "[GLOW, SNOW]");
 
+        // Official capes: only links to Mojang's texture server are kept, and pictures come from there
+        List<squidskins.OfficialCapes.Cape> officialCapes = squidskins.OfficialCapes.parse("{\"capes\": ["
+                + "{\"id\": \"migrator\", \"name\": \"Migrator\", \"texture\": \"https://textures.minecraft.net/texture/2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933\"},"
+                + "{\"id\": \"sneaky\", \"name\": \"Sneaky\", \"texture\": \"https://example.com/texture/2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933\"},"
+                + "{\"id\": \"odd\", \"name\": \"Odd\", \"texture\": \"https://textures.minecraft.net/texture/../../x\"}]}");
+        check("only links to Mojang's texture server are official capes", officialCapes.stream().map(c -> c.name() + " " + c.choice().substring(0, 16)).toList().toString(),
+                "[Migrator official:2340c0e]");
+        com.sun.net.httpserver.HttpServer textureServer = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        byte[] capePng;
+        try (java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream()) {
+            javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(64, 32, java.awt.image.BufferedImage.TYPE_INT_ARGB), "png", png);
+            capePng = png.toByteArray();
+        }
+        java.util.concurrent.atomic.AtomicInteger textureAsks = new java.util.concurrent.atomic.AtomicInteger();
+        textureServer.createContext("/texture/", exchange -> {
+            textureAsks.incrementAndGet();
+            byte[] body = exchange.getRequestURI().getPath().endsWith("aaaa") ? "not a picture".getBytes() : capePng;
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        textureServer.start();
+        String realTextures = squidskins.OfficialCapes.mojangTextures;
+        squidskins.OfficialCapes.mojangTextures = "http://127.0.0.1:" + textureServer.getAddress().getPort() + "/texture/";
+        try {
+            String hash = "2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933";
+            Path got = squidskins.OfficialCapes.fetch(wardrobe.officialCapes(), hash);
+            squidskins.OfficialCapes.fetch(wardrobe.officialCapes(), hash);
+            check("an official cape is loaded from Mojang once, then kept", got.getFileName() + " " + textureAsks.get(), hash + ".png 1");
+            String notCape;
+            try {
+                squidskins.OfficialCapes.fetch(wardrobe.officialCapes(), "1111111111111111111111111111111111111111aaaa");
+                notCape = "kept";
+            } catch (java.io.IOException e) {
+                notCape = e.getMessage() + " " + java.nio.file.Files.exists(squidskins.OfficialCapes.file(wardrobe.officialCapes(), "1111111111111111111111111111111111111111aaaa"));
+            }
+            check("something that isn't a cape picture is thrown away", notCape, "That isn't a cape picture. false");
+        } finally {
+            squidskins.OfficialCapes.mojangTextures = realTextures;
+            textureServer.stop(0);
+        }
+
         // Animated capes: frames stacked top to bottom, played at 10 a second
         check("cape shapes", squidskins.CapeEffects.frames(64, 32) + " " + squidskins.CapeEffects.frames(64, 64) + " "
                 + squidskins.CapeEffects.frames(64, 96) + " " + squidskins.CapeEffects.frames(128, 640) + " " + squidskins.CapeEffects.frames(64, 50), "1 0 3 10 0");
@@ -528,11 +570,12 @@ public class PipelineTest {
 
         List<URL> skinUrls = new ArrayList<>(urls);
         skinUrls.add(Path.of(a[5]).toUri().toURL());
+        skinUrls.add(Path.of(a[3]).toUri().toURL()); // the wardrobe uses the Store for community capes
         SquidClassLoader skinLoader = new SquidClassLoader(skinUrls.toArray(URL[]::new));
         Main.setGameLoader(skinLoader);
         ((SquidMod) skinLoader.loadClass("squidskins.Skins").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-skins")));
         for (String name : new String[] {"net.minecraft.client.player.AbstractClientPlayer", "net.minecraft.client.gui.screens.options.SkinCustomizationScreen",
-                "squidskins.WardrobeScreen", "squidskins.PaintScreen", "squidskins.NameScreen", "squidskins.FilePicker", "squidskins.EffectsScreen",
+                "squidskins.WardrobeScreen", "squidskins.PaintScreen", "squidskins.NameScreen", "squidskins.FilePicker", "squidskins.EffectsScreen", "squidskins.CapeBrowserScreen",
                 "net.minecraft.client.renderer.entity.layers.CapeLayer"}) {
             // Minecraft's player class can't be started without the whole game, so it's only loaded (which applies the patch)
             Class<?> loaded = Class.forName(name, !name.startsWith("net.minecraft.client.player"), skinLoader);

@@ -183,6 +183,16 @@ public class Skins implements SquidMod {
             } else if (Wardrobe.BUILT_IN_CAPES.contains(cape)) {
                 key = "builtin:" + cape;
                 opener = () -> Skins.class.getResourceAsStream("/squidskins/capes/" + cape + ".png");
+            } else if (OfficialCapes.isOfficial(cape)) {
+                // Loaded from Mojang's server the first time, in the background. Until then there's no cape.
+                String hash = cape.substring("official:".length());
+                Path file = OfficialCapes.file(wardrobe.officialCapes(), hash);
+                if (!Files.exists(file)) {
+                    fetchLater(hash);
+                    return null;
+                }
+                key = "official:" + hash;
+                opener = () -> Files.newInputStream(file);
             } else {
                 return null;
             }
@@ -223,6 +233,27 @@ public class Skins implements SquidMod {
             System.out.println("[Squid Skins] Couldn't load a cape: " + e.getMessage());
             return null;
         }
+    }
+
+    private static final java.util.Set<String> fetching = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** Gets an official cape's picture from Mojang without stopping the game. Each one is only asked for once. */
+    static void fetchLater(String hash) {
+        if (!fetching.add(hash)) return;
+        Thread download = new Thread(() -> {
+            try {
+                OfficialCapes.fetch(wardrobe.officialCapes(), hash);
+            } catch (Exception e) {
+                System.out.println("[Squid Skins] Couldn't get an official cape from Mojang: " + e.getMessage());
+            }
+        }, "Squid official cape");
+        download.setDaemon(true);
+        download.start();
+    }
+
+    /** A cape's picture on its own (no effects), for the Cape Browser. Null until it's loaded. */
+    static Identifier capePicture(String cape) {
+        return cape(new Wardrobe.Choice("", false, cape));
     }
 
     private static synchronized List<CapeEffects.Effect> effectsOf(Identifier cape) {

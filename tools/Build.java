@@ -65,12 +65,15 @@ public class Build {
 
         // 3. Squid's built-in parts, like the Store. They're built against Minecraft like the examples,
         //    and go in a builtin folder next to squid.jar, where Squid loads them by itself.
+        //    A part can use the parts it depends on (like the wardrobe using the Store), so those are built first.
         Path builtInFolder = Path.of("builtin");
         List<Path> builtInJars = new ArrayList<>();
+        StringBuilder builtInClasses = new StringBuilder();
         try (Stream<Path> parts = Files.isDirectory(builtInFolder) ? Files.list(builtInFolder) : Stream.empty()) {
-            for (Path part : parts.filter(Files::isDirectory).toList()) {
+            for (Path part : inDependencyOrder(parts.filter(Files::isDirectory).sorted().toList())) {
                 Path out = BUILD.resolve("builtin-classes").resolve(part.getFileName());
-                compile(listJava(part.resolve("src")), classes + ";" + squidClasspath + ";" + game, out, "25");
+                compile(listJava(part.resolve("src")), classes + ";" + squidClasspath + ";" + game + builtInClasses, out, "25");
+                builtInClasses.append(";").append(out);
                 copyResources(part, out);
                 Path partJar = BUILD.resolve("builtin").resolve(part.getFileName() + ".jar");
                 jar(partJar, out, part.resolve("squid.json"));
@@ -167,6 +170,36 @@ public class Build {
         Matcher m = Pattern.compile("VERSION = \"([^\"]+)\"").matcher(Files.readString(Path.of("src", "squid", "Main.java")));
         if (!m.find()) throw new IOException("Couldn't find Squid's VERSION in Main.java");
         return m.group(1);
+    }
+
+    /** Built-in parts in an order where each comes after the parts its squid.json "depends" on. */
+    static List<Path> inDependencyOrder(List<Path> parts) throws IOException {
+        java.util.Map<String, Path> byId = new java.util.LinkedHashMap<>();
+        java.util.Map<Path, List<String>> needs = new java.util.HashMap<>();
+        for (Path part : parts) {
+            String info = Files.readString(part.resolve("squid.json"));
+            byId.put(field(info, "id"), part);
+            List<String> depends = new ArrayList<>();
+            Matcher list = Pattern.compile("\"depends\"\\s*:\\s*\\[([^\\]]*)\\]").matcher(info);
+            if (list.find()) {
+                Matcher id = Pattern.compile("\"([^\"]+)\"").matcher(list.group(1));
+                while (id.find()) depends.add(id.group(1));
+            }
+            needs.put(part, depends);
+        }
+        List<Path> ordered = new ArrayList<>();
+        while (ordered.size() < parts.size()) {
+            boolean placed = false;
+            for (Path part : parts) {
+                if (ordered.contains(part)) continue;
+                if (needs.get(part).stream().allMatch(id -> !byId.containsKey(id) || ordered.contains(byId.get(id)))) {
+                    ordered.add(part);
+                    placed = true;
+                }
+            }
+            if (!placed) throw new IllegalStateException("Built-in parts depend on each other in a loop");
+        }
+        return ordered;
     }
 
     /** Where the store's files are downloaded from: the squid-store repo on GitHub. */

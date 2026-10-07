@@ -33,7 +33,8 @@ public final class Wardrobe {
 
     /**
      * One player's picks. skin is a file name in the skins folder ("" for their own skin). cape is "", "kelp", "squid"
-     * or "file:name.png". effects are the cape's effects by id, like "enchanted" or "bubbles" (see {@link CapeEffects}).
+     * "file:name.png" or "official:" and a Mojang cape's id. effects are the cape's effects by id, like "enchanted" or
+     * "bubbles" (see {@link CapeEffects}).
      */
     public record Choice(String skin, boolean slim, String cape, List<String> effects) {
         public static final Choice NONE = new Choice("", false, "");
@@ -89,6 +90,16 @@ public final class Wardrobe {
 
     public Path capes() {
         return home.resolve("capes");
+    }
+
+    /** Official capes' pictures, once they've been loaded from Mojang's server (see {@link OfficialCapes}). */
+    public Path officialCapes() {
+        return home.resolve("official-capes");
+    }
+
+    /** Pictures of Store capes, for looking at before getting them. */
+    public Path storePreviews() {
+        return home.resolve("store-previews");
     }
 
     /** The picture files in a folder, sorted by name. */
