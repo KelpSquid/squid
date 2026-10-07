@@ -11,3 +11,6 @@ logs/
 # Editor folders
 .vscode/
 .idea/
+
+# The Squid Kit's example project comes with its VS Code settings
+!tools/kit/ExampleMod/.vscode/

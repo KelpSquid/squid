@@ -165,9 +165,13 @@ final class Mods {
         ordered.add(mod);
     }
 
-    /** A folder Squid treats as a project: one with a squid.json or a src folder. Folders starting with . are Squid's own. */
+    /**
+     * A folder Squid treats as a project: one with a squid.json or a src folder. Folders starting with . are Squid's
+     * own, and ones ending in .disabled are turned off.
+     */
     static boolean isProject(Path path) {
-        return Files.isDirectory(path) && !path.getFileName().toString().startsWith(".")
+        String name = path.getFileName().toString();
+        return Files.isDirectory(path) && !name.startsWith(".") && !name.endsWith(".disabled")
                 && (Files.exists(path.resolve("squid.json")) || Files.isDirectory(path.resolve("src")));
     }
 

@@ -1,0 +1,11 @@
+{
+    "java.project.sourcePaths": ["src"],
+    "java.project.referencedLibraries": {
+        "include": [
+            "../squid-api.jar"
+        ],
+        "sources": {
+            "../squid-api.jar": "../squid-api-sources.jar"
+        }
+    }
+}

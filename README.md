@@ -63,8 +63,12 @@ mods/
 file it's in: *"there's a mistake in src/Second.java on line 2: a ; is missing at the end of the line"*.
 
 In Kelp, **New Mod** can make a project for you, already set up for VS Code and IntelliJ. They autocomplete every Squid
-and Minecraft command and explain each one, using the Squid library that comes with Squid (`squid-api.jar`, with its
-code and docs, in Kelp's `squid/library` folder).
+and Minecraft command and explain each one, using the Squid library that comes with Squid (`squid-api.jar` and its
+code, in Kelp's `squid/library` folder).
+
+Not using Kelp? The **Squid Kit** has the same library on its own, with its docs as web pages, an example project and
+a readme. It's on the [Releases](https://github.com/SamuelArther/squid/releases) page, and `build.bat` makes it in
+`build/squid-kit-<version>.zip`.
 
 ## .squid files
 

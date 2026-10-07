@@ -89,6 +89,7 @@ public class Build {
             Files.copy(part, installed.resolve("builtin").resolve(part.getFileName()), StandardCopyOption.REPLACE_EXISTING);
         }
         Files.copy(squidJar, installed.resolve("squid.jar"), StandardCopyOption.REPLACE_EXISTING);
+        deleteFolder(installed.resolve("library")); // so files an older Squid had there don't stay behind
         Files.createDirectories(installed.resolve("library"));
         try (Stream<Path> parts = Files.list(LIBRARY)) {
             for (Path part : parts.toList()) {
@@ -108,25 +109,57 @@ public class Build {
 
     /**
      * The Squid library, for making mods in an editor like VS Code or IntelliJ: squid-api.jar has just squid.api (what
-     * mods use), with its code and its docs next to it so the editor can show what each command does. It comes with
+     * mods use), with its code next to it, which is where the editor reads what each command does. It comes with
      * Squid, in Kelp's squid/library folder, so a mod project always uses the Squid it will run on.
+     *
+     * The Squid Kit is the same library on its own, for people without Kelp: a zip with the library, its docs as web
+     * pages, an example project and a readme.
      */
     static void library(Path classes, String squidClasspath) throws Exception {
         String version = squidVersion();
         Path api = Path.of("squid", "api");
+        deleteFolder(LIBRARY);
         jarPart(LIBRARY.resolve("squid-api.jar"), classes, api);
         jarPart(LIBRARY.resolve("squid-api-sources.jar"), Path.of("src"), api);
 
         Path docs = BUILD.resolve("docs");
+        deleteFolder(docs);
         List<String> args = new ArrayList<>(List.of("-d", docs.toString(), "-cp", classes + ";" + squidClasspath,
-                "-encoding", "UTF-8", "-docencoding", "UTF-8", "-quiet", "-Xdoclint:none", "-windowtitle", "Squid " + version,
+                "-encoding", "UTF-8", "-docencoding", "UTF-8", "-quiet", "-Xdoclint:none", "--no-fonts", "-notimestamp", "-windowtitle", "Squid " + version,
                 "-doctitle", "Squid " + version + ": everything a mod can use"));
         for (Path source : listJava(Path.of("src").resolve(api))) args.add(source.toString());
         if (ToolProvider.getSystemDocumentationTool().run(null, null, null, args.toArray(String[]::new)) != 0) {
             throw new IllegalStateException("Making the docs failed");
         }
-        jar(LIBRARY.resolve("squid-api-docs.jar"), docs, null);
         System.out.println("Built the Squid library in " + LIBRARY);
+
+        Path kit = BUILD.resolve("squid-kit-" + version + ".zip");
+        Path kitFiles = Path.of("tools", "kit");
+        try (OutputStream file = Files.newOutputStream(kit); JarOutputStream zip = new JarOutputStream(file);
+             Stream<Path> library = Files.list(LIBRARY); Stream<Path> docPages = Files.walk(docs);
+             Stream<Path> extras = Files.walk(kitFiles)) {
+            for (Path p : library.sorted().toList()) addToZip(zip, p, p.getFileName().toString());
+            for (Path p : docPages.filter(Files::isRegularFile).sorted().toList()) {
+                addToZip(zip, p, "docs/" + docs.relativize(p).toString().replace('\\', '/'));
+            }
+            for (Path p : extras.filter(Files::isRegularFile).sorted().toList()) {
+                addToZip(zip, p, kitFiles.relativize(p).toString().replace('\\', '/'));
+            }
+        }
+        System.out.println("Built the Squid Kit: " + kit);
+    }
+
+    static void addToZip(JarOutputStream zip, Path file, String name) throws IOException {
+        zip.putNextEntry(new JarEntry(name));
+        Files.copy(file, zip);
+        zip.closeEntry();
+    }
+
+    static void deleteFolder(Path folder) throws IOException {
+        if (!Files.exists(folder)) return;
+        try (Stream<Path> walk = Files.walk(folder)) {
+            for (Path p : walk.sorted((a, b) -> b.compareTo(a)).toList()) Files.delete(p);
+        }
     }
 
     /** Squid's version, from Main.VERSION. */
