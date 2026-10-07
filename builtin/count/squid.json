@@ -1,0 +1,8 @@
+{
+    "id": "squid-count",
+    "name": "Squid Count",
+    "version": "1.0.0",
+    "description": "Points for every advancement you earn while playing with Squid, like gamerscore.",
+    "authors": ["Samuel"],
+    "main": "squidcount.SquidCount"
+}

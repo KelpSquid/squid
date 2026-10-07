@@ -303,6 +303,29 @@ public class PipelineTest {
             check(name.substring(name.lastIndexOf('.') + 1) + " loads with the Store", loaded.getClassLoader() == storeLoader, true);
         }
 
+        // The Squid Count: points like gamerscore, each advancement only once, kept in a file
+        Path countPath = java.nio.file.Files.createTempDirectory("squid-count-test").resolve("squid-count.json");
+        squidcount.CountFile counts = squidcount.CountFile.load(countPath);
+        check("points: task, goal, challenge", squidcount.CountFile.points("task") + " " + squidcount.CountFile.points("goal") + " "
+                + squidcount.CountFile.points("challenge"), "10 25 50");
+        int first = counts.earn("abc", "Sam", "minecraft:story/mine_stone", 10);
+        int twice = counts.earn("abc", "Sam", "minecraft:story/mine_stone", 10);
+        counts.earn("abc", "Sam", "minecraft:adventure/kill_all_mobs", 50);
+        counts.earn("def", "Bob \"B\"", "minecraft:story/mine_stone", 10);
+        counts.save();
+        squidcount.CountFile reread = squidcount.CountFile.load(countPath);
+        check("an advancement counts once, and counts are kept per player", first + " " + twice + " | " + reread.player("abc").points + " "
+                + reread.player("abc").earned.size() + " | " + reread.player("def").points + " " + reread.player("def").name, "10 0 | 60 2 | 10 Bob \"B\"");
+        java.nio.file.Files.writeString(countPath, "{\"players\": {\"abc\": {\"points\": 5");
+        check("a broken count file starts fresh instead of crashing", squidcount.CountFile.load(countPath).player("abc").points, 0);
+
+        List<URL> countUrls = new ArrayList<>(urls);
+        countUrls.add(Path.of(a[4]).toUri().toURL());
+        SquidClassLoader countLoader = new SquidClassLoader(countUrls.toArray(URL[]::new));
+        ((SquidMod) countLoader.loadClass("squidcount.SquidCount").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-count")));
+        Class<?> clientAdvancements = Class.forName("net.minecraft.client.multiplayer.ClientAdvancements", true, countLoader);
+        check("ClientAdvancements loads with the Squid Count's hook", clientAdvancements.getClassLoader() == countLoader, true);
+
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);
     }

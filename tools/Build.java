@@ -163,8 +163,8 @@ public class Build {
         Path testClasses = BUILD.resolve("test");
         List<Path> sources = listJava(Path.of("test"));
         // The Store's own logic (its list and installer) is tested too, so its classes go on the test's classpath
-        Path store = BUILD.resolve("builtin-classes").resolve("store");
-        compile(sources, classes + ";" + squidClasspath + ";" + store, testClasses, "21");
+        String builtIn = BUILD.resolve("builtin-classes").resolve("store") + ";" + BUILD.resolve("builtin-classes").resolve("count");
+        compile(sources, classes + ";" + squidClasspath + ";" + builtIn, testClasses, "21");
         // The test needs the example mods in a mods folder of its own
         Path mods = BUILD.resolve("test-mods");
         Files.createDirectories(mods);
@@ -173,8 +173,9 @@ public class Build {
         }
 
         Path java = Path.of(System.getProperty("java.home"), "bin", "java.exe");
-        Process run = new ProcessBuilder(java.toString(), "-cp", testClasses + ";" + classes + ";" + squidClasspath + ";" + store,
-                "squid.PipelineTest", game, mods.toString(), testClasses.toString(), BUILD.resolve("builtin").resolve("store.jar").toString())
+        Process run = new ProcessBuilder(java.toString(), "-cp", testClasses + ";" + classes + ";" + squidClasspath + ";" + builtIn,
+                "squid.PipelineTest", game, mods.toString(), testClasses.toString(), BUILD.resolve("builtin").resolve("store.jar").toString(),
+                BUILD.resolve("builtin").resolve("count.jar").toString())
                 .inheritIO().start();
         if (run.waitFor() != 0) throw new IllegalStateException("Tests failed");
     }
