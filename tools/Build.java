@@ -55,6 +55,7 @@ public class Build {
             for (Path example : examples.filter(Files::isDirectory).toList()) {
                 Path out = BUILD.resolve("examples").resolve(example.getFileName());
                 compile(listJava(example.resolve("src")), classes + ";" + squidClasspath + ";" + game, out, "25");
+                copyResources(example, out);
                 Path modJar = BUILD.resolve(example.getFileName() + ".jar");
                 jar(modJar, out, example.resolve("squid.json"));
                 System.out.println("Built " + modJar);
@@ -69,6 +70,7 @@ public class Build {
             for (Path part : parts.filter(Files::isDirectory).toList()) {
                 Path out = BUILD.resolve("builtin-classes").resolve(part.getFileName());
                 compile(listJava(part.resolve("src")), classes + ";" + squidClasspath + ";" + game, out, "25");
+                copyResources(part, out);
                 Path partJar = BUILD.resolve("builtin").resolve(part.getFileName() + ".jar");
                 jar(partJar, out, part.resolve("squid.json"));
                 builtInJars.add(partJar);
@@ -164,7 +166,8 @@ public class Build {
         Path testClasses = BUILD.resolve("test");
         List<Path> sources = listJava(Path.of("test"));
         // The Store's own logic (its list and installer) is tested too, so its classes go on the test's classpath
-        String builtIn = BUILD.resolve("builtin-classes").resolve("store") + ";" + BUILD.resolve("builtin-classes").resolve("count");
+        String builtIn = BUILD.resolve("builtin-classes").resolve("store") + ";" + BUILD.resolve("builtin-classes").resolve("count")
+                + ";" + BUILD.resolve("builtin-classes").resolve("skins");
         compile(sources, classes + ";" + squidClasspath + ";" + builtIn, testClasses, "21");
         // The test needs the example mods in a mods folder of its own
         Path mods = BUILD.resolve("test-mods");
@@ -176,7 +179,7 @@ public class Build {
         Path java = Path.of(System.getProperty("java.home"), "bin", "java.exe");
         Process run = new ProcessBuilder(java.toString(), "-cp", testClasses + ";" + classes + ";" + squidClasspath + ";" + builtIn,
                 "squid.PipelineTest", game, mods.toString(), testClasses.toString(), BUILD.resolve("builtin").resolve("store.jar").toString(),
-                BUILD.resolve("builtin").resolve("count.jar").toString())
+                BUILD.resolve("builtin").resolve("count.jar").toString(), BUILD.resolve("builtin").resolve("skins.jar").toString())
                 .inheritIO().start();
         if (run.waitFor() != 0) throw new IllegalStateException("Tests failed");
     }
@@ -230,6 +233,19 @@ public class Build {
                 "-cp", classpath, "-d", out.toString()));
         for (Path source : sources) args.add(source.toString());
         if (javac.run(null, null, null, args.toArray(String[]::new)) != 0) throw new IllegalStateException("Compile failed");
+    }
+
+    /** Copies a mod's resources folder (pictures and such) next to its classes, so they go in its jar. */
+    static void copyResources(Path mod, Path out) throws IOException {
+        Path resources = mod.resolve("resources");
+        if (!Files.isDirectory(resources)) return;
+        try (Stream<Path> walk = Files.walk(resources)) {
+            for (Path file : walk.filter(Files::isRegularFile).toList()) {
+                Path target = out.resolve(resources.relativize(file).toString());
+                Files.createDirectories(target.getParent());
+                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
     }
 
     /** Packs a folder of classes (plus an optional squid.json) into a jar. */

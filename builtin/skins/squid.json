@@ -1,0 +1,8 @@
+{
+    "id": "squid-skins",
+    "name": "Squid Skins",
+    "version": "1.0.0",
+    "description": "Your skin and cape: pick, look up by name, or paint your own. Options > Skin Customization.",
+    "authors": ["Samuel"],
+    "main": "squidskins.Skins"
+}

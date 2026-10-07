@@ -336,6 +336,113 @@ public class PipelineTest {
         Class<?> clientAdvancements = Class.forName("net.minecraft.client.multiplayer.ClientAdvancements", true, countLoader);
         check("ClientAdvancements loads with the Squid Count's hook", clientAdvancements.getClassLoader() == countLoader, true);
 
+        // Skins and capes: telling them apart, bringing them in, remembering picks, and getting a skin by name
+        Path wardrobeHome = java.nio.file.Files.createTempDirectory("squid-wardrobe-test");
+        squidskins.Wardrobe wardrobe = new squidskins.Wardrobe(wardrobeHome);
+        Path pictures = java.nio.file.Files.createTempDirectory("squid-pictures");
+        Path skinPicture = pictures.resolve("cool skin.png");
+        Path capePicture = pictures.resolve("my cape.png");
+        Path oddPicture = pictures.resolve("photo.png");
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(64, 64, java.awt.image.BufferedImage.TYPE_INT_ARGB), "png", skinPicture.toFile());
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(64, 32, java.awt.image.BufferedImage.TYPE_INT_ARGB), "png", capePicture.toFile());
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(100, 75, java.awt.image.BufferedImage.TYPE_INT_ARGB), "png", oddPicture.toFile());
+        squidskins.Wardrobe.Kind[] kind = new squidskins.Wardrobe.Kind[1];
+        String skinName = wardrobe.bringIn(skinPicture, kind);
+        String skinKind = String.valueOf(kind[0]);
+        String capeName = wardrobe.bringIn(capePicture, kind);
+        check("square pictures are skins, wide ones are capes", skinName + " " + skinKind + " | " + capeName + " " + kind[0],
+                "cool skin.png SKIN | my cape.png CAPE");
+        check("bringing the same picture in again keeps both", wardrobe.bringIn(skinPicture, kind), "cool skin (2).png");
+        String oddProblem;
+        try {
+            wardrobe.bringIn(oddPicture, kind);
+            oddProblem = "brought in";
+        } catch (java.io.IOException e) {
+            oddProblem = e.getMessage();
+        }
+        check("a picture that's neither is explained", oddProblem, "That picture is 100x75. Skins are 64x64, capes are 64x32.");
+        check("the wardrobe lists them", squidskins.Wardrobe.pictures(wardrobe.skins()) + " " + squidskins.Wardrobe.pictures(wardrobe.capes()),
+                "[cool skin (2).png, cool skin.png] [my cape.png]");
+        wardrobe.choose("abc", new squidskins.Wardrobe.Choice("cool skin.png", true, "kelp"));
+        squidskins.Wardrobe reopened = new squidskins.Wardrobe(wardrobeHome);
+        check("picks are remembered per player", reopened.choice("abc") + " | " + reopened.choice("someone-else"),
+                "Choice[skin=cool skin.png, slim=true, cape=kelp] | Choice[skin=, slim=false, cape=]");
+
+        byte[] fakeSkin;
+        try (java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream()) {
+            javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(64, 64, java.awt.image.BufferedImage.TYPE_INT_ARGB), "png", png);
+            fakeSkin = png.toByteArray();
+        }
+        com.sun.net.httpserver.HttpServer mojang = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        String mojangBase = "http://127.0.0.1:" + mojang.getAddress().getPort();
+        mojang.createContext("/", exchange -> {
+            String path = exchange.getRequestURI().getPath();
+            byte[] body;
+            int status = 200;
+            if (path.equals("/profiles/samUEL")) {
+                body = "{\"id\": \"0123456789abcdef0123456789abcdef\", \"name\": \"Samuel\"}".getBytes();
+            } else if (path.equals("/sessions/0123456789abcdef0123456789abcdef")) {
+                String textures = "{\"textures\": {\"SKIN\": {\"url\": \"" + mojangBase + "/texture/abc\", \"metadata\": {\"model\": \"slim\"}},"
+                        + " \"CAPE\": {\"url\": \"" + mojangBase + "/texture/cape\"}}}";
+                body = ("{\"id\": \"0123456789abcdef0123456789abcdef\", \"name\": \"Samuel\", \"properties\": [{\"name\": \"textures\", \"value\": \""
+                        + java.util.Base64.getEncoder().encodeToString(textures.getBytes()) + "\"}]}").getBytes();
+            } else if (path.equals("/texture/abc")) {
+                body = fakeSkin;
+            } else {
+                status = 404;
+                body = new byte[0];
+            }
+            exchange.sendResponseHeaders(status, body.length == 0 ? -1 : body.length);
+            try (java.io.OutputStream out = exchange.getResponseBody()) {
+                out.write(body);
+            }
+        });
+        mojang.start();
+        String[] realMojang = {squidskins.Wardrobe.mojangProfiles, squidskins.Wardrobe.mojangSessions, squidskins.Wardrobe.skinServer};
+        squidskins.Wardrobe.mojangProfiles = mojangBase + "/profiles/";
+        squidskins.Wardrobe.mojangSessions = mojangBase + "/sessions/";
+        squidskins.Wardrobe.skinServer = mojangBase + "/texture/";
+        try {
+            squidskins.Wardrobe.Fetched fetched = wardrobe.fetchSkin("samUEL");
+            check("a player's skin by name, with their arm size", fetched.file() + " slim=" + fetched.slim() + " "
+                    + java.nio.file.Files.exists(wardrobe.skins().resolve("Samuel.png")), "Samuel.png slim=true true");
+            String nobody;
+            try {
+                wardrobe.fetchSkin("nobody_here");
+                nobody = "found";
+            } catch (java.io.IOException e) {
+                nobody = e.getMessage();
+            }
+            check("a name nobody has is explained", nobody, "Nobody is called nobody_here.");
+            String badName;
+            try {
+                wardrobe.fetchSkin("no spaces!");
+                badName = "looked up";
+            } catch (java.io.IOException e) {
+                badName = e.getMessage();
+            }
+            check("a name that can't be a Minecraft name isn't looked up", badName, "Minecraft names are 3-16 letters, numbers or _.");
+        } finally {
+            squidskins.Wardrobe.mojangProfiles = realMojang[0];
+            squidskins.Wardrobe.mojangSessions = realMojang[1];
+            squidskins.Wardrobe.skinServer = realMojang[2];
+            mojang.stop(0);
+        }
+
+        List<URL> skinUrls = new ArrayList<>(urls);
+        skinUrls.add(Path.of(a[5]).toUri().toURL());
+        SquidClassLoader skinLoader = new SquidClassLoader(skinUrls.toArray(URL[]::new));
+        Main.setGameLoader(skinLoader);
+        ((SquidMod) skinLoader.loadClass("squidskins.Skins").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-skins")));
+        for (String name : new String[] {"net.minecraft.client.player.AbstractClientPlayer", "net.minecraft.client.gui.screens.options.SkinCustomizationScreen",
+                "squidskins.WardrobeScreen", "squidskins.PaintScreen", "squidskins.NameScreen"}) {
+            // Minecraft's player class can't be started without the whole game, so it's only loaded (which applies the patch)
+            Class<?> loaded = Class.forName(name, !name.startsWith("net.minecraft.client.player"), skinLoader);
+            check(name.substring(name.lastIndexOf('.') + 1) + " loads with the wardrobe", loaded.getClassLoader() == skinLoader, true);
+        }
+        check("the Kelp and Squid capes are in the jar", skinLoader.getResource("squidskins/capes/kelp.png") != null
+                && skinLoader.getResource("squidskins/capes/squid.png") != null, true);
+
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);
     }
