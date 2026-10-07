@@ -787,6 +787,17 @@ public class PipelineTest {
         check("an MP3 decodes to the sound it was made from (the padding trimmed, so it lines up), close enough to hear no difference",
                 toneMp3.channels() + " " + toneMp3.rate() + " " + toneMp3.samples().length + " " + (10 * Math.log10((double) mp3Signal / mp3Error) > 20),
                 "2 44100 22050 true");
+        squid.audio.Pcm toneOgg = squid.audio.Audio.decode(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("test/audio/tone.ogg")));
+        long oggError = 0;
+        long oggSignal = 0;
+        for (int i = 0; i < toneWav.samples().length && i < toneOgg.samples().length; i++) {
+            long d = toneOgg.samples()[i] - toneWav.samples()[i];
+            oggError += d * d;
+            oggSignal += (long) toneWav.samples()[i] * toneWav.samples()[i];
+        }
+        check("an Ogg Vorbis file decodes to the sound it was made from, exactly as long as it says",
+                toneOgg.channels() + " " + toneOgg.rate() + " " + toneOgg.samples().length + " " + (10 * Math.log10((double) oggSignal / oggError) > 20),
+                "2 44100 22050 true");
         check("something that isn't sound is turned away", squid.audio.Audio.canDecode("hello".getBytes()) + "", "false");
 
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
