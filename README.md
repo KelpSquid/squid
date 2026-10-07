@@ -44,6 +44,34 @@ If there's a mistake, the game still opens. The title screen and Kelp say which 
 
 When you're ready for more, `squid()` gives an easy mod everything below.
 
+## Bigger mods: projects
+
+When one file isn't enough, make a project: a folder in `mods` with as many files as you like. Squid builds it the
+same way, as the game starts. There's nothing to install and no build step.
+
+```
+mods/
+  RainbowSheep.java      an easy mod
+  MegaMod/               a project
+    squid.json           {"name": "Mega Mod"}
+    src/                 the code: MegaMod.java, and any other files and folders
+    resources/           pictures and sounds
+```
+
+`squid.json` only needs what isn't obvious. The id and name come from the folder (`MegaMod` is `mega-mod`,
+"Mega Mod"), the version starts at `1.0`, and the main class is the one named like the folder. A mistake says which
+file it's in: *"there's a mistake in src/Second.java on line 2: a ; is missing at the end of the line"*.
+
+In Kelp, **New Mod** can make a project for you, already set up for VS Code and IntelliJ. They autocomplete every Squid
+and Minecraft command and explain each one, using the Squid library that comes with Squid (`squid-api.jar`, with its
+code and docs, in Kelp's `squid/library` folder).
+
+## .squid files
+
+**Pack** in Kelp squishes a project into one small `.squid` file, for sending to friends or to the Store. Drop it in
+`mods` and it works like the folder did. Its code stays readable inside, so anyone (and the Store's reviewer) can check
+every line before it runs. Squid builds it the first time and keeps the result.
+
 ## How it works
 
 Kelp starts Squid instead of Minecraft. Squid:
@@ -57,36 +85,10 @@ Kelp starts Squid instead of Minecraft. Squid:
 You need Kelp to have downloaded Minecraft 26.3 once, because Squid builds with the Java 25 that Kelp downloads for it.
 
 ```
-build.bat         builds build/squid.jar, the built-in parts, the example mods and the Squid library, and copies Squid into Kelp's folder
-build.bat test    also runs the tests (they load real Minecraft classes without opening the game)
+build.bat         builds build/squid.jar, the built-in parts, the example mods and the Squid library, and copies them into Kelp's folder
+build.bat test    also runs the tests (they load real Minecraft classes without opening the game, and build every
+                  example with just the Squid library)
 ```
-
-## The Squid library (for IDEs)
-
-Easy mods need nothing but a `.java` file. For bigger mods, the Squid library lets an IDE like IntelliJ or VS Code
-know every Squid command: it autocompletes them, shows what each one does, and underlines mistakes as you type.
-
-`build.bat` makes it in `build/maven`, laid out like a Maven repository:
-
-- `squid-api-<version>.jar`: just `squid.api`, everything a mod can use
-- `-sources.jar` and `-javadoc.jar`, so the IDE can show Squid's code and explanations
-- a `.pom` saying the library needs [ASM](https://asm.ow2.io/) (for `patch`)
-
-Its name is `org.kelplauncher:squid-api:<version>`. With Gradle, until it's online:
-
-```kotlin
-repositories {
-    maven { url = uri("file:///C:/path/to/squid/build/maven") }
-    mavenCentral()
-}
-dependencies {
-    compileOnly("org.kelplauncher:squid-api:0.1")
-}
-```
-
-Use `compileOnly`: Squid is already in the game, so a mod's jar never includes it. Your mod also needs Minecraft
-itself to build against, which Kelp downloads to `%APPDATA%\Kelp\versions\26.3\26.3.jar`. `build.bat test` checks
-that every example mod builds with just the library.
 
 ## The Store
 

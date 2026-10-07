@@ -89,6 +89,12 @@ public class Build {
             Files.copy(part, installed.resolve("builtin").resolve(part.getFileName()), StandardCopyOption.REPLACE_EXISTING);
         }
         Files.copy(squidJar, installed.resolve("squid.jar"), StandardCopyOption.REPLACE_EXISTING);
+        Files.createDirectories(installed.resolve("library"));
+        try (Stream<Path> parts = Files.list(LIBRARY)) {
+            for (Path part : parts.toList()) {
+                Files.copy(part, installed.resolve("library").resolve(part.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
         for (Path library : libraries) {
             Files.copy(library, installed.resolve(library.getFileName()), StandardCopyOption.REPLACE_EXISTING);
         }
@@ -97,26 +103,21 @@ public class Build {
         if (args.length > 0 && args[0].equals("test")) test(classes, squidClasspath, game);
     }
 
-    /** The Squid library's name for Maven and Gradle: org.kelplauncher:squid-api:<version>. */
-    static final String GROUP = "org.kelplauncher";
-    static final String ARTIFACT = "squid-api";
+    /** Where the Squid library is built, and its name in Kelp's squid folder. */
+    static final Path LIBRARY = BUILD.resolve("library");
 
     /**
-     * The Squid library, for making mods in an IDE like IntelliJ or VS Code: squid-api.jar has just squid.api (what mods
-     * use), with a sources jar and a docs jar so the IDE can show what each command does. They go in build/maven, laid out
-     * like a Maven repository, so uploading that folder anywhere lets Gradle and Maven download Squid by its name.
+     * The Squid library, for making mods in an editor like VS Code or IntelliJ: squid-api.jar has just squid.api (what
+     * mods use), with its code and its docs next to it so the editor can show what each command does. It comes with
+     * Squid, in Kelp's squid/library folder, so a mod project always uses the Squid it will run on.
      */
     static void library(Path classes, String squidClasspath) throws Exception {
         String version = squidVersion();
-        Path folder = BUILD.resolve("maven").resolve(GROUP.replace('.', '/')).resolve(ARTIFACT).resolve(version);
-        String name = ARTIFACT + "-" + version;
-        Files.createDirectories(folder);
-
         Path api = Path.of("squid", "api");
-        jarPart(folder.resolve(name + ".jar"), classes, api);
-        jarPart(folder.resolve(name + "-sources.jar"), Path.of("src"), api);
+        jarPart(LIBRARY.resolve("squid-api.jar"), classes, api);
+        jarPart(LIBRARY.resolve("squid-api-sources.jar"), Path.of("src"), api);
 
-        Path docs = BUILD.resolve("javadoc");
+        Path docs = BUILD.resolve("docs");
         List<String> args = new ArrayList<>(List.of("-d", docs.toString(), "-cp", classes + ";" + squidClasspath,
                 "-encoding", "UTF-8", "-docencoding", "UTF-8", "-quiet", "-Xdoclint:none", "-windowtitle", "Squid " + version,
                 "-doctitle", "Squid " + version + ": everything a mod can use"));
@@ -124,61 +125,8 @@ public class Build {
         if (ToolProvider.getSystemDocumentationTool().run(null, null, null, args.toArray(String[]::new)) != 0) {
             throw new IllegalStateException("Making the docs failed");
         }
-        jar(folder.resolve(name + "-javadoc.jar"), docs, null);
-
-        // Mods that change bytecode with patch() get ASM, which Squid uses, through the pom
-        StringBuilder dependencies = new StringBuilder();
-        for (String[] library : LIBRARIES) {
-            dependencies.append("        <dependency>\n")
-                    .append("            <groupId>org.ow2.asm</groupId>\n")
-                    .append("            <artifactId>").append(library[0]).append("</artifactId>\n")
-                    .append("            <version>").append(ASM_VERSION).append("</version>\n")
-                    .append("        </dependency>\n");
-        }
-        Files.writeString(folder.resolve(name + ".pom"), """
-                <?xml version="1.0" encoding="UTF-8"?>
-                <project xmlns="http://maven.apache.org/POM/4.0.0">
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>%s</groupId>
-                    <artifactId>%s</artifactId>
-                    <version>%s</version>
-                    <name>Squid</name>
-                    <description>The Squid mod loader for Minecraft: everything a mod can use. Not an official Minecraft product.</description>
-                    <url>https://github.com/SamuelArther/squid</url>
-                    <licenses>
-                        <license>
-                            <name>MIT</name>
-                        </license>
-                    </licenses>
-                    <dependencies>
-                %s    </dependencies>
-                </project>
-                """.formatted(GROUP, ARTIFACT, version, dependencies));
-        Files.writeString(folder.getParent().resolve("maven-metadata.xml"), """
-                <?xml version="1.0" encoding="UTF-8"?>
-                <metadata>
-                    <groupId>%s</groupId>
-                    <artifactId>%s</artifactId>
-                    <versioning>
-                        <latest>%s</latest>
-                        <release>%s</release>
-                        <versions>
-                            <version>%s</version>
-                        </versions>
-                    </versioning>
-                </metadata>
-                """.formatted(GROUP, ARTIFACT, version, version, version));
-
-        // Gradle and Maven check each download against these fingerprints
-        List<Path> files = new ArrayList<>(List.of(folder.getParent().resolve("maven-metadata.xml")));
-        try (Stream<Path> list = Files.list(folder)) {
-            list.filter(p -> !p.toString().endsWith(".sha1") && !p.toString().endsWith(".sha256")).forEach(files::add);
-        }
-        for (Path file : files) {
-            Files.writeString(Path.of(file + ".sha1"), sha1(file));
-            Files.writeString(Path.of(file + ".sha256"), sha256(file));
-        }
-        System.out.println("Built the Squid library " + GROUP + ":" + ARTIFACT + ":" + version + " in " + BUILD.resolve("maven"));
+        jar(LIBRARY.resolve("squid-api-docs.jar"), docs, null);
+        System.out.println("Built the Squid library in " + LIBRARY);
     }
 
     /** Squid's version, from Main.VERSION. */
@@ -256,8 +204,7 @@ public class Build {
     /** Builds and runs test/, which loads real Minecraft classes through Squid without starting the game. */
     static void test(Path classes, String squidClasspath, String game) throws Exception {
         // The Squid library alone must be enough to build a mod, so every example is built against just it
-        Path library = BUILD.resolve("maven").resolve(GROUP.replace('.', '/')).resolve(ARTIFACT).resolve(squidVersion())
-                .resolve(ARTIFACT + "-" + squidVersion() + ".jar");
+        Path library = LIBRARY.resolve("squid-api.jar");
         try (Stream<Path> examples = Files.list(Path.of("examples"))) {
             for (Path example : examples.filter(Files::isDirectory).sorted().toList()) {
                 compile(listJava(example.resolve("src")), library + ";" + squidClasspath + ";" + game,

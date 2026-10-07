@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -17,8 +18,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * Finds Squid mods: .jar files in the mods folder that have a squid.json inside, and single .java files
- * that Squid compiles itself (see {@link SourceMods}).
+ * Finds Squid mods in the mods folder: .jar files with a squid.json inside, and mods Squid builds itself from their
+ * code (see {@link SourceMods}): single .java files, project folders, and .squid files (a project packed into one file).
  * They come back in the order they should start: every mod after the mods it depends on.
  *
  * A mod that can't work this time (not a Squid mod, a mistake in its code, made for another Minecraft version,
@@ -41,7 +42,7 @@ final class Mods {
         return find(folder, minecraftVersion, null);
     }
 
-    /** sources compiles .java mods. Without it (null), .java files are skipped. */
+    /** sources builds mods from their code. Without it (null), those are skipped. */
     static Found find(Path folder, String minecraftVersion, SourceMods sources) throws IOException {
         List<ModInfo> mods = new ArrayList<>();
         List<Skipped> skipped = new ArrayList<>();
@@ -49,8 +50,10 @@ final class Mods {
 
         List<Path> files;
         try (Stream<Path> list = Files.list(folder)) {
-            files = list.filter(p -> p.getFileName().toString().endsWith(".jar") || p.getFileName().toString().endsWith(".java"))
-                    .sorted().toList();
+            files = list.filter(p -> {
+                String name = p.getFileName().toString();
+                return name.endsWith(".jar") || name.endsWith(".java") || name.endsWith(".squid") || isProject(p);
+            }).sorted().toList();
         }
         Map<String, ModInfo> byId = new LinkedHashMap<>();
         Map<String, Path> fileOf = new LinkedHashMap<>(); // mod id -> the file it came from
@@ -60,11 +63,15 @@ final class Mods {
             try {
                 if (fileName.endsWith(".jar")) {
                     mod = read(file);
-                } else if (sources != null) {
-                    mod = sources.compile(file);
-                } else {
-                    skipFile(skipped, file, "Squid can't compile mods here.");
+                } else if (sources == null) {
+                    skipFile(skipped, file, "Squid can't build mods here.");
                     continue;
+                } else if (Files.isDirectory(file)) {
+                    mod = sources.compileProject(file, readProject(file));
+                } else if (fileName.endsWith(".squid")) {
+                    mod = sources.compilePacked(file, readPacked(file));
+                } else {
+                    mod = sources.compile(file);
                 }
             } catch (IOException e) {
                 // A broken jar or a mistake in a mod's code only skips that mod
@@ -158,35 +165,76 @@ final class Mods {
         ordered.add(mod);
     }
 
+    /** A folder Squid treats as a project: one with a squid.json or a src folder. Folders starting with . are Squid's own. */
+    static boolean isProject(Path path) {
+        return Files.isDirectory(path) && !path.getFileName().toString().startsWith(".")
+                && (Files.exists(path.resolve("squid.json")) || Files.isDirectory(path.resolve("src")));
+    }
+
     private static ModInfo read(Path jar) throws IOException {
         try (ZipFile zip = new ZipFile(jar.toFile())) {
             ZipEntry entry = zip.getEntry("squid.json");
             if (entry == null) return null;
             String text = new String(zip.getInputStream(entry).readAllBytes(), StandardCharsets.UTF_8);
-            Map<String, Object> json;
-            try {
-                json = Json.object(Json.parse(text));
-            } catch (IllegalArgumentException e) {
-                throw new IOException(jar.getFileName() + " has a broken squid.json: " + e.getMessage());
-            }
-            String id = required(json, "id", jar);
-            if (!id.matches("[a-z0-9_-]+")) {
-                throw new IOException(jar.getFileName() + ": a mod id can only use a-z, 0-9, _ and -");
-            }
-            List<String> authors = strings(json, "authors");
-            List<String> depends = strings(json, "depends");
-            // "minecraft" can be one version ("26.3") or a list (["26.3", "26.4"])
-            List<String> minecraft = json.get("minecraft") instanceof String one ? List.of(one) : strings(json, "minecraft");
-            return new ModInfo(id,
-                    json.get("name") != null ? (String) json.get("name") : id,
-                    required(json, "version", jar),
-                    json.get("description") != null ? (String) json.get("description") : "",
-                    authors,
-                    depends,
-                    minecraft,
-                    required(json, "main", jar),
-                    jar);
+            return info(parse(text, jar.getFileName() + "'s squid.json"), jar, null, null, null);
         }
+    }
+
+    /**
+     * A project's details. Its squid.json can leave out what's obvious: the id and name come from the folder's name
+     * (MegaMod becomes mega-mod and "Mega Mod"), the version starts at 1.0, and the main class is named like the folder.
+     */
+    static ModInfo readProject(Path folder) throws IOException {
+        Path file = folder.resolve("squid.json");
+        if (!Files.exists(file)) throw new IOException("it needs a squid.json, with at least its \"name\" in it.");
+        Map<String, Object> json = parse(Files.readString(file, StandardCharsets.UTF_8), "its squid.json");
+        String className = folder.getFileName().toString().replaceAll("[^A-Za-z0-9_]", "");
+        String id = SourceMods.spaced(className).toLowerCase(Locale.ROOT).replace(' ', '-');
+        return info(json, folder, id, SourceMods.spaced(className), className);
+    }
+
+    /** A .squid file's details: the squid.json inside, which can leave out the same things as a project's. */
+    static ModInfo readPacked(Path file) throws IOException {
+        Map<String, Object> json;
+        try (ZipFile zip = new ZipFile(file.toFile())) {
+            ZipEntry entry = zip.getEntry("squid.json");
+            if (entry == null) throw new IOException("it has no squid.json inside. Pack it again from Kelp.");
+            json = parse(new String(zip.getInputStream(entry).readAllBytes(), StandardCharsets.UTF_8), "its squid.json");
+        } catch (java.util.zip.ZipException e) {
+            throw new IOException("it's damaged, so Squid can't open it. Download or pack it again.");
+        }
+        String fileName = file.getFileName().toString();
+        String className = fileName.substring(0, fileName.length() - ".squid".length()).replaceAll("[^A-Za-z0-9_]", "");
+        String id = SourceMods.spaced(className).toLowerCase(Locale.ROOT).replace(' ', '-');
+        return info(json, file, id, SourceMods.spaced(className), className);
+    }
+
+    private static Map<String, Object> parse(String text, String what) throws IOException {
+        try {
+            return Json.object(Json.parse(text));
+        } catch (IllegalArgumentException e) {
+            throw new IOException(what + " is broken: " + e.getMessage());
+        }
+    }
+
+    /** Reads a squid.json. The defaults fill in what it leaves out; a null default means it has to be there. */
+    private static ModInfo info(Map<String, Object> json, Path where, String defaultId, String defaultName, String defaultMain)
+            throws IOException {
+        String id = text(json, "id", defaultId, where);
+        if (!id.matches("[a-z0-9_-]+")) {
+            throw new IOException(where.getFileName() + ": a mod id can only use a-z, 0-9, _ and -");
+        }
+        // "minecraft" can be one version ("26.3") or a list (["26.3", "26.4"])
+        List<String> minecraft = json.get("minecraft") instanceof String one ? List.of(one) : strings(json, "minecraft");
+        return new ModInfo(id,
+                text(json, "name", defaultName != null ? defaultName : id, where),
+                text(json, "version", defaultId != null ? "1.0" : null, where),
+                text(json, "description", "", where),
+                strings(json, "authors"),
+                strings(json, "depends"),
+                minecraft,
+                text(json, "main", defaultMain, where),
+                where);
     }
 
     /** A list of strings from squid.json, like "authors": ["Samuel"]. Empty if it isn't there. */
@@ -198,10 +246,10 @@ final class Mods {
         return List.copyOf(values);
     }
 
-    private static String required(Map<String, Object> json, String key, Path jar) throws IOException {
-        if (!(json.get(key) instanceof String value) || value.isBlank()) {
-            throw new IOException(jar.getFileName() + ": squid.json needs a \"" + key + "\"");
-        }
-        return value;
+    /** A text field, or the fallback if it's left out. Without a fallback, it has to be there. */
+    private static String text(Map<String, Object> json, String key, String fallback, Path where) throws IOException {
+        if (json.get(key) instanceof String value && !value.isBlank()) return value;
+        if (fallback != null) return fallback;
+        throw new IOException(where.getFileName() + ": squid.json needs a \"" + key + "\"");
     }
 }

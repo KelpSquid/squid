@@ -257,6 +257,66 @@ public class PipelineTest {
         check("an unchanged mod isn't compiled again", java.nio.file.Files.getLastModifiedTime(again.jar().resolve("ok")).toMillis(), compiledAt);
         check("file names become mod names", SourceMods.spaced("MyCoolMod") + " / " + SourceMods.spaced("TNT_Rain"), "My Cool Mod / TNT Rain");
 
+        // Projects: a folder with many files and resources, and the same thing packed into one .squid file
+        Path projects = java.nio.file.Files.createTempDirectory("squid-project-test");
+        Path mega = projects.resolve("MegaMod");
+        java.nio.file.Files.createDirectories(mega.resolve("src/parts"));
+        java.nio.file.Files.createDirectories(mega.resolve("resources/megamod"));
+        java.nio.file.Files.writeString(mega.resolve("squid.json"), "{\"name\": \"Mega Mod\"}");
+        java.nio.file.Files.writeString(mega.resolve("src/MegaMod.java"), "import parts.Greeting;\n\npublic class MegaMod extends EasyMod {\n"
+                + "    void start() {\n        say(Greeting.text());\n    }\n}\n");
+        java.nio.file.Files.writeString(mega.resolve("src/parts/Greeting.java"), "package parts;\n\npublic class Greeting {\n"
+                + "    public static String text() {\n        return \"Hi from a project!\";\n    }\n}\n");
+        java.nio.file.Files.writeString(mega.resolve("resources/megamod/hello.txt"), "a picture would go here");
+        Path brokenProject = projects.resolve("Broken");
+        java.nio.file.Files.createDirectories(brokenProject.resolve("src"));
+        java.nio.file.Files.writeString(brokenProject.resolve("squid.json"), "{}");
+        java.nio.file.Files.writeString(brokenProject.resolve("src/Broken.java"), "public class Broken extends EasyMod {\n    void start() {\n    }\n}\n");
+        java.nio.file.Files.writeString(brokenProject.resolve("src/Second.java"), "public class Second {\n    int x = 1\n}\n");
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(projects.resolve("Tiny.squid")))) {
+            String[][] packed = {
+                    {"squid.json", "{\"id\": \"tiny\", \"name\": \"Tiny\", \"version\": \"2.0\", \"main\": \"MegaMod\"}"},
+                    {"src/MegaMod.java", java.nio.file.Files.readString(mega.resolve("src/MegaMod.java"))},
+                    {"src/parts/Greeting.java", java.nio.file.Files.readString(mega.resolve("src/parts/Greeting.java"))},
+                    {"resources/megamod/hello.txt", "a picture would go here"},
+            };
+            for (String[] entry : packed) {
+                zip.putNextEntry(new java.util.zip.ZipEntry(entry[0]));
+                zip.write(entry[1].getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
+        }
+        SourceMods projectSources = new SourceMods(projects.resolve(".squid-cache"), System.getProperty("java.class.path") + File.pathSeparator + a[0]);
+        Mods.Found projectFound = Mods.find(projects, "26.3", projectSources);
+        check("a project folder and a .squid file are mods", projectFound.mods().stream()
+                .map(m -> m.id() + " " + m.name() + " " + m.version()).sorted().toList().toString(), "[mega-mod Mega Mod 1.0, tiny Tiny 2.0]");
+        check("a project's resources come with it", projectFound.mods().stream()
+                .allMatch(m -> java.nio.file.Files.exists(m.jar().resolve("megamod/hello.txt"))), true);
+        check("a mistake in a project says which file", projectFound.skipped().stream().map(Mods.Skipped::reason).toList().toString(),
+                "[there's a mistake in src/Second.java on line 2: a ; is missing at the end of the line]");
+        List<URL> projectUrls = new ArrayList<>(urls);
+        for (ModInfo m : projectFound.mods()) projectUrls.add(m.jar().toUri().toURL());
+        SquidClassLoader projectLoader = new SquidClassLoader(projectUrls.toArray(URL[]::new));
+        Main.setGameLoader(projectLoader);
+        List<ModInfo> projectsStarted = Main.start(projectFound.mods(), projectLoader, new ArrayList<>());
+        check("projects start", projectsStarted.stream().map(ModInfo::name).toList().toString(), "[Mega Mod, Tiny]");
+        Path evil = projects.resolve("Evil.squid");
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(evil))) {
+            zip.putNextEntry(new java.util.zip.ZipEntry("squid.json"));
+            zip.write("{}".getBytes());
+            zip.putNextEntry(new java.util.zip.ZipEntry("src/../../escape.java"));
+            zip.write("x".getBytes());
+            zip.closeEntry();
+        }
+        String escaped;
+        try {
+            projectSources.compilePacked(evil, Mods.readPacked(evil));
+            escaped = "it opened";
+        } catch (java.io.IOException e) {
+            escaped = e.getMessage();
+        }
+        check("a .squid file can't put files outside its folder", escaped, "it has a file that tries to leave its folder, so Squid won't open it.");
+
         // The Store: its list, safe file names, installing with a fingerprint check, and its Minecraft parts loading
         String storeList = "{\"items\": ["
                 + "{\"id\": \"xray\", \"type\": \"mod\", \"name\": \"X-Ray\", \"author\": \"Samuel\", \"minecraft\": \"26.3.x\", \"devPicked\": true,"
@@ -269,6 +329,8 @@ public class PipelineTest {
         List<squidstore.Catalog.Item> capeItems = squidstore.Catalog.parse("{\"items\": ["
                 + "{\"id\": \"wave\", \"type\": \"cape\", \"name\": \"Wave\", \"file\": \"wave.png\", \"url\": \"u\", \"sha256\": \"a\"},"
                 + "{\"id\": \"notpng\", \"type\": \"cape\", \"name\": \"Bad\", \"file\": \"cape.jar\", \"url\": \"u\", \"sha256\": \"a\"}]}");
+        check("a .squid file can be a store mod", squidstore.Catalog.parse("{\"items\": [{\"id\": \"tiny\", \"type\": \"mod\", \"name\": \"Tiny\","
+                + " \"file\": \"tiny-2.0.squid\", \"url\": \"u\", \"sha256\": \"a\"}]}").size(), 1);
         check("capes are store items too (pictures only)", capeItems.stream().map(squidstore.Catalog.Item::id).toList().toString(), "[wave]");
         System.setProperty("squid.home", "/kelp-home");
         check("a store cape goes in Kelp's capes folder, for every instance",

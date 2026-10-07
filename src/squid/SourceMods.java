@@ -10,26 +10,36 @@ import javax.tools.SimpleJavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
- * Mods written as one .java file, dropped straight into the mods folder. No jar, no squid.json, no build step:
- * Squid compiles them itself as the game starts, using the compiler that comes with the game's Java.
+ * Mods Squid builds itself from their code, as the game starts, using the compiler that comes with the game's Java.
+ * No build tool, no jar to make:
  *
- * The file's name is the mod's name: MyCoolMod.java becomes "My Cool Mod". Squid adds "import squid.api.*;"
- * by itself, so a mod can say "extends EasyMod" without any imports.
- * Compiled mods are kept in mods/.squid-cache, so a mod is only compiled again after it changes.
+ * - an easy mod is one .java file in the mods folder. Its file name is its name: MyCoolMod.java is "My Cool Mod".
+ * - a project is a folder in the mods folder with a squid.json, its code in src (as many files as it needs) and
+ *   its pictures and sounds in resources.
+ * - a .squid file is a project packed into one small file, for sharing. Its code stays readable, so anyone can check it.
+ *
+ * Squid adds "import squid.api.*;" to every file by itself, so mods can say "extends EasyMod" without imports.
+ * Built mods are kept in mods/.squid-cache, so a mod is only built again after it changes.
  */
 final class SourceMods {
     /** A mistake in a mod's code, explained for people who are new to Java. */
@@ -42,6 +52,10 @@ final class SourceMods {
     private static final Pattern PACKAGE = Pattern.compile("^\\s*package\\s+([\\w.]+)\\s*;", Pattern.MULTILINE);
     private static final String AUTO_IMPORT = "import squid.api.*; ";
 
+    /** A .java file to build: its name (for mistakes, like "src/Sheep.java") and its code. */
+    private record Source(String name, String code) {
+    }
+
     private final Path cache;
     private final String classpath;
 
@@ -51,7 +65,7 @@ final class SourceMods {
         this.classpath = classpath;
     }
 
-    /** Compiles the file (or reuses last time's result) and describes it as a mod. */
+    /** Builds an easy mod (or reuses last time's build) and describes it as a mod. */
     ModInfo compile(Path source) throws IOException {
         String fileName = source.getFileName().toString();
         String className = fileName.substring(0, fileName.length() - ".java".length());
@@ -63,15 +77,81 @@ final class SourceMods {
         Matcher pkg = PACKAGE.matcher(code);
         String main = pkg.find() ? pkg.group(1) + "." + className : className;
 
-        Path out = cache.resolve(className + "-" + fingerprint(code));
-        if (!Files.exists(out.resolve("ok"))) {
-            deleteOld(className);
-            Files.createDirectories(out);
-            build(fileName, className, withImport(code), out);
-            Files.writeString(out.resolve("ok"), fileName); // marks a finished compile, so a half-done one is redone
-        }
+        Path out = build(className, List.of(new Source(fileName, code)), null);
         String id = className.toLowerCase(Locale.ROOT).replace('_', '-');
         return new ModInfo(id, spaced(className), "1.0", "Made from " + fileName, List.of(), List.of(), List.of(), main, out);
+    }
+
+    /** Builds a project folder. mod is what its squid.json says; the result is the same mod, pointing at the build. */
+    ModInfo compileProject(Path folder, ModInfo mod) throws IOException {
+        Path src = folder.resolve("src");
+        if (!Files.isDirectory(src)) throw new MistakeException("it needs a src folder with its code in it.");
+        List<Source> sources = new ArrayList<>();
+        try (Stream<Path> walk = Files.walk(src)) {
+            for (Path file : walk.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                sources.add(new Source(folder.relativize(file).toString().replace('\\', '/'), Files.readString(file, StandardCharsets.UTF_8)));
+            }
+        }
+        if (sources.isEmpty()) throw new MistakeException("its src folder has no .java files yet.");
+        Path out = build(mod.id(), sources, folder.resolve("resources"));
+        return new ModInfo(mod.id(), mod.name(), mod.version(), mod.description(), mod.authors(), mod.depends(),
+                mod.minecraft(), mod.main(), out);
+    }
+
+    /** Builds a .squid file: unpacks its src and resources into the cache, then builds it like a project folder. */
+    ModInfo compilePacked(Path packed, ModInfo mod) throws IOException {
+        Path unpacked = cache.resolve(mod.id() + "-unpacked");
+        deleteFolder(unpacked);
+        try (ZipFile zip = new ZipFile(packed.toFile())) {
+            Enumeration<? extends ZipEntry> entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                String name = entry.getName();
+                if (entry.isDirectory() || !(name.startsWith("src/") || name.startsWith("resources/"))) continue;
+                Path target = unpacked.resolve(name).normalize();
+                if (!target.startsWith(unpacked)) throw new IOException("it has a file that tries to leave its folder, so Squid won't open it.");
+                Files.createDirectories(target.getParent());
+                try (InputStream in = zip.getInputStream(entry)) {
+                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        }
+        return compileProject(unpacked, mod);
+    }
+
+    /**
+     * Compiles the code into a folder named after the mod and a fingerprint of everything in it, unless that's
+     * already there from last time. Resources (if there are any) are copied next to the classes.
+     */
+    private Path build(String name, List<Source> sources, Path resources) throws IOException {
+        MessageDigest sha = sha256();
+        for (Source source : sources) sha.update((source.name() + "\n" + source.code() + "\n").getBytes(StandardCharsets.UTF_8));
+        List<Path> resourceFiles = new ArrayList<>();
+        if (resources != null && Files.isDirectory(resources)) {
+            try (Stream<Path> walk = Files.walk(resources)) {
+                resourceFiles.addAll(walk.filter(Files::isRegularFile).sorted().toList());
+            }
+            for (Path file : resourceFiles) {
+                sha.update(resources.relativize(file).toString().getBytes(StandardCharsets.UTF_8));
+                sha.update(Files.readAllBytes(file));
+            }
+        }
+        // The same code builds differently for another Squid, Java or Minecraft, so they count too
+        sha.update((Main.VERSION + "\n" + Runtime.version().feature() + "\n" + System.getProperty("squid.gameClasspath"))
+                .getBytes(StandardCharsets.UTF_8));
+        Path out = cache.resolve(name + "-" + HexFormat.of().formatHex(sha.digest()).substring(0, 12));
+        if (Files.exists(out.resolve("ok"))) return out;
+
+        deleteOld(name);
+        Files.createDirectories(out);
+        javac(sources, out);
+        for (Path file : resourceFiles) {
+            Path target = out.resolve(resources.relativize(file).toString());
+            Files.createDirectories(target.getParent());
+            Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+        Files.writeString(out.resolve("ok"), name); // marks a finished build, so a half-done one is redone
+        return out;
     }
 
     /** Adds Squid's import on the first line (after the package line, if there is one), so line numbers don't move. */
@@ -81,27 +161,35 @@ final class SourceMods {
         return AUTO_IMPORT + code;
     }
 
-    private void build(String fileName, String className, String code, Path out) throws IOException {
+    private void javac(List<Source> sources, Path out) throws IOException {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) throw new MistakeException("this Java can't compile mods. Play it from Kelp, which uses one that can.");
         DiagnosticCollector<JavaFileObject> problems = new DiagnosticCollector<>();
-        JavaFileObject file = new SimpleJavaFileObject(URI.create("string:///" + fileName), JavaFileObject.Kind.SOURCE) {
-            @Override
-            public CharSequence getCharContent(boolean ignoreEncodingErrors) {
-                return code;
-            }
-        };
+        List<JavaFileObject> files = new ArrayList<>();
+        for (Source source : sources) {
+            String code = withImport(source.code());
+            files.add(new SimpleJavaFileObject(URI.create("string:///" + source.name()), JavaFileObject.Kind.SOURCE) {
+                @Override
+                public CharSequence getCharContent(boolean ignoreEncodingErrors) {
+                    return code;
+                }
+            });
+        }
         List<String> options = List.of("-d", out.toString(), "-classpath", classpath, "-proc:none", "-nowarn",
                 "-g", "--release", String.valueOf(Runtime.version().feature()));
         boolean ok;
-        try (StandardJavaFileManager files = compiler.getStandardFileManager(problems, Locale.ENGLISH, StandardCharsets.UTF_8)) {
-            ok = compiler.getTask(null, files, problems, options, null, List.of(file)).call();
+        try (StandardJavaFileManager manager = compiler.getStandardFileManager(problems, Locale.ENGLISH, StandardCharsets.UTF_8)) {
+            ok = compiler.getTask(null, manager, problems, options, null, files).call();
         }
         if (ok) return;
         for (Diagnostic<? extends JavaFileObject> problem : problems.getDiagnostics()) {
             if (problem.getKind() == Diagnostic.Kind.ERROR) {
-                throw new MistakeException(explain(problem.getCode(), problem.getMessage(Locale.ENGLISH), className,
-                        problem.getLineNumber()));
+                String file = problem.getSource() != null ? problem.getSource().toUri().getPath().substring(1) : "";
+                String className = Path.of(file.isEmpty() ? "Mod.java" : file).getFileName().toString().replace(".java", "");
+                String explained = explain(problem.getCode(), problem.getMessage(Locale.ENGLISH), className, problem.getLineNumber());
+                // A mod with more than one file says which file the mistake is in
+                if (sources.size() > 1 && !file.isEmpty()) explained = explained.replaceFirst("^there's a mistake", "there's a mistake in " + file);
+                throw new MistakeException(explained);
             }
         }
         throw new MistakeException("Java couldn't compile it, but didn't say why.");
@@ -151,26 +239,30 @@ final class SourceMods {
                 .trim();
     }
 
-    private static String fingerprint(String code) {
+    private static MessageDigest sha256() {
         try {
-            MessageDigest sha = MessageDigest.getInstance("SHA-256");
-            // The same code compiles differently for another Squid, Java or Minecraft, so they count too
-            String all = code + "\n" + Main.VERSION + "\n" + Runtime.version().feature() + "\n" + System.getProperty("squid.gameClasspath");
-            return HexFormat.of().formatHex(sha.digest(all.getBytes(StandardCharsets.UTF_8))).substring(0, 12);
+            return MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
     }
 
-    /** Removes older compiles of this mod, so the cache doesn't keep growing. */
-    private void deleteOld(String className) throws IOException {
+    /** Removes older builds of this mod, so the cache doesn't keep growing. */
+    private void deleteOld(String name) throws IOException {
         if (!Files.isDirectory(cache)) return;
         try (Stream<Path> old = Files.list(cache)) {
-            for (Path folder : old.filter(p -> p.getFileName().toString().startsWith(className + "-")).toList()) {
-                try (Stream<Path> walk = Files.walk(folder)) {
-                    for (Path p : walk.sorted((a, b) -> b.compareTo(a)).toList()) Files.deleteIfExists(p);
-                }
+            // Only this mod's builds: "mega-1a2b3c4d5e6f" belongs to mega, not to mega-mod
+            Pattern mine = Pattern.compile(Pattern.quote(name) + "-[0-9a-f]{12}");
+            for (Path folder : old.filter(p -> mine.matcher(p.getFileName().toString()).matches()).toList()) {
+                deleteFolder(folder);
             }
+        }
+    }
+
+    private static void deleteFolder(Path folder) throws IOException {
+        if (!Files.exists(folder)) return;
+        try (Stream<Path> walk = Files.walk(folder)) {
+            for (Path p : walk.sorted((a, b) -> b.compareTo(a)).toList()) Files.deleteIfExists(p);
         }
     }
 }

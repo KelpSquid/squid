@@ -87,12 +87,12 @@ public final class Installer {
         return 0;
     }
 
-    /** Every jar in the mods folder (on or off) whose squid.json has this id. */
+    /** Every mod file in the mods folder (a .jar or .squid, on or off) whose squid.json has this id. */
     static List<Path> copiesOf(String id, Path mods) {
         List<Path> copies = new ArrayList<>();
         if (!Files.isDirectory(mods)) return copies;
         try (Stream<Path> files = Files.list(mods)) {
-            for (Path jar : files.filter(f -> f.toString().endsWith(".jar") || f.toString().endsWith(".jar.disabled")).toList()) {
+            for (Path jar : files.filter(f -> f.toString().matches(".*\\.(jar|squid)(\\.disabled)?")).toList()) {
                 if (id.equals(modId(jar))) copies.add(jar);
             }
         } catch (IOException e) {

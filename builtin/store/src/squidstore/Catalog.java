@@ -91,7 +91,7 @@ public final class Catalog {
     static boolean safeFileName(String file, String type) {
         if (file.isEmpty() || !file.matches("[A-Za-z0-9._+-]+") || file.startsWith(".")) return false;
         return switch (type) {
-            case "mod" -> file.endsWith(".jar");
+            case "mod" -> file.endsWith(".jar") || file.endsWith(".squid");
             case "resourcepack" -> file.endsWith(".zip");
             case "cape" -> file.endsWith(".png");
             default -> false;
