@@ -2,12 +2,9 @@ package squidpano;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Panorama;
 import net.minecraft.client.renderer.texture.TextureContents;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import squid.Lang;
 import squid.api.Squid;
@@ -15,7 +12,6 @@ import squid.api.SquidMod;
 
 import java.io.InputStream;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -26,7 +22,6 @@ import java.nio.file.Path;
  */
 public class Pano implements SquidMod {
     static PanoStore store;
-    private static Method addWidget;
     private static Field spin;
     private static final ThreadLocal<Float> spinBefore = new ThreadLocal<>();
     static volatile boolean captureNextTick;
@@ -66,8 +61,7 @@ public class Pano implements SquidMod {
         });
 
         // The Pano button, next to Squid's Mods button
-        squid.atEnd("net.minecraft.client.gui.screens.TitleScreen", "init", "()V", call -> addButton((Screen) call.self()));
-        squid.atEnd("net.minecraft.client.gui.screens.PauseScreen", "init", "()V", call -> addButton((Screen) call.self()));
+        squid.addMenuButton("Panorama", false, menu -> Minecraft.getInstance().setScreenAndShow(new PanoScreen((Screen) menu)));
 
         // Capturing happens on the tick after the menu closes, so the pictures show the world and not the menu
         squid.onTick(() -> {
@@ -115,20 +109,6 @@ public class Pano implements SquidMod {
     static void apply() {
         Minecraft minecraft = Minecraft.getInstance();
         minecraft.gameRenderer.registerPanoramaTextures(minecraft.getTextureManager());
-    }
-
-    private static void addButton(Screen screen) {
-        Button pano = Button.builder(Component.literal(Lang.t("Pano")),
-                button -> Minecraft.getInstance().setScreenAndShow(new PanoScreen(screen))).bounds(68, 4, 50, 20).build();
-        try {
-            if (addWidget == null) {
-                addWidget = Screen.class.getDeclaredMethod("addRenderableWidget", GuiEventListener.class);
-                addWidget.setAccessible(true);
-            }
-            addWidget.invoke(screen, pano);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(Lang.t("Couldn't add the Pano button"), e);
-        }
     }
 
     private static float spinOf(Panorama panorama) {

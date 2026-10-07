@@ -12,8 +12,9 @@ import squid.api.SquidMod;
 import java.lang.reflect.Method;
 
 /**
- * The Mods screen, built into Squid: a Mods button in the top-left corner of the title screen and the pause menu.
- * It lists every mod, turns them on and off, and opens each mod's settings.
+ * The Squid menu and the Mods screen, built into Squid: one Squid button in the top-left corner of the title screen
+ * and the pause menu opens the Squid menu (Mods, plus every button mods add with Squid.addMenuButton). The Mods screen
+ * lists every mod, turns them on and off, and opens each mod's settings.
  */
 public class ModsMenu implements SquidMod {
     private static Method addWidget;
@@ -25,8 +26,8 @@ public class ModsMenu implements SquidMod {
     }
 
     private static void addButton(Screen screen) {
-        Button mods = Button.builder(Component.literal(Lang.t("Mods")),
-                button -> Minecraft.getInstance().setScreenAndShow(new ModListScreen(screen))).bounds(4, 4, 60, 20).build();
+        Button mods = Button.builder(Component.literal("Squid"),
+                button -> Minecraft.getInstance().setScreenAndShow(new SquidMenuScreen(screen))).bounds(4, 4, 60, 20).build();
         try {
             if (addWidget == null) {
                 // A screen's own method for adding buttons, which other code can't normally call

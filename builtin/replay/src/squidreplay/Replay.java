@@ -2,12 +2,9 @@ package squidreplay;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.state.BlockState;
 import squid.Lang;
 import squid.api.Game;
@@ -16,7 +13,6 @@ import squid.api.ModSettings;
 import squid.api.Squid;
 import squid.api.SquidMod;
 
-import java.lang.reflect.Method;
 
 /**
  * Skate 3 style replays. While you play, Squid quietly remembers the last few minutes around you: every player, mob
@@ -27,7 +23,6 @@ public class Replay implements SquidMod {
     private final Recorder recorder = new Recorder();
     private ModSettings settings;
     private KeyBinding openKey;
-    private static Method addWidget;
 
     @Override
     public void init(Squid squid) {
@@ -70,7 +65,7 @@ public class Replay implements SquidMod {
             Float fov = Playback.fovOverride();
             if (fov != null) call.setReturnValue(fov);
         });
-        squid.atEnd("net.minecraft.client.gui.screens.PauseScreen", "init", "()V", call -> addButton((Screen) call.self()));
+        squid.addMenuButton("Replay", true, menu -> open());
     }
 
     private boolean recording() {
@@ -95,24 +90,11 @@ public class Replay implements SquidMod {
         if (minecraft.level == null || minecraft.player == null || Playback.current() != null) return;
         if (recorder.timeline.size() < 20) {
             Game.chat(recording() ? Lang.t("Nothing to replay yet. Play a little first!")
-                    : Lang.t("Replays are off. Turn them on in Mods > Squid Replay > Settings."), "YELLOW");
+                    : Lang.t("Replays are off. Turn them on in Squid > Mods > Squid Replay > Settings."), "YELLOW");
             minecraft.setScreenAndShow(null);
             return;
         }
         Playback playback = Playback.start(minecraft, recorder.timeline.freeze());
         minecraft.setScreenAndShow(new ReplayScreen(playback));
-    }
-
-    private void addButton(Screen screen) {
-        Button replay = Button.builder(Component.literal(Lang.t("Replay")), button -> open()).bounds(132, 4, 60, 20).build();
-        try {
-            if (addWidget == null) {
-                addWidget = Screen.class.getDeclaredMethod("addRenderableWidget", GuiEventListener.class);
-                addWidget.setAccessible(true);
-            }
-            addWidget.invoke(screen, replay);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(Lang.t("Couldn't add the Replay button"), e);
-        }
     }
 }

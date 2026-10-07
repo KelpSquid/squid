@@ -46,6 +46,7 @@ public final class Main {
 
     /** A mod removed while the game runs leaves the list. */
     static synchronized void removeMod(String id) {
+        MenuButtons.removeMod(id);
         List<ModInfo> updated = new ArrayList<>(mods);
         updated.removeIf(m -> m.id().equals(id));
         mods = List.copyOf(updated);

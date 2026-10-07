@@ -79,6 +79,23 @@ a readme. It's on the [Releases](https://github.com/SamuelArther/squid/releases)
 `mods` and it works like the folder did. Its code stays readable inside, so anyone (and the Store's reviewer) can check
 every line before it runs. Squid builds it the first time and keeps the result.
 
+## Built in
+
+Everyone gets these, no downloads needed. One **Squid** button on the title screen and pause menu opens the Squid menu.
+
+- **Store:** mods, resource packs and capes, all approved first. A **Store** button sits next to Realms.
+- **Mods:** every mod with an on/off switch, and its settings. Saving a mod you're writing reloads it while the
+  game runs (live reload).
+- **Skins and capes:** Options > Skin Customization > Squid Skin & Cape: wear your own skin and cape, a Store cape,
+  or a Mojang cape (shown from Mojang's own servers, with a tag if you don't own it), with animated effects.
+- **Squid Count:** points for every advancement, like gamerscore.
+- **Panorama:** capture a spinning title-screen background where you stand, and set its speed and direction.
+- **Clips:** F8 saves the last 30 seconds as a video, which shows in Kelp's Gallery.
+- **Replay:** F9 rewinds the last few minutes, Skate 3 style: watch it from any angle with Free, Follow, Tripod
+  or Path (keyframe) cameras, a lens setting, slow motion, backwards, trim, sounds and particles. Save replays to
+  watch later, or export them as videos.
+- **120 languages:** Squid's own texts follow Minecraft's language setting (BETA, not checked yet).
+
 ## How it works
 
 Kelp starts Squid instead of Minecraft. Squid:
@@ -99,7 +116,7 @@ build.bat test    also runs the tests (they load real Minecraft classes without 
 
 ## The Store
 
-The Squid Store is built into Squid (`builtin/store`), so everyone has it: a **Store** button on the title screen, next to Realms. It has three tabs: **Dev-picked**, **Mods** and **Resource Packs**. Install puts a mod in `mods` (it starts next time the game opens) or a resource pack in `resourcepacks`.
+The Squid Store is built into Squid (`builtin/store`), so everyone has it: a **Store** button on the title screen, next to Realms. It has four tabs: **Dev-picked**, **Mods**, **Packs** and **Capes**. Install puts a mod in `mods` (it starts next time the game opens) or a resource pack in `resourcepacks`.
 
 The store reads one list, `store.json`, from the [squid-store](https://github.com/SamuelArther/squid-store) repo. Every item has a fingerprint (sha256), and a download that doesn't match it is thrown away. Nothing gets in the list without being approved; submissions will come through submit.kelplauncher.org.
 
@@ -145,6 +162,9 @@ What a mod can do in `init`:
 - `onHud(hud -> ...)` draws on the screen every frame: `hud.box(...)`, `hud.text(...)`, `hud.outline(...)`.
 - `onTick(() -> ...)` runs 20 times a second.
 - `addKeyBinding(name, key)` adds a key to Minecraft's Controls screen, where players can change it. `isDown()` says if it's held, `pressed()` if it was just pressed.
+- `settings()` gives the mod settings players change in the Mods screen: `toggle(name, default)`,
+  `number(name, default, min, max)` and `choice(name, default, choices...)`.
+- `addMenuButton(label, inWorldOnly, menu -> ...)` adds a button to the Squid menu, to open the mod's own screen.
 - `patch(class, node -> ...)` changes a class's bytecode directly with [ASM](https://asm.ow2.io/).
 
 Set hooks up in `init` before touching any Minecraft class, or that class will already be loaded without them. See [`examples`](examples) for whole mods: Hello Squid, Zoom, Compass and Minimap.

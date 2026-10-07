@@ -108,7 +108,7 @@ public class Clips implements SquidMod {
     private void save() {
         List<byte[]> frames = buffer.pictures();
         if (frames.size() < 2) {
-            Game.chat(on() ? Lang.t("Nothing to save yet. Play a little first!") : Lang.t("Instant replay is off. Turn it on in Mods > Squid Clips > Settings."), "YELLOW");
+            Game.chat(on() ? Lang.t("Nothing to save yet. Play a little first!") : Lang.t("Instant replay is off. Turn it on in Squid > Mods > Squid Clips > Settings."), "YELLOW");
             return;
         }
         int fps = buffer.fps();

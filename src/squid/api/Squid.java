@@ -26,6 +26,15 @@ public final class Squid {
         return ModSettings.of(mod.id());
     }
 
+    /**
+     * Adds a button to the Squid menu (the one Squid button on Minecraft's title screen and pause menu), so a mod's
+     * own screen is easy to find. label is in English (Squid translates it if it knows it). open gets the Squid menu
+     * screen, to come back to. inWorldOnly hides it on the title screen, for things that need a world.
+     */
+    public void addMenuButton(String label, boolean inWorldOnly, Consumer<Object> open) {
+        squid.MenuButtons.add(new squid.MenuButtons.Entry(mod.id(), label, inWorldOnly, open));
+    }
+
     /** This mod's details from its squid.json. */
     public ModInfo mod() {
         return mod;
