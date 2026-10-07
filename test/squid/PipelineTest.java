@@ -776,6 +776,17 @@ public class PipelineTest {
         squid.audio.Pcm toneFlac = squid.audio.Audio.decode(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("test/audio/tone.flac")));
         check("a FLAC file decodes to exactly the sound it was made from", toneFlac.channels() + " " + toneFlac.rate() + " "
                 + java.util.Arrays.equals(toneWav.samples(), toneFlac.samples()) + " " + toneWav.samples().length, "2 44100 true 22050");
+        squid.audio.Pcm toneMp3 = squid.audio.Audio.decode(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("test/audio/tone.mp3")));
+        long mp3Error = 0;
+        long mp3Signal = 0;
+        for (int i = 0; i < toneWav.samples().length && i < toneMp3.samples().length; i++) {
+            long d = toneMp3.samples()[i] - toneWav.samples()[i];
+            mp3Error += d * d;
+            mp3Signal += (long) toneWav.samples()[i] * toneWav.samples()[i];
+        }
+        check("an MP3 decodes to the sound it was made from (the padding trimmed, so it lines up), close enough to hear no difference",
+                toneMp3.channels() + " " + toneMp3.rate() + " " + toneMp3.samples().length + " " + (10 * Math.log10((double) mp3Signal / mp3Error) > 20),
+                "2 44100 22050 true");
         check("something that isn't sound is turned away", squid.audio.Audio.canDecode("hello".getBytes()) + "", "false");
 
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
