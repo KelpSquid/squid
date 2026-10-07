@@ -1,5 +1,7 @@
 package squid.api;
 
+import squid.Lang;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
@@ -39,7 +41,7 @@ public final class Hud {
             text = g.getMethod("text", fontClass, String.class, int.class, int.class, int.class, boolean.class);
             fontWidth = fontClass.getMethod("width", String.class);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Squid couldn't find Minecraft's drawing methods", e);
+            throw new IllegalStateException(Lang.t("Squid couldn't find Minecraft's drawing methods"), e);
         }
     }
 
@@ -94,7 +96,7 @@ public final class Hud {
         try {
             return method.invoke(graphics, args);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Squid couldn't draw on the screen", e);
+            throw new IllegalStateException(Lang.t("Squid couldn't draw on the screen"), e);
         }
     }
 }

@@ -5,6 +5,7 @@ import org.lwjgl.sdl.SDLDialog;
 import org.lwjgl.sdl.SDL_DialogFileCallback;
 import org.lwjgl.sdl.SDL_DialogFileFilter;
 import org.lwjgl.system.MemoryUtil;
+import squid.Lang;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ final class FilePicker {
         if (waiting != null) waiting.free();
         if (filters == null) {
             filters = SDL_DialogFileFilter.calloc(1);
-            filters.get(0).name(MemoryUtil.memUTF8("Pictures (.png)")).pattern(MemoryUtil.memUTF8("png"));
+            filters.get(0).name(MemoryUtil.memUTF8(Lang.t("Pictures (.png)"))).pattern(MemoryUtil.memUTF8("png"));
         }
         waiting = SDL_DialogFileCallback.create((userdata, fileList, filter) -> {
             List<Path> files = new ArrayList<>();

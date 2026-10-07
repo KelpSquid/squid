@@ -130,7 +130,7 @@ public final class Main {
                 main = loader.loadClass(mod.main());
                 Object instance = main.getDeclaredConstructor().newInstance();
                 if (!(instance instanceof SquidMod squidMod)) {
-                    throw new IllegalStateException("it isn't a Squid mod yet. Write \"extends EasyMod\" after its class name");
+                    throw new IllegalStateException(Lang.t("it isn't a Squid mod yet. Write \"extends EasyMod\" after its class name"));
                 }
                 squidMod.init(new Squid(mod));
                 started.add(mod);
@@ -185,7 +185,7 @@ public final class Main {
         int shown = Math.min(3, problems.size());
         if (problems.size() > shown) {
             y -= 10;
-            hud.text("...and " + (problems.size() - shown) + " more. Kelp shows them all.", 2, y, 0xFFFFFF55);
+            hud.text(Lang.t("...and {0} more. Kelp shows them all.", problems.size() - shown), 2, y, 0xFFFFFF55);
         }
         for (int i = shown - 1; i >= 0; i--) {
             y -= 10;

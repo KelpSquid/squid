@@ -18,7 +18,7 @@ public final class Json {
         Json json = new Json(text);
         Object value = json.value();
         json.skipSpace();
-        if (json.pos != text.length()) throw json.error("extra text after the end");
+        if (json.pos != text.length()) throw json.error(Lang.t("extra text after the end"));
         return value;
     }
 
@@ -57,12 +57,12 @@ public final class Json {
             skipSpace();
             String key = readString();
             skipSpace();
-            if (next() != ':') throw error("expected :");
+            if (next() != ':') throw error(Lang.t("expected :"));
             map.put(key, value());
             skipSpace();
             char c = next();
             if (c == '}') return map;
-            if (c != ',') throw error("expected , or }");
+            if (c != ',') throw error(Lang.t("expected , or }"));
         }
     }
 
@@ -79,12 +79,12 @@ public final class Json {
             skipSpace();
             char c = next();
             if (c == ']') return list;
-            if (c != ',') throw error("expected , or ]");
+            if (c != ',') throw error(Lang.t("expected , or ]"));
         }
     }
 
     private String readString() {
-        if (next() != '"') throw error("expected a string");
+        if (next() != '"') throw error(Lang.t("expected a string"));
         StringBuilder sb = new StringBuilder();
         while (true) {
             char c = next();
@@ -102,11 +102,11 @@ public final class Json {
                 case 'b' -> sb.append('\b');
                 case 'f' -> sb.append('\f');
                 case 'u' -> {
-                    if (pos + 4 > text.length()) throw error("unexpected end");
+                    if (pos + 4 > text.length()) throw error(Lang.t("unexpected end"));
                     sb.append((char) Integer.parseInt(text.substring(pos, pos + 4), 16));
                     pos += 4;
                 }
-                default -> throw error("unknown escape \\" + escaped);
+                default -> throw error(Lang.t("unknown escape \\{0}", escaped));
             }
         }
     }
@@ -114,18 +114,18 @@ public final class Json {
     private Double readNumber() {
         int start = pos;
         while (pos < text.length() && "+-0123456789.eE".indexOf(text.charAt(pos)) >= 0) pos++;
-        if (start == pos) throw error("unexpected character");
+        if (start == pos) throw error(Lang.t("unexpected character"));
         return Double.parseDouble(text.substring(start, pos));
     }
 
     private Object word(String word, Object value) {
-        if (!text.startsWith(word, pos)) throw error("expected " + word);
+        if (!text.startsWith(word, pos)) throw error(Lang.t("expected {0}", word));
         pos += word.length();
         return value;
     }
 
     private char peek() {
-        if (pos >= text.length()) throw error("unexpected end");
+        if (pos >= text.length()) throw error(Lang.t("unexpected end"));
         return text.charAt(pos);
     }
 
@@ -140,6 +140,7 @@ public final class Json {
     }
 
     private IllegalArgumentException error(String message) {
-        return new IllegalArgumentException("Bad JSON at character " + pos + ": " + message);
+        // Shown to players when a mod's squid.json is broken, so it's translated
+        return new IllegalArgumentException(Lang.t("Bad JSON at character {0}: {1}", pos, message));
     }
 }

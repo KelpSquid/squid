@@ -1,5 +1,7 @@
 package squid.api;
 
+import squid.Lang;
+
 import java.lang.reflect.Method;
 
 /**
@@ -35,7 +37,7 @@ public final class KeyBinding {
         try {
             return (boolean) isDown.invoke(m);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Couldn't check the " + name + " key", e);
+            throw new IllegalStateException(Lang.t("Couldn't check the {0} key", name), e);
         }
     }
 
@@ -49,7 +51,7 @@ public final class KeyBinding {
         try {
             return (boolean) consumeClick.invoke(m);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Couldn't check the " + name + " key", e);
+            throw new IllegalStateException(Lang.t("Couldn't check the {0} key", name), e);
         }
     }
 

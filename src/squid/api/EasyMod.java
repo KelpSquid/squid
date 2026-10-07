@@ -1,5 +1,6 @@
 package squid.api;
 
+import squid.Lang;
 import squid.Main;
 import squid.Mistakes;
 
@@ -64,7 +65,7 @@ public abstract class EasyMod implements SquidMod {
                     e.printStackTrace(System.out);
                     problem(what + ": " + Mistakes.explain(e, EasyMod.this.getClass()));
                 }
-                if (failures == 3) problem("turned off " + what + " because it kept going wrong.");
+                if (failures == 3) problem(Lang.t("turned off {0} because it kept going wrong.", what));
             }
         }
     }
@@ -77,7 +78,7 @@ public abstract class EasyMod implements SquidMod {
         try {
             start = getClass().getDeclaredMethod("start");
         } catch (NoSuchMethodException e) {
-            throw new IllegalStateException("your mod needs a start() method, like: void start() { say(\"Hi!\"); }");
+            throw new IllegalStateException(Lang.t("your mod needs a start() method, like: void start() { say(\"Hi!\"); }"));
         }
         start.setAccessible(true);
         starting = true;
@@ -112,7 +113,7 @@ public abstract class EasyMod implements SquidMod {
      * The key shows up in Options > Controls, where anyone can change it. Use it inside start().
      */
     protected void onKey(String key, Runnable action) {
-        if (!starting) throw new IllegalStateException("onKey only works inside start()");
+        if (!starting) throw new IllegalStateException(Lang.t("onKey only works inside start()"));
         int code = Keys.code(key, Main.gameLoader());
         KeyBinding binding = squid.addKeyBinding(squid.mod().name() + " (" + key.toUpperCase() + ")", code);
         keys.add(new KeyAction(binding, new Action("onKey(\"" + key + "\")", action)));
@@ -148,7 +149,7 @@ public abstract class EasyMod implements SquidMod {
 
     /** Runs a command like you typed it in chat: command("time set day"). The / at the start is optional. */
     protected void command(String command) {
-        if (!Game.inWorld()) throw new IllegalStateException("command() only works while you're in a world. Try it in onJoin or onKey");
+        if (!Game.inWorld()) throw new IllegalStateException(Lang.t("command() only works while you're in a world. Try it in onJoin or onKey"));
         Game.command(command.startsWith("/") ? command.substring(1) : command);
     }
 
@@ -169,7 +170,7 @@ public abstract class EasyMod implements SquidMod {
 
     /** Changes the yellow text on the title screen. Use it inside start(). */
     protected void splash(String text) {
-        if (!starting) throw new IllegalStateException("splash only works inside start()");
+        if (!starting) throw new IllegalStateException(Lang.t("splash only works inside start()"));
         squid.atStart("net.minecraft.client.resources.SplashManager", "getSplash", call -> call.cancel(Game.splash(text)));
     }
 

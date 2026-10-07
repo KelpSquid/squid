@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import squid.Lang;
 import squid.Main;
 
 import java.nio.file.Path;
@@ -20,7 +21,7 @@ final class StoreScreen extends Screen {
     private enum Tab {
         PICKS("Dev-picked"), MODS("Mods"), PACKS("Packs"), CAPES("Capes");
 
-        final String label;
+        final String label; // in English: translated where it's shown
 
         Tab(String label) {
             this.label = label;
@@ -40,7 +41,7 @@ final class StoreScreen extends Screen {
     private int page;
 
     StoreScreen(Screen parent) {
-        super(Component.literal("Squid Store"));
+        super(Component.literal(Lang.t("Squid Store")));
         this.parent = parent;
         Thread load = new Thread(() -> {
             try {
@@ -50,7 +51,7 @@ final class StoreScreen extends Screen {
                 }
                 items = all;
             } catch (Exception e) {
-                problem = "Couldn't reach the store. Check your internet and try again.";
+                problem = Lang.t("Couldn't reach the store. Check your internet and try again.");
             }
             minecraft.execute(this::rebuildWidgets);
         }, "squid store");
@@ -95,7 +96,7 @@ final class StoreScreen extends Screen {
         // Tabs along the top. The open one is greyed out, like a pressed button.
         int tabX = width / 2 - 155;
         for (Tab t : Tab.values()) { // four tabs of 74, side by side
-            Button button = addRenderableWidget(Button.builder(Component.literal(t.label), b -> {
+            Button button = addRenderableWidget(Button.builder(Component.literal(Lang.t(t.label)), b -> {
                 tab = t;
                 page = 0;
                 rebuildWidgets();
@@ -112,7 +113,7 @@ final class StoreScreen extends Screen {
             Catalog.Item item = list.get(i);
             String now = state.get(item.id());
             boolean installed = installedNow.contains(item.id());
-            String label = now != null ? now : updatesNow.contains(item.id()) ? "Update" : installed ? "Reinstall" : "Install";
+            String label = now != null ? now : updatesNow.contains(item.id()) ? Lang.t("Update") : installed ? Lang.t("Reinstall") : Lang.t("Install");
             Button install = addRenderableWidget(Button.builder(Component.literal(label), b -> install(item))
                     .bounds(width / 2 + 85, y + 6, 70, 20).build());
             install.active = now == null; // anything can always be installed again
@@ -131,22 +132,23 @@ final class StoreScreen extends Screen {
             }).bounds(width / 2 + 135, height - 52, 20, 20).build());
             next.active = page < pages - 1;
         }
-        addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
     }
 
     private void install(Catalog.Item item) {
-        state.put(item.id(), "Installing...");
+        state.put(item.id(), Lang.t("Installing..."));
         rebuildWidgets();
         Thread worker = new Thread(() -> {
             try {
                 Installer.install(item, gameFolder);
-                state.put(item.id(), "Installed!");
-                notice = item.isMod() ? "Restart the game to start " + item.name() + "."
-                        : item.isCape() ? "Wear " + item.name() + " from Options > Skin Customization > Squid Skin & Cape."
-                        : "Turn on " + item.name() + " in Options > Resource Packs.";
+                state.put(item.id(), Lang.t("Installed!"));
+                notice = item.isMod() ? Lang.t("Restart the game to start {0}.", item.name())
+                        : item.isCape() ? Lang.t("Wear {0} from Options > Skin Customization > Squid Skin & Cape.", item.name())
+                        : Lang.t("Turn on {0} in Options > Resource Packs.", item.name());
             } catch (Exception e) {
                 state.remove(item.id());
-                notice = "Couldn't install " + item.name() + ": " + (e.getMessage() != null ? e.getMessage() : "something went wrong");
+                notice = Lang.t("Couldn't install {0}: {1}", item.name(),
+                        e.getMessage() != null ? e.getMessage() : Lang.t("something went wrong"));
             }
             minecraft.execute(this::rebuildWidgets);
         }, "squid store install");
@@ -157,16 +159,16 @@ final class StoreScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
-        g.centeredText(font, "Squid Store", width / 2, 12, 0xFFFFFFFF);
+        g.centeredText(font, Lang.t("Squid Store"), width / 2, 12, 0xFFFFFFFF);
 
         if (items == null) {
-            g.centeredText(font, problem != null ? problem : "Loading the store...", width / 2, height / 2 - 4,
+            g.centeredText(font, problem != null ? problem : Lang.t("Loading the store..."), width / 2, height / 2 - 4,
                     problem != null ? 0xFFFF5555 : 0xFFA0A0A0);
             return;
         }
         List<Catalog.Item> list = shown();
         if (list.isEmpty()) {
-            String empty = tab == Tab.PICKS ? "No dev picks yet." : "Nothing here yet. Check back soon!";
+            String empty = tab == Tab.PICKS ? Lang.t("No dev picks yet.") : Lang.t("Nothing here yet. Check back soon!");
             g.centeredText(font, empty, width / 2, height / 2 - 4, 0xFFA0A0A0);
         }
         int left = width / 2 - 155;
@@ -175,10 +177,12 @@ final class StoreScreen extends Screen {
         for (int i = page * perPage(); i < Math.min(list.size(), (page + 1) * perPage()); i++) {
             Catalog.Item item = list.get(i);
             g.fill(left - 4, y, width / 2 + 159, y + ROW - 4, 0x60000000);
-            String kind = tab == Tab.PICKS ? (item.isMod() ? " [Mod]" : item.isCape() ? " [Cape]" : " [Pack]") : "";
-            String heading = item.name() + kind + (item.author().isEmpty() ? "" : " by " + item.author());
+            // The spaces stay outside the translations (language files trim them)
+            String kind = tab == Tab.PICKS ? " " + (item.isMod() ? Lang.t("[Mod]") : item.isCape() ? Lang.t("[Cape]") : Lang.t("[Pack]")) : "";
+            String named = item.name() + kind;
+            String heading = item.author().isEmpty() ? named : Lang.t("{0} by {1}", named, item.author());
             boolean update = updatesNow.contains(item.id());
-            String tag = update ? " Update available" : installedNow.contains(item.id()) ? " Installed" : "";
+            String tag = update ? " " + Lang.t("Update available") : installedNow.contains(item.id()) ? " " + Lang.t("Installed") : "";
             String shownHeading = font.plainSubstrByWidth(heading, textWidth - font.width(tag));
             g.text(font, shownHeading, left, y + 5, 0xFFFFFFFF);
             if (!tag.isEmpty()) g.text(font, tag, left + font.width(shownHeading), y + 5, update ? 0xFFFFFF55 : 0xFF55FF55);
@@ -186,7 +190,7 @@ final class StoreScreen extends Screen {
             y += ROW;
         }
         int pages = Math.max(1, (list.size() + perPage() - 1) / perPage());
-        if (pages > 1) g.centeredText(font, "Page " + (page + 1) + " of " + pages, width / 2, height - 46, 0xFFA0A0A0);
+        if (pages > 1) g.centeredText(font, Lang.t("Page {0} of {1}", page + 1, pages), width / 2, height - 46, 0xFFA0A0A0);
         if (notice != null) g.centeredText(font, notice, width / 2, height - 40 - (pages > 1 ? 12 : 0), 0xFFFFFF55);
     }
 

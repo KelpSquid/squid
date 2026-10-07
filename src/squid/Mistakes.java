@@ -17,8 +17,7 @@ public final class Mistakes {
             e = e.getCause();
         }
         int line = modClass == null ? -1 : lineIn(e, modClass.getName());
-        String where = line > 0 ? "there's a problem on line " + line + ": " : "";
-        return where + plain(e);
+        return line > 0 ? Lang.t("there's a problem on line {0}: {1}", line, plain(e)) : plain(e);
     }
 
     /** The first line of the stack that's in the mod's own class (or a class inside it, like its { } actions). */
@@ -32,15 +31,15 @@ public final class Mistakes {
 
     static String plain(Throwable e) {
         String message = e.getMessage();
-        if (e instanceof NullPointerException) return "something was empty (null). Maybe it isn't ready yet, like before you join a world";
-        if (e instanceof ArithmeticException && message != null && message.contains("zero")) return "you divided by zero";
-        if (e instanceof IndexOutOfBoundsException) return "you asked for a spot past the end of a list";
-        if (e instanceof NumberFormatException) return "that text isn't a number (" + message + ")";
-        if (e instanceof ClassCastException) return "a value was the wrong kind";
+        if (e instanceof NullPointerException) return Lang.t("something was empty (null). Maybe it isn't ready yet, like before you join a world");
+        if (e instanceof ArithmeticException && message != null && message.contains("zero")) return Lang.t("you divided by zero");
+        if (e instanceof IndexOutOfBoundsException) return Lang.t("you asked for a spot past the end of a list");
+        if (e instanceof NumberFormatException) return Lang.t("that text isn't a number ({0})", message);
+        if (e instanceof ClassCastException) return Lang.t("a value was the wrong kind");
         if (e instanceof NoSuchMethodError || e instanceof NoSuchFieldError || e instanceof NoClassDefFoundError) {
-            return "this mod was made for a different Minecraft version (it can't find " + message + ")";
+            return Lang.t("this mod was made for a different Minecraft version (it can't find {0})", message);
         }
-        if (e instanceof StackOverflowError) return "something kept calling itself forever";
+        if (e instanceof StackOverflowError) return Lang.t("something kept calling itself forever");
         // Squid's own errors for mods are already written for people
         if ((e instanceof IllegalArgumentException || e instanceof IllegalStateException) && message != null) return message;
         return e.getClass().getSimpleName() + (message != null ? ": " + message : "");

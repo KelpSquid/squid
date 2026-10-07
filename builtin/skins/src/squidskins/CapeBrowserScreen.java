@@ -6,6 +6,7 @@ import net.minecraft.client.gui.components.PlayerSkinWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import squid.Lang;
 import squid.Main;
 import squidstore.Catalog;
 import squidstore.Installer;
@@ -33,7 +34,7 @@ final class CapeBrowserScreen extends Screen {
     private enum Tab {
         OFFICIAL("Official"), COMMUNITY("Community"), YOURS("Yours");
 
-        final String label;
+        final String label; // in English: translated where it's shown
 
         Tab(String label) {
             this.label = label;
@@ -60,7 +61,7 @@ final class CapeBrowserScreen extends Screen {
     private final java.util.Set<String> previewing = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     CapeBrowserScreen(WardrobeScreen parent) {
-        super(Component.literal("Capes"));
+        super(Component.literal(Lang.t("Capes")));
         this.parent = parent;
     }
 
@@ -74,7 +75,7 @@ final class CapeBrowserScreen extends Screen {
 
         int tabX = width / 2 - 150;
         for (Tab t : Tab.values()) {
-            Button button = Button.builder(Component.literal(t.label), b -> show(t)).bounds(tabX, 24, 98, 20).build();
+            Button button = Button.builder(Component.literal(Lang.t(t.label)), b -> show(t)).bounds(tabX, 24, 98, 20).build();
             button.active = t != tab;
             addRenderableWidget(button);
             tabX += 102;
@@ -84,7 +85,7 @@ final class CapeBrowserScreen extends Screen {
             addRenderableWidget(Button.builder(Component.literal("<"), b -> turn(-1)).bounds(width / 2 - 100, height - 52, 20, 20).build());
             addRenderableWidget(Button.builder(Component.literal(">"), b -> turn(1)).bounds(width / 2 + 80, height - 52, 20, 20).build());
         }
-        addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
         if (tab == Tab.OFFICIAL && official == null) loadOfficial();
         if (tab == Tab.COMMUNITY && community == null) loadCommunity();
     }
@@ -118,7 +119,7 @@ final class CapeBrowserScreen extends Screen {
                 }
             }
             case YOURS -> {
-                entries.add(new Entry("None", "", null));
+                entries.add(new Entry(Lang.t("None"), "", null));
                 for (String builtIn : Wardrobe.BUILT_IN_CAPES) {
                     entries.add(new Entry(Character.toUpperCase(builtIn.charAt(0)) + builtIn.substring(1), builtIn, null));
                 }
@@ -204,12 +205,12 @@ final class CapeBrowserScreen extends Screen {
             }
             Skins.choose(Skins.myId(), now.withCape(entry.cape()));
             if (OfficialCapes.isOfficial(entry.cape())) {
-                say("Wearing " + entry.name() + ". You don't own it, so others will see a tag next to your name.", 0xFFFFFF55);
+                say(Lang.t("Wearing {0}. You don't own it, so others will see a tag next to your name.", entry.name()), 0xFFFFFF55);
             } else {
-                say(entry.cape().isEmpty() ? "No cape." : "Wearing " + entry.name() + "!", 0xFF55FF55);
+                say(entry.cape().isEmpty() ? Lang.t("No cape.") : Lang.t("Wearing {0}!", entry.name()), 0xFF55FF55);
             }
         } catch (IOException e) {
-            say("Couldn't get it: " + e.getMessage(), 0xFFFF5555);
+            say(Lang.t("Couldn't get it: {0}", e.getMessage()), 0xFFFF5555);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -248,7 +249,7 @@ final class CapeBrowserScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
-        g.centeredText(font, "Capes", width / 2, 10, 0xFFFFFFFF);
+        g.centeredText(font, Lang.t("Capes"), width / 2, 10, 0xFFFFFFFF);
         String wearing = Skins.choice(Skins.myId()).cape();
         List<Entry> entries = entries();
         int columns = columns();
@@ -276,11 +277,11 @@ final class CapeBrowserScreen extends Screen {
         }
 
         String hint = switch (tab) {
-            case OFFICIAL -> official == null ? (loadProblem != null ? "Couldn't load them: " + loadProblem : "Loading from Mojang...")
-                    : "Mojang's capes. Wearing one you don't own shows a tag by your name.";
-            case COMMUNITY -> community == null ? (loadProblem != null ? "Couldn't load them: " + loadProblem : "Loading the Store...")
-                    : community.isEmpty() ? "No community capes yet." : "Approved capes from the Squid Store. Click one to get it and wear it.";
-            case YOURS -> "Yours: drop pictures on the wardrobe, or paint one.";
+            case OFFICIAL -> official == null ? (loadProblem != null ? Lang.t("Couldn't load them: {0}", loadProblem) : Lang.t("Loading from Mojang..."))
+                    : Lang.t("Mojang's capes. Wearing one you don't own shows a tag by your name.");
+            case COMMUNITY -> community == null ? (loadProblem != null ? Lang.t("Couldn't load them: {0}", loadProblem) : Lang.t("Loading the Store..."))
+                    : community.isEmpty() ? Lang.t("No community capes yet.") : Lang.t("Approved capes from the Squid Store. Click one to get it and wear it.");
+            case YOURS -> Lang.t("Yours: drop pictures on the wardrobe, or paint one.");
         };
         if (pages() > 1) g.centeredText(font, (page + 1) + " / " + pages(), width / 2, height - 46, 0xFFA0A0A0);
         g.centeredText(font, font.plainSubstrByWidth(message != null ? message : hint, width - 20), width / 2, height - 64,

@@ -5,6 +5,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.PlayerSkinWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import squid.Lang;
 
 import java.io.IOException;
 
@@ -17,7 +18,7 @@ final class EffectsScreen extends Screen {
     private String message;
 
     EffectsScreen(WardrobeScreen parent) {
-        super(Component.literal("Cape Effects"));
+        super(Component.literal(Lang.t("Cape Effects")));
         this.parent = parent;
     }
 
@@ -43,19 +44,19 @@ final class EffectsScreen extends Screen {
             int bw = effect.trail ? 98 : 64;
             if (effect.trail) trails++;
             else looks++;
-            addRenderableWidget(Button.builder(Component.literal((on ? "§a" : "§7") + effect.label), b -> toggle(effect))
+            addRenderableWidget(Button.builder(Component.literal((on ? "§a" : "§7") + Lang.t(effect.label)), b -> toggle(effect))
                     .bounds(bx, by, bw, 20).build());
         }
-        addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
     }
 
     private void toggle(CapeEffects.Effect effect) {
         Wardrobe.Choice now = Skins.choice(Skins.myId());
         try {
             Skins.choose(Skins.myId(), now.toggled(effect));
-            message = now.cape().isEmpty() ? "Pick a cape in the wardrobe to see it!" : null;
+            message = now.cape().isEmpty() ? Lang.t("Pick a cape in the wardrobe to see it!") : null;
         } catch (IOException e) {
-            message = "Couldn't save that: " + e.getMessage();
+            message = Lang.t("Couldn't save that: {0}", e.getMessage());
         }
         rebuildWidgets();
     }
@@ -63,12 +64,12 @@ final class EffectsScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
-        g.centeredText(font, "Cape Effects", width / 2, 10, 0xFFFFFFFF);
+        g.centeredText(font, Lang.t("Cape Effects"), width / 2, 10, 0xFFFFFFFF);
         int x = width / 2 - 40;
         int y = Math.max(28, height / 2 - 80);
-        g.text(font, "Looks", x, y, 0xFFA0A0A0);
-        g.text(font, "Trails (they follow you while you play)", x, y + 24, 0xFFA0A0A0);
-        g.text(font, "Green ones are on. Mix as many as you like!", x, y + 112, 0xFF808080);
+        g.text(font, Lang.t("Looks"), x, y, 0xFFA0A0A0);
+        g.text(font, Lang.t("Trails (they follow you while you play)"), x, y + 24, 0xFFA0A0A0);
+        g.text(font, Lang.t("Green ones are on. Mix as many as you like!"), x, y + 112, 0xFF808080);
         if (message != null) g.centeredText(font, message, width / 2, height - 42, 0xFFFFFF55);
     }
 

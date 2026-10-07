@@ -37,7 +37,7 @@ public final class KeyBindings {
                     try {
                         addTo(call.self());
                     } catch (ReflectiveOperationException e) {
-                        throw new IllegalStateException("Couldn't add the mods' keys to Minecraft's controls", e);
+                        throw new IllegalStateException(Lang.t("Couldn't add the mods' keys to Minecraft's controls"), e);
                     }
                 })));
     }

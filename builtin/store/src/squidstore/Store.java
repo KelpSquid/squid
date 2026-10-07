@@ -8,6 +8,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
+import squid.Lang;
 import squid.api.Squid;
 import squid.api.SquidMod;
 
@@ -46,7 +47,7 @@ public class Store implements SquidMod {
             y = 4;
             width = 80;
         }
-        Button store = Button.builder(Component.literal("Store"),
+        Button store = Button.builder(Component.literal(Lang.t("Store")),
                 button -> Minecraft.getInstance().setScreenAndShow(new StoreScreen(title))).bounds(x, y, width, 20).build();
         try {
             if (addWidget == null) {
@@ -56,7 +57,7 @@ public class Store implements SquidMod {
             }
             addWidget.invoke(title, store);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Couldn't add the Store button", e);
+            throw new IllegalStateException(Lang.t("Couldn't add the Store button"), e);
         }
     }
 }

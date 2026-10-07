@@ -64,7 +64,7 @@ final class Mods {
                 if (fileName.endsWith(".jar")) {
                     mod = read(file);
                 } else if (sources == null) {
-                    skipFile(skipped, file, "Squid can't build mods here.");
+                    skipFile(skipped, file, Lang.t("Squid can't build mods here."));
                     continue;
                 } else if (Files.isDirectory(file)) {
                     mod = sources.compileProject(file, readProject(file));
@@ -79,15 +79,15 @@ final class Mods {
                 continue;
             }
             if (mod == null) {
-                skipFile(skipped, file, "it isn't a Squid mod (it has no squid.json), so Squid can't load it.");
+                skipFile(skipped, file, Lang.t("it isn't a Squid mod (it has no squid.json), so Squid can't load it."));
                 continue;
             }
             ModInfo first = byId.get(mod.id());
             if (first != null) {
-                skip(skipped, mod, "it's another copy of " + fileOf.get(mod.id()).getFileName() + ". You can delete " + fileName + ".");
+                skip(skipped, mod, Lang.t("it's another copy of {0}. You can delete {1}.", fileOf.get(mod.id()).getFileName(), fileName));
             } else if (!mod.worksOn(minecraftVersion)) {
-                skip(skipped, mod, "it was made for Minecraft " + String.join(" or ", mod.minecraft())
-                        + ", not " + minecraftVersion + ". Look for an update to it.");
+                skip(skipped, mod, Lang.t("it was made for Minecraft {0}, not {1}. Look for an update to it.",
+                        String.join(" " + Lang.t("or") + " ", mod.minecraft()), minecraftVersion));
             } else {
                 byId.put(mod.id(), mod);
                 fileOf.put(mod.id(), file);
@@ -128,9 +128,9 @@ final class Mods {
     /** Why a needed mod isn't there: it was skipped too, or it's missing. */
     private static String why(String needed, List<Skipped> skipped) {
         for (Skipped other : skipped) {
-            if (other.id().equals(needed)) return "it needs " + other.name() + ", which was skipped too.";
+            if (other.id().equals(needed)) return Lang.t("it needs {0}, which was skipped too.", other.name());
         }
-        return "it needs the mod \"" + needed + "\", but it isn't in the mods folder.";
+        return Lang.t("it needs the mod \"{0}\", but it isn't in the mods folder.", needed);
     }
 
     /** Puts every mod after the mods it depends on. Explains what's wrong if a mod is missing or mods need each other. */
@@ -140,7 +140,7 @@ final class Mods {
         for (ModInfo mod : mods) {
             for (String needed : mod.depends()) {
                 if (!byId.containsKey(needed)) {
-                    throw new IOException(mod.name() + " needs the mod \"" + needed + "\", but it isn't in the mods folder.");
+                    throw new IOException(Lang.t("{0} needs the mod \"{1}\", but it isn't in the mods folder.", mod.name(), needed));
                 }
             }
         }
@@ -155,8 +155,8 @@ final class Mods {
         if (placed.contains(mod.id())) return;
         if (chain.contains(mod.id())) {
             chain.add(mod.id());
-            throw new IOException("These mods need each other in a loop, so none of them can start first: "
-                    + String.join(" -> ", chain.subList(chain.indexOf(mod.id()), chain.size())));
+            throw new IOException(Lang.t("These mods need each other in a loop, so none of them can start first: {0}",
+                    String.join(" -> ", chain.subList(chain.indexOf(mod.id()), chain.size()))));
         }
         chain.add(mod.id());
         for (String needed : mod.depends()) place(byId.get(needed), byId, ordered, placed, chain);
@@ -180,7 +180,7 @@ final class Mods {
             ZipEntry entry = zip.getEntry("squid.json");
             if (entry == null) return null;
             String text = new String(zip.getInputStream(entry).readAllBytes(), StandardCharsets.UTF_8);
-            return info(parse(text, jar.getFileName() + "'s squid.json"), jar, null, null, null);
+            return info(parse(text, jar.getFileName().toString()), jar, null, null, null);
         }
     }
 
@@ -190,8 +190,8 @@ final class Mods {
      */
     static ModInfo readProject(Path folder) throws IOException {
         Path file = folder.resolve("squid.json");
-        if (!Files.exists(file)) throw new IOException("it needs a squid.json, with at least its \"name\" in it.");
-        Map<String, Object> json = parse(Files.readString(file, StandardCharsets.UTF_8), "its squid.json");
+        if (!Files.exists(file)) throw new IOException(Lang.t("it needs a squid.json, with at least its \"name\" in it."));
+        Map<String, Object> json = parse(Files.readString(file, StandardCharsets.UTF_8), null);
         String className = folder.getFileName().toString().replaceAll("[^A-Za-z0-9_]", "");
         String id = SourceMods.spaced(className).toLowerCase(Locale.ROOT).replace(' ', '-');
         return info(json, folder, id, SourceMods.spaced(className), className);
@@ -202,10 +202,10 @@ final class Mods {
         Map<String, Object> json;
         try (ZipFile zip = new ZipFile(file.toFile())) {
             ZipEntry entry = zip.getEntry("squid.json");
-            if (entry == null) throw new IOException("it has no squid.json inside. Pack it again from Kelp.");
-            json = parse(new String(zip.getInputStream(entry).readAllBytes(), StandardCharsets.UTF_8), "its squid.json");
+            if (entry == null) throw new IOException(Lang.t("it has no squid.json inside. Pack it again from Kelp."));
+            json = parse(new String(zip.getInputStream(entry).readAllBytes(), StandardCharsets.UTF_8), null);
         } catch (java.util.zip.ZipException e) {
-            throw new IOException("it's damaged, so Squid can't open it. Download or pack it again.");
+            throw new IOException(Lang.t("it's damaged, so Squid can't open it. Download or pack it again."));
         }
         String fileName = file.getFileName().toString();
         String className = fileName.substring(0, fileName.length() - ".squid".length()).replaceAll("[^A-Za-z0-9_]", "");
@@ -213,11 +213,13 @@ final class Mods {
         return info(json, file, id, SourceMods.spaced(className), className);
     }
 
-    private static Map<String, Object> parse(String text, String what) throws IOException {
+    /** Reads a squid.json. jarName is the jar it's in, for saying which one is broken, or null for "its squid.json". */
+    private static Map<String, Object> parse(String text, String jarName) throws IOException {
         try {
             return Json.object(Json.parse(text));
         } catch (IllegalArgumentException e) {
-            throw new IOException(what + " is broken: " + e.getMessage());
+            if (jarName == null) throw new IOException(Lang.t("its squid.json is broken: {0}", e.getMessage()));
+            throw new IOException(Lang.t("{0}'s squid.json is broken: {1}", jarName, e.getMessage()));
         }
     }
 
@@ -226,7 +228,7 @@ final class Mods {
             throws IOException {
         String id = text(json, "id", defaultId, where);
         if (!id.matches("[a-z0-9_-]+")) {
-            throw new IOException(where.getFileName() + ": a mod id can only use a-z, 0-9, _ and -");
+            throw new IOException(Lang.t("{0}: a mod id can only use a-z, 0-9, _ and -", where.getFileName()));
         }
         // "minecraft" can be one version ("26.3") or a list (["26.3", "26.4"])
         List<String> minecraft = json.get("minecraft") instanceof String one ? List.of(one) : strings(json, "minecraft");
@@ -254,6 +256,6 @@ final class Mods {
     private static String text(Map<String, Object> json, String key, String fallback, Path where) throws IOException {
         if (json.get(key) instanceof String value && !value.isBlank()) return value;
         if (fallback != null) return fallback;
-        throw new IOException(where.getFileName() + ": squid.json needs a \"" + key + "\"");
+        throw new IOException(Lang.t("{0}: squid.json needs a \"{1}\"", where.getFileName(), key));
     }
 }

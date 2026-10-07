@@ -1,6 +1,7 @@
 package squidstore;
 
 import squid.Json;
+import squid.Lang;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -112,7 +113,7 @@ public final class Catalog {
                 .connectTimeout(Duration.ofSeconds(15)).build();
         HttpResponse<String> response = client.send(HttpRequest.newBuilder(URI.create(url)).header("User-Agent", USER_AGENT)
                 .timeout(Duration.ofSeconds(30)).build(), HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) throw new IOException("the store answered with error " + response.statusCode());
+        if (response.statusCode() != 200) throw new IOException(Lang.t("the store answered with error {0}", response.statusCode()));
         return response.body();
     }
 }

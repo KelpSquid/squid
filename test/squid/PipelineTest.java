@@ -584,7 +584,40 @@ public class PipelineTest {
         check("the Kelp and Squid capes are in the jar", skinLoader.getResource("squidskins/capes/kelp.png") != null
                 && skinLoader.getResource("squidskins/capes/squid.png") != null, true);
 
+        // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
+        check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
+                + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");
+        Lang.force("es_es");
+        check("Squid speaks Minecraft's language", Lang.t("Store") + " | " + Lang.t("Restart the game to start {0}.", "X-Ray"),
+                "Tienda | Reinicia el juego para iniciar X-Ray.");
+        check("a text no file has stays English", Lang.t("Not a Squid text"), "Not a Squid text");
+        Lang.force("en_us");
+        check("English is English", Lang.t("Store"), "Store");
+        Path langFolder = Path.of("lang");
+        java.util.Set<String> englishTexts = Lang.parse(java.nio.file.Files.readString(langFolder.resolve("es_es.txt"))).keySet();
+        List<String> languageProblems = new ArrayList<>();
+        int languages = 0;
+        try (java.util.stream.Stream<Path> files = java.nio.file.Files.list(langFolder)) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".txt")).sorted().toList()) {
+                languages++;
+                String fileText = java.nio.file.Files.readString(file);
+                if (!fileText.contains("BETA, not checked")) languageProblems.add(file.getFileName() + " isn't marked BETA");
+                java.util.Map<String, String> table = Lang.parse(fileText);
+                for (String english : englishTexts) {
+                    String translated = table.get(english);
+                    if (translated == null) languageProblems.add(file.getFileName() + " is missing: " + english);
+                    else if (!placeholders(english).equals(placeholders(translated))) languageProblems.add(file.getFileName() + " changes the {0}s in: " + english);
+                }
+            }
+        }
+        check("all " + languages + " languages have every text, marked BETA", languageProblems, List.of());
+
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);
+    }
+
+    /** The {0}, {1}... in a text, sorted. */
+    static List<String> placeholders(String text) {
+        return java.util.regex.Pattern.compile("\\{\\d}").matcher(text).results().map(r -> r.group()).sorted().toList();
     }
 }

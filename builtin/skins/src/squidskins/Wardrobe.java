@@ -1,6 +1,7 @@
 package squidskins;
 
 import squid.Json;
+import squid.Lang;
 import squid.Main;
 
 import javax.imageio.ImageIO;
@@ -190,8 +191,8 @@ public final class Wardrobe {
         BufferedImage image = read(picture);
         Kind is = kindOf(image);
         if (is == null) {
-            throw new IOException("That picture is " + image.getWidth() + "x" + image.getHeight()
-                    + ". Skins are 64x64, capes are 64x32 (animated ones stack their frames: 64x96, 64x128...).");
+            throw new IOException(Lang.t("That picture is {0}x{1}. Skins are 64x64, capes are 64x32"
+                    + " (animated ones stack their frames: 64x96, 64x128...).", image.getWidth(), image.getHeight()));
         }
         kind[0] = is;
         Path folder = is == Kind.SKIN ? skins() : capes();
@@ -216,7 +217,7 @@ public final class Wardrobe {
         } catch (IOException e) {
             image = null;
         }
-        if (image == null) throw new IOException("That isn't a picture Squid can read. Use a .png file.");
+        if (image == null) throw new IOException(Lang.t("That isn't a picture Squid can read. Use a .png file."));
         return image;
     }
 
@@ -241,29 +242,29 @@ public final class Wardrobe {
      * get them), and saves it in the skins folder as "Name.png". Capes aren't copied: only custom capes are used.
      */
     public Fetched fetchSkin(String name) throws IOException, InterruptedException {
-        if (!name.matches("[A-Za-z0-9_]{3,16}")) throw new IOException("Minecraft names are 3-16 letters, numbers or _.");
+        if (!name.matches("[A-Za-z0-9_]{3,16}")) throw new IOException(Lang.t("Minecraft names are 3-16 letters, numbers or _."));
         HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).connectTimeout(Duration.ofSeconds(15)).build();
         HttpResponse<String> profile = get(client, mojangProfiles + name);
-        if (profile.statusCode() == 404 || profile.statusCode() == 204) throw new IOException("Nobody is called " + name + ".");
-        if (profile.statusCode() != 200) throw new IOException("Mojang's servers didn't answer (error " + profile.statusCode() + ").");
+        if (profile.statusCode() == 404 || profile.statusCode() == 204) throw new IOException(Lang.t("Nobody is called {0}.", name));
+        if (profile.statusCode() != 200) throw new IOException(Lang.t("Mojang's servers didn't answer (error {0}).", profile.statusCode()));
         Map<String, Object> who = Json.object(Json.parse(profile.body()));
         String id = (String) who.get("id");
         String realName = who.get("name") instanceof String n ? n : name;
 
         HttpResponse<String> session = get(client, mojangSessions + id);
-        if (session.statusCode() != 200) throw new IOException("Mojang's servers didn't answer (error " + session.statusCode() + ").");
+        if (session.statusCode() != 200) throw new IOException(Lang.t("Mojang's servers didn't answer (error {0}).", session.statusCode()));
         String texturesValue = null;
         for (Object property : Json.array(Json.object(Json.parse(session.body())).get("properties"))) {
             Map<String, Object> p = Json.object(property);
             if ("textures".equals(p.get("name"))) texturesValue = (String) p.get("value");
         }
-        if (texturesValue == null) throw new IOException(realName + " doesn't have a skin.");
+        if (texturesValue == null) throw new IOException(Lang.t("{0} doesn't have a skin.", realName));
         Map<String, Object> textures = Json.object(Json.object(Json.parse(
                 new String(Base64.getDecoder().decode(texturesValue), StandardCharsets.UTF_8))).get("textures"));
         Map<String, Object> skin = textures == null ? null : Json.object(textures.get("SKIN"));
-        if (skin == null) throw new IOException(realName + " uses a default skin, so there's nothing to copy.");
+        if (skin == null) throw new IOException(Lang.t("{0} uses a default skin, so there's nothing to copy.", realName));
         String url = ((String) skin.get("url")).replaceFirst("^http://textures\\.minecraft\\.net/","https://textures.minecraft.net/");
-        if (!url.startsWith(skinServer)) throw new IOException("That skin isn't on Mojang's skin server.");
+        if (!url.startsWith(skinServer)) throw new IOException(Lang.t("That skin isn't on Mojang's skin server."));
         Map<String, Object> metadata = Json.object(skin.get("metadata"));
         boolean slim = metadata != null && "slim".equals(metadata.get("model"));
 
@@ -273,8 +274,8 @@ public final class Wardrobe {
         HttpResponse<Path> download = client.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(30)).build(),
                 HttpResponse.BodyHandlers.ofFile(part));
         try {
-            if (download.statusCode() != 200) throw new IOException("The skin didn't download (error " + download.statusCode() + ").");
-            if (kindOf(read(part)) != Kind.SKIN) throw new IOException("That skin is an old shape Squid can't use.");
+            if (download.statusCode() != 200) throw new IOException(Lang.t("The skin didn't download (error {0}).", download.statusCode()));
+            if (kindOf(read(part)) != Kind.SKIN) throw new IOException(Lang.t("That skin is an old shape Squid can't use."));
             Files.move(part, target, StandardCopyOption.REPLACE_EXISTING);
         } finally {
             Files.deleteIfExists(part);
@@ -287,7 +288,7 @@ public final class Wardrobe {
             return client.send(HttpRequest.newBuilder(URI.create(url)).header("User-Agent", "SamuelArther/squid/0.1 (squid@kelplauncher.org)")
                     .timeout(Duration.ofSeconds(20)).build(), HttpResponse.BodyHandlers.ofString());
         } catch (java.net.ConnectException | java.net.UnknownHostException e) {
-            throw new IOException("No internet connection.");
+            throw new IOException(Lang.t("No internet connection."));
         }
     }
 

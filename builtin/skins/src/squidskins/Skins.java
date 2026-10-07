@@ -22,6 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
+import squid.Lang;
 import squid.api.Squid;
 import squid.api.SquidMod;
 
@@ -100,7 +101,7 @@ public class Skins implements SquidMod {
         // A button for the wardrobe in Options > Skin Customization
         squid.atEnd("net.minecraft.client.gui.screens.options.SkinCustomizationScreen", "addOptions", call -> {
             Screen screen = (Screen) call.self();
-            Button button = Button.builder(Component.literal("Squid Skin & Cape..."),
+            Button button = Button.builder(Component.literal(Lang.t("Squid Skin & Cape...")),
                     b -> Minecraft.getInstance().setScreenAndShow(new WardrobeScreen(screen))).width(310).build();
             list((OptionsSubScreen) screen).addBig(button);
         });
@@ -114,7 +115,7 @@ public class Skins implements SquidMod {
             }
             return (OptionsList) optionsList.get(screen);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Couldn't add the wardrobe button", e);
+            throw new IllegalStateException(Lang.t("Couldn't add the wardrobe button"), e);
         }
     }
 

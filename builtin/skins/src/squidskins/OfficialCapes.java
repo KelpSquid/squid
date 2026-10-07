@@ -1,6 +1,7 @@
 package squidskins;
 
 import squid.Json;
+import squid.Lang;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -60,7 +61,7 @@ public final class OfficialCapes {
 
     public static List<Cape> load() throws IOException, InterruptedException {
         HttpResponse<String> response = client().send(request(list), HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) throw new IOException("The list of official capes didn't load (error " + response.statusCode() + ").");
+        if (response.statusCode() != 200) throw new IOException(Lang.t("The list of official capes didn't load (error {0}).", response.statusCode()));
         return parse(response.body());
     }
 
@@ -79,20 +80,20 @@ public final class OfficialCapes {
      * isn't a cape picture is thrown away.
      */
     public static Path fetch(Path folder, String hash) throws IOException, InterruptedException {
-        if (!hash.matches("[0-9a-f]{40,64}")) throw new IOException("That isn't an official cape.");
+        if (!hash.matches("[0-9a-f]{40,64}")) throw new IOException(Lang.t("That isn't an official cape."));
         Path file = file(folder, hash);
         if (Files.exists(file)) return file;
         Files.createDirectories(folder);
         Path part = folder.resolve(hash + ".part");
         try {
             HttpResponse<Path> response = client().send(request(mojangTextures + hash), HttpResponse.BodyHandlers.ofFile(part));
-            if (response.statusCode() != 200) throw new IOException("Mojang's server didn't send that cape (error " + response.statusCode() + ").");
+            if (response.statusCode() != 200) throw new IOException(Lang.t("Mojang's server didn't send that cape (error {0}).", response.statusCode()));
             BufferedImage image = ImageIO.read(part.toFile());
-            if (image == null || CapeEffects.frames(image.getWidth(), image.getHeight()) < 1) throw new IOException("That isn't a cape picture.");
+            if (image == null || CapeEffects.frames(image.getWidth(), image.getHeight()) < 1) throw new IOException(Lang.t("That isn't a cape picture."));
             Files.move(part, file, StandardCopyOption.REPLACE_EXISTING);
             return file;
         } catch (java.net.ConnectException | java.net.UnknownHostException e) {
-            throw new IOException("No internet connection.");
+            throw new IOException(Lang.t("No internet connection."));
         } finally {
             Files.deleteIfExists(part);
         }

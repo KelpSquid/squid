@@ -1,5 +1,7 @@
 package squidstore;
 
+import squid.Lang;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
@@ -134,8 +136,8 @@ public final class Installer {
         Path part = file.resolveSibling(file.getFileName() + ".part");
         try {
             download(item.url(), part);
-            if (item.size() >= 0 && Files.size(part) != item.size()) throw new IOException("it arrived the wrong size");
-            if (!sha256(part).equals(item.sha256())) throw new IOException("it arrived damaged, so it wasn't installed");
+            if (item.size() >= 0 && Files.size(part) != item.size()) throw new IOException(Lang.t("it arrived the wrong size"));
+            if (!sha256(part).equals(item.sha256())) throw new IOException(Lang.t("it arrived damaged, so it wasn't installed"));
             // Reinstalling: the old copy of this same mod goes, so there are never two of it
             if (item.isMod()) {
                 for (Path old : copiesOf(item.id(), file.getParent())) {
@@ -161,9 +163,9 @@ public final class Installer {
         try {
             HttpResponse<Path> response = client.send(HttpRequest.newBuilder(URI.create(url)).header("User-Agent", Catalog.USER_AGENT)
                     .timeout(Duration.ofMinutes(2)).build(), HttpResponse.BodyHandlers.ofFile(to));
-            if (response.statusCode() != 200) throw new IOException("the download answered with error " + response.statusCode());
+            if (response.statusCode() != 200) throw new IOException(Lang.t("the download answered with error {0}", response.statusCode()));
         } catch (ConnectException | UnknownHostException e) {
-            throw new IOException("no internet connection");
+            throw new IOException(Lang.t("no internet connection"));
         }
     }
 

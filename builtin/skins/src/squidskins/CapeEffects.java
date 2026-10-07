@@ -25,6 +25,7 @@ public final class CapeEffects {
         BUBBLES("Bubbles", true), WATER("Water", true), FIRE("Fire", true), SPARKLES("Sparkles", true),
         HEARTS("Hearts", true), SNOW("Snow", true);
 
+        /** Its name on the button, in English: the screen translates it. */
         public final String label;
         /** Whether it's a trail of particles behind the player, instead of a change to the cape itself. */
         public final boolean trail;

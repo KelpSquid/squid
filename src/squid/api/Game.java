@@ -1,5 +1,6 @@
 package squid.api;
 
+import squid.Lang;
 import squid.Main;
 
 import java.lang.reflect.Field;
@@ -32,7 +33,7 @@ final class Game {
                 gui = type.getField("gui");
                 minecraft = type.getMethod("getInstance").invoke(null);
             } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException("Squid couldn't find Minecraft", e);
+                throw new IllegalStateException(Lang.t("Squid couldn't find Minecraft"), e);
             }
         }
         return minecraft;
@@ -49,7 +50,7 @@ final class Game {
             }
             throw new NoSuchMethodException(method);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Squid couldn't use Minecraft's " + method, e);
+            throw new IllegalStateException(Lang.t("Squid couldn't use Minecraft's {0}", method), e);
         }
     }
 
@@ -107,7 +108,7 @@ final class Game {
             Object style = formatting.getMethod("valueOf", String.class).invoke(null, color);
             return literal.getClass().getMethod("withStyle", formatting).invoke(literal, style);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Squid couldn't make text", e);
+            throw new IllegalStateException(Lang.t("Squid couldn't make text"), e);
         }
     }
 
@@ -132,7 +133,7 @@ final class Game {
             Object connection = player().getClass().getField("connection").get(player());
             call(connection, "sendCommand", command);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Squid couldn't send the command", e);
+            throw new IllegalStateException(Lang.t("Squid couldn't send the command"), e);
         }
     }
 
@@ -142,15 +143,15 @@ final class Game {
             Object registry = type("net.minecraft.core.registries.BuiltInRegistries").getField("SOUND_EVENT").get(null);
             Object sound = id == null ? null : call(registry, "getValue", id);
             if (sound == null) {
-                throw new IllegalArgumentException("Minecraft has no sound called \"" + name
-                        + "\". Sound names look like \"entity.experience_orb.pickup\"");
+                throw new IllegalArgumentException(Lang.t("Minecraft has no sound called \"{0}\"."
+                        + " Sound names look like \"entity.experience_orb.pickup\"", name));
             }
             Class<?> soundEvent = type("net.minecraft.sounds.SoundEvent");
             Object instance = type("net.minecraft.client.resources.sounds.SimpleSoundInstance")
                     .getMethod("forUI", soundEvent, float.class).invoke(null, sound, 1f);
             call(call(minecraft(), "getSoundManager"), "play", instance);
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Squid couldn't play the sound", e);
+            throw new IllegalStateException(Lang.t("Squid couldn't play the sound"), e);
         }
     }
 
@@ -161,7 +162,7 @@ final class Game {
             return type("net.minecraft.client.gui.components.SplashRenderer").getConstructor(component)
                     .newInstance(text(text, "YELLOW"));
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Squid couldn't change the splash text", e);
+            throw new IllegalStateException(Lang.t("Squid couldn't change the splash text"), e);
         }
     }
 

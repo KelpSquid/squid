@@ -10,6 +10,7 @@ import net.minecraft.client.multiplayer.ClientAdvancements;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundUpdateAdvancementsPacket;
 import net.minecraft.resources.Identifier;
+import squid.Lang;
 import squid.Main;
 import squid.api.Hud;
 import squid.api.Squid;
@@ -42,7 +43,7 @@ public class SquidCount implements SquidMod {
         squid.atEnd("net.minecraft.client.gui.screens.TitleScreen", "extractRenderState", call -> {
             Minecraft minecraft = Minecraft.getInstance();
             CountFile.Player player = count.player(minecraft.getUser().getProfileId().toString().replace("-", ""));
-            new Hud(call.args()[0]).text("Squid Count: " + player.points, 2, 2, 0xFFFFAA00);
+            new Hud(call.args()[0]).text(Lang.t("Squid Count: {0}", player.points), 2, 2, 0xFFFFAA00);
         });
     }
 
@@ -62,7 +63,7 @@ public class SquidCount implements SquidMod {
             if (points > 0) {
                 changed = true;
                 int total = count.player(uuid).points;
-                minecraft.gui.chatListener().handleOverlay(Component.literal("+" + points + " Squid Count  (" + total + " total)")
+                minecraft.gui.chatListener().handleOverlay(Component.literal(Lang.t("+{0} Squid Count  ({1} total)", points, total))
                         .withStyle(ChatFormatting.GOLD));
             }
         }

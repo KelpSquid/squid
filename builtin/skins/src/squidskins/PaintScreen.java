@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.network.chat.Component;
+import squid.Lang;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -39,7 +40,7 @@ final class PaintScreen extends Screen {
     private String problem;
 
     private PaintScreen(WardrobeScreen parent, boolean isCape, BufferedImage start) {
-        super(Component.literal(isCape ? "Paint a Cape" : "Paint a Skin"));
+        super(Component.literal(isCape ? Lang.t("Paint a Cape") : Lang.t("Paint a Skin")));
         this.parent = parent;
         this.isCape = isCape;
         this.w = 64;
@@ -107,11 +108,11 @@ final class PaintScreen extends Screen {
     protected void init() {
         int x = left() + w * scale() + 12;
         int y = top() + 8 * 14 + 14;
-        addRenderableWidget(Button.builder(Component.literal("Undo"), b -> {
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Undo")), b -> {
             if (!undo.isEmpty()) System.arraycopy(undo.pop(), 0, pixels, 0, pixels.length);
         }).bounds(x, y, 98, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Save"), b -> save()).bounds(x, y + 24, 98, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> onClose()).bounds(x, y + 48, 98, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Save")), b -> save()).bounds(x, y + 24, 98, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Cancel")), b -> onClose()).bounds(x, y + 48, 98, 20).build());
     }
 
     private void save() {
@@ -126,10 +127,10 @@ final class PaintScreen extends Screen {
             String name = file.getFileName().toString();
             Skins.choose(Skins.myId(), isCape ? now.withCape("file:" + name)
                     : new Wardrobe.Choice(name, now.slim(), now.cape(), now.effects()));
-            parent.say("Saved " + name.replaceAll("(?i)\\.png$", "") + " and put it on!", 0xFF55FF55);
+            parent.say(Lang.t("Saved {0} and put it on!", name.replaceAll("(?i)\\.png$", "")), 0xFF55FF55);
             onClose();
         } catch (IOException e) {
-            problem = "Couldn't save: " + e.getMessage();
+            problem = Lang.t("Couldn't save: {0}", e.getMessage());
         }
     }
 
@@ -192,7 +193,7 @@ final class PaintScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
-        g.text(font, isCape ? "Paint a Cape" : "Paint a Skin", left(), 8, 0xFFFFFFFF);
+        g.text(font, isCape ? Lang.t("Paint a Cape") : Lang.t("Paint a Skin"), left(), 8, 0xFFFFFFFF);
         int s = scale();
         // The picture, big. See-through pixels show a checkerboard, like in paint programs.
         g.fill(left() - 1, top() - 1, left() + w * s + 1, top() + h * s + 1, 0xFF000000);
@@ -228,12 +229,12 @@ final class PaintScreen extends Screen {
             }
         }
         int infoY = top() + 3 * 14 + 4;
-        g.text(font, "Now:", x0, infoY, 0xFFA0A0A0);
+        g.text(font, Lang.t("Now:"), x0, infoY, 0xFFA0A0A0);
         g.fill(x0 + 28, infoY - 2, x0 + 40, infoY + 10, 0xFF000000);
         g.fill(x0 + 29, infoY - 1, x0 + 39, infoY + 9, (color >>> 24) == 0 ? 0xFF3A3A3A : color);
-        g.text(font, "Left click: paint", x0, infoY + 16, 0xFF808080);
-        g.text(font, "Right click: pick", x0, infoY + 27, 0xFF808080);
-        g.text(font, "Checkered: see-through", x0, infoY + 38, 0xFF808080);
+        g.text(font, Lang.t("Left click: paint"), x0, infoY + 16, 0xFF808080);
+        g.text(font, Lang.t("Right click: pick"), x0, infoY + 27, 0xFF808080);
+        g.text(font, Lang.t("Checkered: see-through"), x0, infoY + 38, 0xFF808080);
         if (problem != null) g.text(font, problem, left(), height - 12, 0xFFFF5555);
     }
 

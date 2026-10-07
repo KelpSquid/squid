@@ -70,8 +70,8 @@ final class SourceMods {
         String fileName = source.getFileName().toString();
         String className = fileName.substring(0, fileName.length() - ".java".length());
         if (!className.matches("[A-Za-z_][A-Za-z0-9_]*")) {
-            throw new MistakeException("the file name can only use letters and numbers, with no spaces. Try "
-                    + className.replaceAll("[^A-Za-z0-9_]", "") + ".java");
+            throw new MistakeException(Lang.t("the file name can only use letters and numbers, with no spaces. Try {0}",
+                    className.replaceAll("[^A-Za-z0-9_]", "") + ".java"));
         }
         String code = Files.readString(source, StandardCharsets.UTF_8);
         Matcher pkg = PACKAGE.matcher(code);
@@ -79,20 +79,20 @@ final class SourceMods {
 
         Path out = build(className, List.of(new Source(fileName, code)), null);
         String id = className.toLowerCase(Locale.ROOT).replace('_', '-');
-        return new ModInfo(id, spaced(className), "1.0", "Made from " + fileName, List.of(), List.of(), List.of(), main, out);
+        return new ModInfo(id, spaced(className), "1.0", Lang.t("Made from {0}", fileName), List.of(), List.of(), List.of(), main, out);
     }
 
     /** Builds a project folder. mod is what its squid.json says; the result is the same mod, pointing at the build. */
     ModInfo compileProject(Path folder, ModInfo mod) throws IOException {
         Path src = folder.resolve("src");
-        if (!Files.isDirectory(src)) throw new MistakeException("it needs a src folder with its code in it.");
+        if (!Files.isDirectory(src)) throw new MistakeException(Lang.t("it needs a src folder with its code in it."));
         List<Source> sources = new ArrayList<>();
         try (Stream<Path> walk = Files.walk(src)) {
             for (Path file : walk.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
                 sources.add(new Source(folder.relativize(file).toString().replace('\\', '/'), Files.readString(file, StandardCharsets.UTF_8)));
             }
         }
-        if (sources.isEmpty()) throw new MistakeException("its src folder has no .java files yet.");
+        if (sources.isEmpty()) throw new MistakeException(Lang.t("its src folder has no .java files yet."));
         Path out = build(mod.id(), sources, folder.resolve("resources"));
         return new ModInfo(mod.id(), mod.name(), mod.version(), mod.description(), mod.authors(), mod.depends(),
                 mod.minecraft(), mod.main(), out);
@@ -109,7 +109,7 @@ final class SourceMods {
                 String name = entry.getName();
                 if (entry.isDirectory() || !(name.startsWith("src/") || name.startsWith("resources/"))) continue;
                 Path target = unpacked.resolve(name).normalize();
-                if (!target.startsWith(unpacked)) throw new IOException("it has a file that tries to leave its folder, so Squid won't open it.");
+                if (!target.startsWith(unpacked)) throw new IOException(Lang.t("it has a file that tries to leave its folder, so Squid won't open it."));
                 Files.createDirectories(target.getParent());
                 try (InputStream in = zip.getInputStream(entry)) {
                     Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
@@ -163,7 +163,7 @@ final class SourceMods {
 
     private void javac(List<Source> sources, Path out) throws IOException {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        if (compiler == null) throw new MistakeException("this Java can't compile mods. Play it from Kelp, which uses one that can.");
+        if (compiler == null) throw new MistakeException(Lang.t("this Java can't compile mods. Play it from Kelp, which uses one that can."));
         DiagnosticCollector<JavaFileObject> problems = new DiagnosticCollector<>();
         List<JavaFileObject> files = new ArrayList<>();
         for (Source source : sources) {
@@ -186,48 +186,53 @@ final class SourceMods {
             if (problem.getKind() == Diagnostic.Kind.ERROR) {
                 String file = problem.getSource() != null ? problem.getSource().toUri().getPath().substring(1) : "";
                 String className = Path.of(file.isEmpty() ? "Mod.java" : file).getFileName().toString().replace(".java", "");
-                String explained = explain(problem.getCode(), problem.getMessage(Locale.ENGLISH), className, problem.getLineNumber());
                 // A mod with more than one file says which file the mistake is in
-                if (sources.size() > 1 && !file.isEmpty()) explained = explained.replaceFirst("^there's a mistake", "there's a mistake in " + file);
-                throw new MistakeException(explained);
+                String inFile = sources.size() > 1 && !file.isEmpty() ? file : null;
+                throw new MistakeException(explain(problem.getCode(), problem.getMessage(Locale.ENGLISH), className, problem.getLineNumber(), inFile));
             }
         }
-        throw new MistakeException("Java couldn't compile it, but didn't say why.");
+        throw new MistakeException(Lang.t("Java couldn't compile it, but didn't say why."));
     }
 
-    /** javac's error, in words a beginner can act on. code is javac's own name for the error, like "compiler.err.expected". */
-    static String explain(String code, String message, String className, long line) {
-        String where = line > 0 ? "there's a mistake on line " + line + ": " : "there's a mistake: ";
+    /**
+     * javac's error, in words a beginner can act on. code is javac's own name for the error, like "compiler.err.expected".
+     * file is which file the mistake is in, for mods with more than one file (null for just one).
+     */
+    static String explain(String code, String message, String className, long line, String file) {
         String first = message.lines().findFirst().orElse(message).trim();
         String what;
         if (code.startsWith("compiler.err.expected")) {
-            if (first.contains("';'")) what = "a ; is missing at the end of the line";
-            else if (first.contains("')'")) what = "a ) is missing";
-            else if (first.contains("'('")) what = "a ( is missing";
-            else if (first.contains("'{'")) what = "a { is missing";
-            else what = "something is missing here (" + first + ")";
+            if (first.contains("';'")) what = Lang.t("a ; is missing at the end of the line");
+            else if (first.contains("')'")) what = Lang.t("a ) is missing");
+            else if (first.contains("'('")) what = Lang.t("a ( is missing");
+            else if (first.contains("'{'")) what = Lang.t("a { is missing");
+            else what = Lang.t("something is missing here ({0})", first);
         } else if (code.startsWith("compiler.err.cant.resolve")) {
             Matcher symbol = Pattern.compile("symbol:\\s+\\w+\\s+(\\w+)").matcher(message);
-            String name = symbol.find() ? symbol.group(1) : "that name";
-            what = "Squid doesn't know \"" + name + "\". Check the spelling, and that big and small letters match";
+            String name = symbol.find() ? symbol.group(1) : Lang.t("that name");
+            what = Lang.t("Squid doesn't know \"{0}\". Check the spelling, and that big and small letters match", name);
         } else if (code.equals("compiler.err.premature.eof")) {
-            what = "a } is missing at the end. Every { needs a }";
+            what = Lang.t("a } is missing at the end. Every { needs a }");
         } else if (code.equals("compiler.err.unclosed.str.lit")) {
-            what = "a \" is missing. Text needs a \" at the start and the end";
+            what = Lang.t("a \" is missing. Text needs a \" at the start and the end");
         } else if (code.equals("compiler.err.class.public.should.be.in.file")) {
-            what = "the class name must match the file name. Change it to \"public class " + className + "\"";
+            what = Lang.t("the class name must match the file name. Change it to \"public class {0}\"", className);
         } else if (code.equals("compiler.err.not.stmt")) {
-            what = "this isn't a complete command. Did you forget the ( ) after a name?";
+            what = Lang.t("this isn't a complete command. Did you forget the ( ) after a name?");
         } else if (code.startsWith("compiler.err.illegal.start")) {
-            what = "Java got confused here. Look for a missing ( ) { } or ;";
+            what = Lang.t("Java got confused here. Look for a missing ( ) { } or ;");
         } else if (code.equals("compiler.err.prob.found.req")) {
-            what = "that's the wrong kind of value here (" + first.replace("incompatible types: ", "") + ")";
+            what = Lang.t("that's the wrong kind of value here ({0})", first.replace("incompatible types: ", ""));
         } else if (code.equals("compiler.err.cant.apply.symbol") || code.equals("compiler.err.cant.apply.symbols")) {
-            what = "the things inside the ( ) aren't right for that command. Check what goes in them";
+            what = Lang.t("the things inside the ( ) aren't right for that command. Check what goes in them");
         } else {
             what = first;
         }
-        return where + what;
+        if (file != null) {
+            return line > 0 ? Lang.t("there's a mistake in {0} on line {1}: {2}", file, line, what)
+                    : Lang.t("there's a mistake in {0}: {1}", file, what);
+        }
+        return line > 0 ? Lang.t("there's a mistake on line {0}: {1}", line, what) : Lang.t("there's a mistake: {0}", what);
     }
 
     /** "MyCoolMod" becomes "My Cool Mod". */

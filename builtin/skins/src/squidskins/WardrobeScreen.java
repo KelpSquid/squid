@@ -5,6 +5,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.PlayerSkinWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import squid.Lang;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,7 +23,7 @@ final class WardrobeScreen extends Screen {
     private int messageColor = 0xFFA0A0A0;
 
     WardrobeScreen(Screen parent) {
-        super(Component.literal("Skin & Cape"));
+        super(Component.literal(Lang.t("Skin & Cape")));
         this.parent = parent;
     }
 
@@ -34,7 +35,7 @@ final class WardrobeScreen extends Screen {
         try {
             Skins.choose(Skins.myId(), choice);
         } catch (IOException e) {
-            say("Couldn't save that: " + e.getMessage(), 0xFFFF5555);
+            say(Lang.t("Couldn't save that: {0}", e.getMessage()), 0xFFFF5555);
         }
         rebuildWidgets();
     }
@@ -59,31 +60,31 @@ final class WardrobeScreen extends Screen {
 
         List<String> skins = new ArrayList<>(List.of(""));
         skins.addAll(Wardrobe.pictures(Skins.wardrobe.skins()));
-        addRenderableWidget(Button.builder(Component.literal("Skin: " + (now.skin().isEmpty() ? "Yours" : shortName(now.skin()))),
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Skin: {0}", now.skin().isEmpty() ? Lang.t("Yours") : shortName(now.skin()))),
                 b -> pick(new Wardrobe.Choice(next(skins, now.skin()), now.slim(), now.cape(), now.effects()))).bounds(x, y, 200, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Arms: " + (now.slim() ? "Slim" : "Wide")),
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Arms: {0}", now.slim() ? Lang.t("Slim") : Lang.t("Wide"))),
                 b -> pick(new Wardrobe.Choice(now.skin(), !now.slim(), now.cape(), now.effects()))).bounds(x, y + 24, 200, 20).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Cape: " + capeName(now.cape()) + "..."),
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Cape: {0}...", capeName(now.cape()))),
                 b -> minecraft.setScreenAndShow(new CapeBrowserScreen(this))).bounds(x, y + 48, 134, 20).build());
-        String effects = now.effects().isEmpty() ? "Effects" : "Effects: " + now.effects().size();
+        String effects = now.effects().isEmpty() ? Lang.t("Effects") : Lang.t("Effects: {0}", now.effects().size());
         addRenderableWidget(Button.builder(Component.literal(effects),
                 b -> minecraft.setScreenAndShow(new EffectsScreen(this))).bounds(x + 138, y + 48, 62, 20).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Get Skin by Name..."),
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Get Skin by Name...")),
                 b -> minecraft.setScreenAndShow(new NameScreen(this))).bounds(x, y + 80, 200, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Paint Skin"),
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Paint Skin")),
                 b -> minecraft.setScreenAndShow(PaintScreen.skin(this, now))).bounds(x, y + 104, 98, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Paint Cape"),
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Paint Cape")),
                 b -> minecraft.setScreenAndShow(PaintScreen.cape(this, now))).bounds(x + 102, y + 104, 98, 20).build());
         // Pictures can be picked with the computer's own file window, or dropped onto the game. Either way
         // they're copied into Kelp's skins and capes folders, so the original can be deleted from Downloads.
-        addRenderableWidget(Button.builder(Component.literal("Browse..."),
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Browse...")),
                 b -> FilePicker.pickPictures(this::onFilesDrop)).bounds(x, y + 128, 98, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Open Folder"),
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Open Folder")),
                 b -> open(Skins.wardrobe.skins())).bounds(x + 102, y + 128, 98, 20).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
     }
 
     /** The one after current in the list, going back to the start after the last. */
@@ -98,8 +99,8 @@ final class WardrobeScreen extends Screen {
     }
 
     private static String capeName(String cape) {
-        if (cape.isEmpty()) return "None";
-        if (OfficialCapes.isOfficial(cape)) return "Official";
+        if (cape.isEmpty()) return Lang.t("None");
+        if (OfficialCapes.isOfficial(cape)) return Lang.t("Official");
         if (cape.startsWith("file:")) {
             String name = shortName(cape.substring(5));
             return name.length() > 14 ? name.substring(0, 13) + "..." : name;
@@ -117,10 +118,10 @@ final class WardrobeScreen extends Screen {
                 Wardrobe.Choice now = choice();
                 if (kind[0] == Wardrobe.Kind.SKIN) {
                     pick(new Wardrobe.Choice(name, now.slim(), now.cape(), now.effects()));
-                    say("Added the skin " + shortName(name) + "!", 0xFF55FF55);
+                    say(Lang.t("Added the skin {0}!", shortName(name)), 0xFF55FF55);
                 } else {
                     pick(now.withCape("file:" + name));
-                    say("Added the cape " + shortName(name) + "!", 0xFF55FF55);
+                    say(Lang.t("Added the cape {0}!", shortName(name)), 0xFF55FF55);
                 }
             } catch (IOException e) {
                 say(e.getMessage(), 0xFFFF5555);
@@ -136,18 +137,18 @@ final class WardrobeScreen extends Screen {
                     : os.contains("mac") ? new String[] {"open", folder.toString()} : new String[] {"xdg-open", folder.toString()};
             new ProcessBuilder(command).start();
         } catch (IOException e) {
-            say("Couldn't open the folder: " + e.getMessage(), 0xFFFF5555);
+            say(Lang.t("Couldn't open the folder: {0}", e.getMessage()), 0xFFFF5555);
         }
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
-        g.centeredText(font, "Skin & Cape", width / 2, 10, 0xFFFFFFFF);
+        g.centeredText(font, Lang.t("Skin & Cape"), width / 2, 10, 0xFFFFFFFF);
         int x = width / 2 - 40;
         int y = Math.max(28, height / 2 - 92) + 156;
-        g.text(font, "Browse, or drop pictures here.", x, y, 0xFFA0A0A0);
-        g.text(font, "Only you see them for now.", x, y + 11, 0xFF808080);
+        g.text(font, Lang.t("Browse, or drop pictures here."), x, y, 0xFFA0A0A0);
+        g.text(font, Lang.t("Only you see them for now."), x, y + 11, 0xFF808080);
         if (message != null) g.centeredText(font, font.plainSubstrByWidth(message, width - 20), width / 2, height - 42, messageColor);
     }
 

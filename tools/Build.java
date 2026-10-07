@@ -44,6 +44,7 @@ public class Build {
         // 1. Squid itself. It's built for Java 21 so it can run on any Java from 21 up.
         Path classes = BUILD.resolve("classes");
         compile(listJava(Path.of("src")), squidClasspath, classes, "21");
+        copyResources(Path.of("."), classes, "lang"); // Squid's languages go inside squid.jar
         Path squidJar = BUILD.resolve("squid.jar");
         jar(squidJar, classes, null);
         System.out.println("Built " + squidJar);
@@ -353,7 +354,13 @@ public class Build {
 
     /** Copies a mod's resources folder (pictures and such) next to its classes, so they go in its jar. */
     static void copyResources(Path mod, Path out) throws IOException {
-        Path resources = mod.resolve("resources");
+        copyResources(mod, out, "resources");
+    }
+
+    /** Copies a folder's files into out. With "lang", they keep the lang/ part of their path. */
+    static void copyResources(Path mod, Path out, String folder) throws IOException {
+        if (folder.equals("lang")) out = out.resolve("lang");
+        Path resources = mod.resolve(folder);
         if (!Files.isDirectory(resources)) return;
         try (Stream<Path> walk = Files.walk(resources)) {
             for (Path file : walk.filter(Files::isRegularFile).toList()) {
