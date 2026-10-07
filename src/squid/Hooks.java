@@ -42,6 +42,13 @@ public final class Hooks {
         return hooks.length - 1;
     }
 
+    /** Puts new code into an existing hook place (for a reloaded mod), switched on and with no failures counted. */
+    public static synchronized void replace(int id, String modId, Hook hook) {
+        Entry[] copy = hooks.clone();
+        copy[id] = new Entry(modId, hook);
+        hooks = copy;
+    }
+
     /** Switches off every hook a mod set up, like when the mod broke while starting. */
     public static synchronized void turnOff(String modId) {
         for (Entry entry : hooks) {

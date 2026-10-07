@@ -10,7 +10,7 @@ import java.lang.reflect.Method;
  * The bits of Minecraft that {@link EasyMod}'s commands use. Squid is built without Minecraft,
  * so it finds them by name the first time they're needed. Only call these on the game's own thread (in hooks).
  */
-final class Game {
+public final class Game {
     private static Object minecraft;
     private static Field player;
     private static Field level;
@@ -120,7 +120,8 @@ final class Game {
         }
     }
 
-    static void chat(String message, String color) {
+    /** A chat message only this player sees, in one of Minecraft's colors like "GREEN". Squid uses it too. */
+    public static void chat(String message, String color) {
         call(chatListener(), "handleSystemMessage", text(message, color), false);
     }
 

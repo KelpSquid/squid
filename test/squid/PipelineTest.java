@@ -584,6 +584,61 @@ public class PipelineTest {
         check("the Kelp and Squid capes are in the jar", skinLoader.getResource("squidskins/capes/kelp.png") != null
                 && skinLoader.getResource("squidskins/capes/squid.png") != null, true);
 
+        // Live reload: saving a mod built from code swaps the new version in while the game runs
+        Path live = java.nio.file.Files.createTempDirectory("squid-reload-test");
+        Path ticker = live.resolve("Ticker.java");
+        java.nio.file.Files.writeString(ticker, "public class Ticker implements SquidMod {\n    public void init(Squid s) {\n        s.onTick(() -> squid.ReloadProbe.value = 1);\n    }\n}\n");
+        SourceMods liveSources = new SourceMods(live.resolve(".squid-cache"), System.getProperty("java.class.path") + File.pathSeparator + a[0]);
+        Mods.Found liveFound = Mods.find(live, "26.3", liveSources);
+        SquidClassLoader liveLoader = new SquidClassLoader(urls.toArray(URL[]::new));
+        Main.setGameLoader(liveLoader);
+        Main.start(liveFound.mods(), liveLoader, new ArrayList<>());
+        for (ModInfo m : liveFound.mods()) Main.updateMod(m);
+        Reloader reloader = new Reloader(live, liveSources, liveLoader, "26.3");
+        reloader.check(); // learns what's there now
+        ReloadProbe.value = 0;
+        Events.runTicks();
+        check("a mod built from code runs its onTick", ReloadProbe.value, 1);
+
+        java.nio.file.Files.writeString(ticker, "public class Ticker implements SquidMod {\n    public void init(Squid s) {\n        s.onTick(() -> squid.ReloadProbe.value = 2);\n    }\n}\n");
+        java.nio.file.Files.setLastModifiedTime(ticker, java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() + 5000));
+        reloader.check();
+        ReloadProbe.value = 0;
+        Events.runTicks();
+        check("saving it swaps the new version in, and the old one stops", ReloadProbe.value, 2);
+
+        java.nio.file.Files.writeString(ticker, "public class Ticker implements SquidMod {\n    public void init(Squid s) {\n        s.onTick(() -> squid.ReloadProbe.value = 3)\n    }\n}\n");
+        java.nio.file.Files.setLastModifiedTime(ticker, java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() + 10000));
+        reloader.check();
+        ReloadProbe.value = 0;
+        Events.runTicks();
+        check("a mistake keeps the old version running", ReloadProbe.value, 2);
+
+        java.nio.file.Files.writeString(live.resolve("Newcomer.java"), "public class Newcomer implements SquidMod {\n    public void init(Squid s) {\n        s.onTick(() -> squid.ReloadProbe.hookCalls++);\n    }\n}\n");
+        reloader.check();
+        ReloadProbe.hookCalls = 0;
+        Events.runTicks();
+        check("a mod added while playing starts right away", ReloadProbe.hookCalls + " " + Main.mods().stream().anyMatch(m -> m.id().equals("newcomer")), "1 true");
+
+        java.nio.file.Files.delete(ticker);
+        reloader.check();
+        ReloadProbe.value = 0;
+        Events.runTicks();
+        check("a removed mod stops", ReloadProbe.value + " " + Main.mods().stream().anyMatch(m -> m.id().equals("ticker")), "0 false");
+
+        // A reloaded mod takes over its old hooks in classes that can't be patched again
+        ModInfo hooker = new ModInfo("hooker", "Hooker", "1.0", "", List.of(), List.of(), List.of(), "x", live);
+        new Squid(hooker).atStart("test.NeverLoaded", "run", call -> ReloadProbe.hookCalls = 1);
+        Slots.beginReload("hooker");
+        new Squid(hooker).atStart("test.NeverLoaded", "run", call -> ReloadProbe.hookCalls = 2);
+        check("nothing needs a restart when every hook is taken over", Slots.endReload("hooker").toString(), "[]");
+        ReloadProbe.hookCalls = 0;
+        for (int id : Slots.hookIds("hooker")) Hooks.start(id, null, new Object[0]);
+        check("the hook runs the new version", ReloadProbe.hookCalls, 2);
+        Slots.beginReload("hooker");
+        new Squid(hooker).atStart("net.minecraft.client.resources.SplashManager", "brandNewHook", call -> { });
+        check("a new hook in a loaded class needs a restart", Slots.endReload("hooker").toString(), "[net.minecraft.client.resources.SplashManager]");
+
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
         check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
                 + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");

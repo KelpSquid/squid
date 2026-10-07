@@ -58,6 +58,8 @@ final class SourceMods {
 
     private final Path cache;
     private final String classpath;
+    /** Which mod each file or folder became, so the reloader knows what changed. */
+    final java.util.Map<Path, String> built = new java.util.concurrent.ConcurrentHashMap<>();
 
     /** classpath is what mods can use: Squid itself and Minecraft with its libraries. */
     SourceMods(Path cache, String classpath) {
@@ -79,6 +81,7 @@ final class SourceMods {
 
         Path out = build(className, List.of(new Source(fileName, code)), null);
         String id = className.toLowerCase(Locale.ROOT).replace('_', '-');
+        built.put(source.toAbsolutePath().normalize(), id);
         return new ModInfo(id, spaced(className), "1.0", Lang.t("Made from {0}", fileName), List.of(), List.of(), List.of(), main, out);
     }
 
@@ -94,6 +97,7 @@ final class SourceMods {
         }
         if (sources.isEmpty()) throw new MistakeException(Lang.t("its src folder has no .java files yet."));
         Path out = build(mod.id(), sources, folder.resolve("resources"));
+        built.put(folder.toAbsolutePath().normalize(), mod.id());
         return new ModInfo(mod.id(), mod.name(), mod.version(), mod.description(), mod.authors(), mod.depends(),
                 mod.minecraft(), mod.main(), out);
     }
@@ -116,7 +120,9 @@ final class SourceMods {
                 }
             }
         }
-        return compileProject(unpacked, mod);
+        ModInfo info = compileProject(unpacked, mod);
+        built.put(packed.toAbsolutePath().normalize(), mod.id());
+        return info;
     }
 
     /**

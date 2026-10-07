@@ -3,6 +3,7 @@ package squid.api;
 import org.objectweb.asm.tree.ClassNode;
 import squid.Hooks;
 import squid.KeyBindings;
+import squid.Slots;
 import squid.Transformers;
 
 import java.util.List;
@@ -40,7 +41,7 @@ public final class Squid {
      * like "(I)V" for a method that takes an int and returns nothing. Constructors can't have start hooks.
      */
     public void atStart(String className, String methodName, String descriptor, Hook hook) {
-        Transformers.add(className, new Transformers.HookPatch(methodName, descriptor, true, Hooks.register(mod.id(), hook)));
+        hook(className, methodName, descriptor, true, hook);
     }
 
     /** Runs the hook every time a method with this name returns. It can change what gets returned. */
@@ -50,7 +51,23 @@ public final class Squid {
 
     /** Like {@link #atEnd(String, String, Hook)} but only for the method with this descriptor. */
     public void atEnd(String className, String methodName, String descriptor, Hook hook) {
-        Transformers.add(className, new Transformers.HookPatch(methodName, descriptor, false, Hooks.register(mod.id(), hook)));
+        hook(className, methodName, descriptor, false, hook);
+    }
+
+    /**
+     * Sets a hook up. A mod reloaded while the game runs takes over its old hook in the same place, since Minecraft's
+     * classes can't be patched again once they've loaded.
+     */
+    private void hook(String className, String methodName, String descriptor, boolean atStart, Hook hook) {
+        int reused = Slots.reuse(mod.id(), className, methodName, descriptor, atStart);
+        if (reused >= 0) {
+            Hooks.replace(reused, mod.id(), hook);
+            return;
+        }
+        if (Transformers.isLoaded(className)) Slots.needsRestart(mod.id(), className);
+        int id = Hooks.register(mod.id(), hook);
+        Transformers.add(className, new Transformers.HookPatch(methodName, descriptor, atStart, id));
+        Slots.record(mod.id(), className, methodName, descriptor, atStart, id);
     }
 
     /**
@@ -58,6 +75,8 @@ public final class Squid {
      * defaultKey is one of Minecraft's key codes, like InputConstants.KEY_Z. Check it with {@link KeyBinding#isDown()}.
      */
     public KeyBinding addKeyBinding(String name, int defaultKey) {
+        KeyBinding known = KeyBindings.find(name); // a reloaded mod keeps its keys, and the player's choices for them
+        if (known != null) return known;
         KeyBinding binding = new KeyBinding(name, defaultKey);
         KeyBindings.add(binding);
         return binding;
@@ -68,17 +87,17 @@ public final class Squid {
      * It doesn't run while the HUD is hidden with F1.
      */
     public void onHud(Consumer<Hud> draw) {
-        // Minecraft draws the potion effects corner only while the HUD is showing, so right after it is a safe place
-        atEnd("net.minecraft.client.gui.Hud", "extractEffects", call -> draw.accept(new Hud(call.args()[0])));
+        squid.Events.onHud(mod.id(), draw);
     }
 
     /** Runs 20 times a second, all the time the game is open (in menus too). */
     public void onTick(Runnable tick) {
-        atEnd("net.minecraft.client.Minecraft", "tick", "()V", call -> tick.run());
+        squid.Events.onTick(mod.id(), tick);
     }
 
     /** For advanced mods: change a class's bytecode directly with ASM before it loads. */
     public void patch(String className, Consumer<ClassNode> patch) {
+        if (Transformers.isLoaded(className)) Slots.needsRestart(mod.id(), className);
         Transformers.add(className, new Transformers.RawPatch(mod.id(), patch));
     }
 

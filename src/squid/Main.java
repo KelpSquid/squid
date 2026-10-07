@@ -36,6 +36,21 @@ public final class Main {
     }
 
     /** Every mod that was loaded. */
+    /** A mod reloaded (or added) while the game runs takes its old details' place in the list. */
+    static synchronized void updateMod(ModInfo mod) {
+        List<ModInfo> updated = new ArrayList<>(mods);
+        updated.removeIf(m -> m.id().equals(mod.id()));
+        updated.add(mod);
+        mods = List.copyOf(updated);
+    }
+
+    /** A mod removed while the game runs leaves the list. */
+    static synchronized void removeMod(String id) {
+        List<ModInfo> updated = new ArrayList<>(mods);
+        updated.removeIf(m -> m.id().equals(id));
+        mods = List.copyOf(updated);
+    }
+
     public static List<ModInfo> mods() {
         return mods;
     }
@@ -100,6 +115,7 @@ public final class Main {
             List<Mods.Skipped> notStarted = new ArrayList<>(found.skipped());
             start(builtIn, loader, notStarted);
             mods = start(found.mods(), loader, notStarted);
+            Reloader.watch(modsFolder, sources, loader, minecraftVersion); // saving a mod's code reloads it while playing
             skipped = List.copyOf(notStarted);
             report.skipped(skipped);
         } catch (Throwable problem) {
@@ -127,7 +143,9 @@ public final class Main {
             System.out.println("[Squid] Starting " + mod.name() + " " + mod.version());
             Class<?> main = null;
             try {
-                main = loader.loadClass(mod.main());
+                // Mods Squid built from their code get a loader of their own, so a new version can replace them later
+                ClassLoader modLoader = java.nio.file.Files.isDirectory(mod.jar()) ? new ModClassLoader(mod.jar(), loader) : loader;
+                main = modLoader.loadClass(mod.main());
                 Object instance = main.getDeclaredConstructor().newInstance();
                 if (!(instance instanceof SquidMod squidMod)) {
                     throw new IllegalStateException(Lang.t("it isn't a Squid mod yet. Write \"extends EasyMod\" after its class name"));
@@ -136,6 +154,7 @@ public final class Main {
                 started.add(mod);
             } catch (Throwable problem) {
                 Hooks.turnOff(mod.id()); // any hooks it set up before breaking do nothing now
+                Events.remove(mod.id());
                 String why = Mistakes.explain(problem, main);
                 System.out.println("[Squid] Skipping " + mod.name() + ": " + why);
                 problem.printStackTrace(System.out);
@@ -170,6 +189,8 @@ public final class Main {
                 "getClientModName", null, false, Hooks.register("squid", call -> call.setReturnValue("squid"))));
         // Put mods' keys on Minecraft's Controls screen
         KeyBindings.registerHooks();
+        // Run every mod's onTick and onHud from one hook each, so mods reloaded while playing can use them too
+        Events.registerHooks();
         // Say on the title screen that Squid is on, and which mods it couldn't load
         Transformers.add("net.minecraft.client.gui.screens.TitleScreen", new Transformers.HookPatch(
                 "extractRenderState", null, false, Hooks.register("squid", call -> drawTitleNotice(new Hud(call.args()[0])))));

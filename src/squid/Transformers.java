@@ -39,6 +39,7 @@ public final class Transformers {
     }
 
     private static final Map<String, List<Patch>> PATCHES = new ConcurrentHashMap<>();
+    private static final java.util.Set<String> LOADED = ConcurrentHashMap.newKeySet(); // classes already loaded, so past patching
 
     private Transformers() {
     }
@@ -47,8 +48,14 @@ public final class Transformers {
         PATCHES.computeIfAbsent(className, k -> new ArrayList<>()).add(patch);
     }
 
+    /** Whether a class has already loaded, so new patches for it can't apply until the game restarts. */
+    public static boolean isLoaded(String className) {
+        return LOADED.contains(className);
+    }
+
     /** Applies every patch for this class. Classes nobody patched come back untouched. */
     static byte[] transform(String className, byte[] bytes, ClassLoader loader) {
+        LOADED.add(className);
         List<Patch> patches = PATCHES.get(className);
         if (patches == null) return bytes;
 

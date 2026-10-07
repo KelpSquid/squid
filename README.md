@@ -12,6 +12,8 @@ A Minecraft mod loader, made from scratch. It works with the [Kelp](https://gith
 1. In Kelp, open **Instances**, pick one, click **Mods**, then **New Mod**.
 2. Type a name, like "Rainbow Sheep", and click **Create**. Kelp makes `RainbowSheep.java` and opens it.
 3. Change what's inside `start()`, save, and play. That's it: no build step, no jar. Squid compiles it as the game starts.
+4. Already playing? Just save again. Squid notices, builds it, and swaps the new version in while you play (the chat says
+   "Reloaded Rainbow Sheep!"). A mistake keeps the old version running and says which line to fix.
 
 ```java
 public class RainbowSheep extends EasyMod {

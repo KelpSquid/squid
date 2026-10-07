@@ -25,6 +25,27 @@ public final class KeyBindings {
         ALL.add(binding);
     }
 
+    /** The key a mod already added with this name, or null. A reloaded mod gets its old keys back this way. */
+    public static synchronized KeyBinding find(String name) {
+        for (KeyBinding binding : ALL) {
+            if (binding.name().equals(name)) return binding;
+        }
+        return null;
+    }
+
+    /**
+     * Puts keys added after Minecraft set up its options (by a mod reloaded while playing) into its key list, and has
+     * Minecraft look them up again so they work right away.
+     */
+    static synchronized void addToRunningGame(ClassLoader gameLoader) throws ReflectiveOperationException {
+        Class<?> minecraft = Class.forName("net.minecraft.client.Minecraft", true, gameLoader);
+        Object game = minecraft.getMethod("getInstance").invoke(null);
+        Object options = game == null ? null : minecraft.getField("options").get(game);
+        if (options == null) return;
+        addTo(options);
+        Class.forName("net.minecraft.client.KeyMapping", true, gameLoader).getMethod("resetMapping").invoke(null);
+    }
+
     static void registerHooks() {
         // keyMappings is final, so it can't be swapped for a longer list. Squid drops the "final" as Options loads.
         Transformers.add("net.minecraft.client.Options", new Transformers.RawPatch("squid", options -> {
