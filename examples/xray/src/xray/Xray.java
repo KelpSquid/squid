@@ -75,11 +75,8 @@ public class Xray implements SquidMod {
         changed = true;
         // Minecraft skips drawing chunks hidden behind solid ground. With the ground gone, it has to draw them all.
         minecraft.smartCull = !on;
-        if (minecraft.level != null) {
-            // Build every chunk's look again, with or without the hidden blocks
-            minecraft.levelRenderer.invalidateCompiledGeometry(minecraft.level, minecraft.options,
-                    minecraft.gameRenderer.mainCamera(), minecraft.getBlockColors());
-        }
+        // Build every chunk's look again, with or without the hidden blocks. This is what F3+A does.
+        minecraft.levelExtractor.allChanged();
         minecraft.gui.chatListener().handleOverlay(Component.literal("Xray: " + (on ? "ON" : "OFF")));
     }
 
