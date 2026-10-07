@@ -771,6 +771,13 @@ public class PipelineTest {
         check("a clip with sound has a sound stream, with the sound split between the pictures",
                 soundAvi.contains("auds") + " " + (soundAvi.split("01wb", -1).length - 1), "true 6");
 
+        // Squid's own sound decoders: FLAC comes out exactly like the WAV it was made from
+        squid.audio.Pcm toneWav = squid.audio.Audio.decode(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("test/audio/tone.wav")));
+        squid.audio.Pcm toneFlac = squid.audio.Audio.decode(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("test/audio/tone.flac")));
+        check("a FLAC file decodes to exactly the sound it was made from", toneFlac.channels() + " " + toneFlac.rate() + " "
+                + java.util.Arrays.equals(toneWav.samples(), toneFlac.samples()) + " " + toneWav.samples().length, "2 44100 true 22050");
+        check("something that isn't sound is turned away", squid.audio.Audio.canDecode("hello".getBytes()) + "", "false");
+
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
         check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
                 + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");
