@@ -76,8 +76,12 @@ final class WardrobeScreen extends Screen {
                 b -> minecraft.setScreenAndShow(PaintScreen.skin(this, now))).bounds(x, y + 104, 98, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Paint Cape"),
                 b -> minecraft.setScreenAndShow(PaintScreen.cape(this, now))).bounds(x + 102, y + 104, 98, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Open Skins Folder"),
-                b -> open(Skins.wardrobe.skins())).bounds(x, y + 128, 200, 20).build());
+        // Pictures can be picked with the computer's own file window, or dropped onto the game. Either way
+        // they're copied into Kelp's skins and capes folders, so the original can be deleted from Downloads.
+        addRenderableWidget(Button.builder(Component.literal("Browse..."),
+                b -> FilePicker.pickPictures(this::onFilesDrop)).bounds(x, y + 128, 98, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Open Folder"),
+                b -> open(Skins.wardrobe.skins())).bounds(x + 102, y + 128, 98, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
     }
@@ -138,7 +142,7 @@ final class WardrobeScreen extends Screen {
         g.centeredText(font, "Skin & Cape", width / 2, 10, 0xFFFFFFFF);
         int x = width / 2 - 40;
         int y = Math.max(28, height / 2 - 92) + 156;
-        g.text(font, "Drop skin or cape pictures here.", x, y, 0xFFA0A0A0);
+        g.text(font, "Browse, or drop pictures here.", x, y, 0xFFA0A0A0);
         g.text(font, "Only you see them for now.", x, y + 11, 0xFF808080);
         if (message != null) g.centeredText(font, font.plainSubstrByWidth(message, width - 20), width / 2, height - 42, messageColor);
     }

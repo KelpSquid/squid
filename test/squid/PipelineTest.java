@@ -444,7 +444,7 @@ public class PipelineTest {
         Main.setGameLoader(skinLoader);
         ((SquidMod) skinLoader.loadClass("squidskins.Skins").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-skins")));
         for (String name : new String[] {"net.minecraft.client.player.AbstractClientPlayer", "net.minecraft.client.gui.screens.options.SkinCustomizationScreen",
-                "squidskins.WardrobeScreen", "squidskins.PaintScreen", "squidskins.NameScreen"}) {
+                "squidskins.WardrobeScreen", "squidskins.PaintScreen", "squidskins.NameScreen", "squidskins.FilePicker"}) {
             // Minecraft's player class can't be started without the whole game, so it's only loaded (which applies the patch)
             Class<?> loaded = Class.forName(name, !name.startsWith("net.minecraft.client.player"), skinLoader);
             check(name.substring(name.lastIndexOf('.') + 1) + " loads with the wardrobe", loaded.getClassLoader() == skinLoader, true);
