@@ -4,5 +4,6 @@
     "version": "1.0.0",
     "description": "Hold Z to zoom in like a spyglass. Change the key in Controls.",
     "authors": ["Samuel"],
+    "minecraft": "26.3.x",
     "main": "zoom.Zoom"
 }

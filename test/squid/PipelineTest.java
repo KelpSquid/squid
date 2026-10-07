@@ -26,7 +26,16 @@ public class PipelineTest {
     }
 
     static ModInfo mod(String id, String... depends) {
-        return new ModInfo(id, id, "1", "", List.of(), List.of(depends), "x", Path.of("."));
+        return new ModInfo(id, id, "1", "", List.of(), List.of(depends), List.of(), "x", Path.of("."));
+    }
+
+    /** Makes a mod jar holding just a squid.json. */
+    static void modJar(Path file, String squidJson) throws java.io.IOException {
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(file))) {
+            zip.putNextEntry(new java.util.zip.ZipEntry("squid.json"));
+            zip.write(squidJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            zip.closeEntry();
+        }
     }
 
     static String problem(List<ModInfo> mods) {
@@ -42,8 +51,8 @@ public class PipelineTest {
         List<URL> urls = new ArrayList<>();
         for (String e : a[0].split(File.pathSeparator)) urls.add(Path.of(e).toUri().toURL());
         urls.add(Path.of(a[2]).toUri().toURL());
-        List<ModInfo> mods = Mods.find(Path.of(a[1]));
-        check("mods found", mods.stream().map(ModInfo::id).toList().toString(), "[hello-squid, zoom]");
+        List<ModInfo> mods = Mods.find(Path.of(a[1]), "26.3").mods();
+        check("mods found", mods.stream().map(ModInfo::id).sorted().toList().toString(), "[compass, hello-squid, minimap, zoom]");
         for (ModInfo m : mods) urls.add(m.jar().toUri().toURL());
         SquidClassLoader loader = new SquidClassLoader(urls.toArray(URL[]::new));
         Thread.currentThread().setContextClassLoader(loader);
@@ -107,14 +116,18 @@ public class PipelineTest {
         keyList.set(fakeOptions, java.lang.reflect.Array.newInstance(keyMapping, 0));
         KeyBindings.addTo(fakeOptions);
         Object[] keys = (Object[]) keyList.get(fakeOptions);
-        check("Zoom's key is in Minecraft's list", keys.length == 1 ? keyMapping.getMethod("getName").invoke(keys[0]) : keys.length + " keys", "Zoom");
+        List<Object> keyNames = new ArrayList<>();
+        for (Object key : keys) keyNames.add(keyMapping.getMethod("getName").invoke(key));
+        check("the mods' keys are in Minecraft's list", keyNames.stream().map(String::valueOf).sorted().toList().toString(),
+                "[Bigger Minimap, World Map, Zoom]");
         KeyBindings.addTo(fakeOptions);
-        check("adding again doesn't double it", ((Object[]) keyList.get(fakeOptions)).length, 1);
+        check("adding again doesn't double them", ((Object[]) keyList.get(fakeOptions)).length, 3);
 
         // Zoom's hooks go into Minecraft's camera and mouse code, which must still load and pass Java's checks
-        for (String name : new String[] {"net.minecraft.client.Camera", "net.minecraft.client.MouseHandler"}) {
+        for (String name : new String[] {"net.minecraft.client.Camera", "net.minecraft.client.MouseHandler",
+                "net.minecraft.client.gui.Hud", "net.minecraft.client.Minecraft"}) {
             Class<?> patched = Class.forName(name, true, loader);
-            check(name.substring(name.lastIndexOf('.') + 1) + " loads after Zoom patched it", patched.getClassLoader() == loader, true);
+            check(name.substring(name.lastIndexOf('.') + 1) + " loads after the mods patched it", patched.getClassLoader() == loader, true);
         }
 
         // Squid tells Minecraft it's modded
@@ -129,6 +142,24 @@ public class PipelineTest {
         check("a dependency loop is explained", problem(List.of(mod("a", "b"), mod("b", "a"))),
                 "These mods need each other in a loop, so none of them can start first: a -> b -> a");
 
+        // Mods that can't work this time are skipped, with a reason, and the rest still load
+        Path folder = java.nio.file.Files.createTempDirectory("squid-mods-test");
+        modJar(folder.resolve("a-library.jar"), "{\"id\": \"library\", \"name\": \"Library\", \"version\": \"1\", \"main\": \"x\", \"minecraft\": \"26.2\"}");
+        modJar(folder.resolve("b-addon.jar"), "{\"id\": \"addon\", \"name\": \"Addon\", \"version\": \"1\", \"main\": \"x\", \"depends\": [\"library\"]}");
+        modJar(folder.resolve("c-needs-ghost.jar"), "{\"id\": \"lonely\", \"name\": \"Lonely\", \"version\": \"1\", \"main\": \"x\", \"depends\": [\"ghost\"]}");
+        modJar(folder.resolve("d-zoom.jar"), "{\"id\": \"zoom\", \"name\": \"Zoom\", \"version\": \"1\", \"main\": \"x\", \"minecraft\": [\"26.2\", \"26.3.x\"]}");
+        modJar(folder.resolve("e-zoom (1).jar"), "{\"id\": \"zoom\", \"name\": \"Zoom\", \"version\": \"1\", \"main\": \"x\"}");
+        Mods.Found found = Mods.find(folder, "26.3.1");
+        check("only mods that can work are loaded", found.mods().stream().map(ModInfo::id).toList().toString(), "[zoom]");
+        java.util.Map<String, String> why = new java.util.TreeMap<>();
+        for (Mods.Skipped s : found.skipped()) why.put(s.name(), s.reason());
+        check("wrong Minecraft version", why.get("Library"), "it was made for Minecraft 26.2, not 26.3.1. Look for an update to it.");
+        check("needs a mod that was skipped", why.get("Addon"), "it needs Library, which was skipped too.");
+        check("needs a missing mod", why.get("Lonely"), "it needs the mod \"ghost\", but it isn't in the mods folder.");
+        check("a second copy", why.get("Zoom"), "it's another copy of d-zoom.jar. You can delete e-zoom (1).jar.");
+        check("26.3.x means every 26.3 update", mod("any").worksOn("26.3") && found.mods().get(0).worksOn("26.3")
+                && found.mods().get(0).worksOn("26.3.9") && !found.mods().get(0).worksOn("26.30"), true);
+
         // The report Kelp reads
         Path reportFolder = java.nio.file.Files.createTempDirectory("squid-report-test");
         Report report = new Report(reportFolder);
@@ -139,6 +170,34 @@ public class PipelineTest {
         java.util.Map<String, Object> failed = Json.object(Json.parse(java.nio.file.Files.readString(reportFolder.resolve("squid-report.json"))));
         check("report after a crash", failed.get("status") + " | " + failed.get("mod") + " | " + failed.get("error"),
                 "failed | Hello \"Squid\" | NullPointerException: oops\nline two");
+
+        java.util.Map<String, Object> clean = Json.object(Json.parse(java.nio.file.Files.readString(reportFolder.resolve("squid-report.json"))));
+        check("no problems listed when nothing broke", Json.array(clean.get("problems")).size(), 0);
+        report.skipped(found.skipped());
+        report.running(List.of(mod("zoom")));
+        java.util.Map<String, Object> withSkipped = Json.object(Json.parse(java.nio.file.Files.readString(reportFolder.resolve("squid-report.json"))));
+        check("skipped mods are in the report", Json.array(withSkipped.get("skipped")).size(), 4);
+        report.running(List.of(mod("library")));
+        report.problem("Library", "NoSuchMethodError: Gui.render");
+        report.problem("Library", "the same mod again");
+        java.util.Map<String, Object> troubled = Json.object(Json.parse(java.nio.file.Files.readString(reportFolder.resolve("squid-report.json"))));
+        List<Object> problems = Json.array(troubled.get("problems"));
+        check("a turned-off hook is reported once", problems.size(), 1);
+        check("the problem names the mod and error", Json.object(problems.get(0)).get("mod") + " | " + Json.object(problems.get(0)).get("error"),
+                "Library | NoSuchMethodError: Gui.render");
+        check("the game still counts as running", troubled.get("status"), "running");
+        check("no .part file is left over", java.nio.file.Files.exists(reportFolder.resolve("squid-report.json.part")), false);
+
+        // A hook that keeps breaking (like a mod made for another Minecraft version) gets turned off
+        int[] calls = {0};
+        int broken = Hooks.register("broken-mod", call -> {
+            calls[0]++;
+            throw new NoSuchMethodError("net.minecraft.client.Gui.oldMethod()");
+        });
+        int fine = Hooks.register("fine-mod", call -> call.setReturnValue("still works"));
+        for (int i = 0; i < 6; i++) Hooks.start(broken, null, new Object[0]);
+        check("a broken hook is tried 3 times, then turned off", calls[0], 3);
+        check("other mods' hooks keep working", Hooks.end(fine, null, new Object[0], "vanilla"), "still works");
 
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);

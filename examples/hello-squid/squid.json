@@ -4,5 +4,6 @@
     "version": "1.0.0",
     "description": "Changes the title screen splash to prove Squid works.",
     "authors": ["Samuel"],
+    "minecraft": "26.3.x",
     "main": "hello.HelloSquid"
 }

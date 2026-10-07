@@ -24,6 +24,7 @@ public final class Main {
     public static final String VERSION = "0.1";
 
     private static List<ModInfo> mods = List.of();
+    private static Report report;
 
     private Main() {
     }
@@ -41,13 +42,15 @@ public final class Main {
         registerBuiltInHooks();
 
         Path gameFolder = gameFolder(args);
-        Report report = new Report(gameFolder);
+        report = new Report(gameFolder);
         report.loading();
         ModInfo starting = null; // the mod being started right now, to blame if something breaks
         SquidClassLoader loader;
         try {
             Path modsFolder = gameFolder.resolve("mods");
-            mods = Mods.find(modsFolder);
+            Mods.Found found = Mods.find(modsFolder, argument(args, "--version"));
+            mods = found.mods();
+            report.skipped(found.skipped());
             System.out.println("[Squid] Squid " + VERSION + " found " + mods.size() + " mod(s) in " + modsFolder);
 
             List<URL> urls = new ArrayList<>();
@@ -81,6 +84,17 @@ public final class Main {
         }
     }
 
+    /** Tells Kelp (through the report) that a mod's hook had to be turned off. */
+    static void hookProblem(String modId, String error) {
+        Report r = report;
+        if (r == null) return; // only in tests, where there's no report
+        String name = modId;
+        for (ModInfo mod : mods) {
+            if (mod.id().equals(modId)) name = mod.name();
+        }
+        r.problem(name, error);
+    }
+
     /** A short explanation of an error for the report. Squid's own messages are already written for people. */
     static String describe(Throwable problem) {
         String message = problem.getMessage();
@@ -99,9 +113,15 @@ public final class Main {
 
     /** The --gameDir Minecraft was given, or the current folder. */
     private static Path gameFolder(String[] args) {
+        String folder = argument(args, "--gameDir");
+        return Path.of(folder != null ? folder : ".");
+    }
+
+    /** What comes after a setting like --version in Minecraft's arguments, or null if it isn't there. */
+    static String argument(String[] args, String name) {
         for (int i = 0; i < args.length - 1; i++) {
-            if (args[i].equals("--gameDir")) return Path.of(args[i + 1]);
+            if (args[i].equals(name)) return args[i + 1];
         }
-        return Path.of(".");
+        return null;
     }
 }

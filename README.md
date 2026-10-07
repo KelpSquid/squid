@@ -36,7 +36,11 @@ A Squid mod is a `.jar` with a `squid.json` inside:
 }
 ```
 
-If your mod needs another mod, list its id in `"depends": ["other-mod"]`. Squid starts that mod first, and tells you if it's missing.
+If your mod needs another mod, list its id in `"depends": ["other-mod"]`. Squid starts that mod first.
+
+`"minecraft"` says which Minecraft versions your mod works on: `"26.3"` for just that one, `"26.3.x"` for 26.3 and its updates, or a list like `["26.3.x", "26.4"]`. Leave it out and Squid tries your mod on any version.
+
+Squid never lets one mod stop the game from opening. A mod for a different version, a second copy of a mod, or a mod missing something it needs is skipped, and Kelp says why.
 
 `main` is a class that implements `SquidMod`:
 
@@ -54,7 +58,9 @@ What a mod can do in `init`:
 
 - `atStart(class, method, hook)` runs code at the start of a method. `call.cancel(value)` skips the rest of it.
 - `atEnd(class, method, hook)` runs code when a method returns. `call.setReturnValue(value)` changes what it returns.
-- `addKeyBinding(name, key)` adds a key to Minecraft's Controls screen, where players can change it. `isDown()` says if it's held.
+- `onHud(hud -> ...)` draws on the screen every frame: `hud.box(...)`, `hud.text(...)`, `hud.outline(...)`.
+- `onTick(() -> ...)` runs 20 times a second.
+- `addKeyBinding(name, key)` adds a key to Minecraft's Controls screen, where players can change it. `isDown()` says if it's held, `pressed()` if it was just pressed.
 - `patch(class, node -> ...)` changes a class's bytecode directly with [ASM](https://asm.ow2.io/).
 
-Set hooks up in `init` before touching any Minecraft class, or that class will already be loaded without them. See [`examples/hello-squid`](examples/hello-squid) for a whole mod, and [`examples/zoom`](examples/zoom) for one that adds a key.
+Set hooks up in `init` before touching any Minecraft class, or that class will already be loaded without them. See [`examples`](examples) for whole mods: Hello Squid, Zoom, Compass and Minimap.

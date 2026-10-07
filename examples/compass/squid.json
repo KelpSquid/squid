@@ -1,0 +1,9 @@
+{
+    "id": "compass",
+    "name": "Compass",
+    "version": "1.0.0",
+    "description": "A compass bar at the top of the screen that shows which way you're facing.",
+    "authors": ["Samuel"],
+    "minecraft": "26.3.x",
+    "main": "compass.Compass"
+}

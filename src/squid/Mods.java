@@ -19,32 +19,79 @@ import java.util.zip.ZipFile;
 /**
  * Finds Squid mods: .jar files in the mods folder that have a squid.json inside.
  * They come back in the order they should start: every mod after the mods it depends on.
+ *
+ * A mod that can't work this time (made for another Minecraft version, a second copy of a mod, or missing a mod it
+ * needs) is skipped with a reason, instead of stopping the game. The rest still load.
  */
 final class Mods {
     private Mods() {
     }
 
-    static List<ModInfo> find(Path folder) throws IOException {
+    /** A mod Squid didn't load, and why, in words for the player. */
+    record Skipped(String id, String name, String reason) {
+    }
+
+    /** The mods to start, in order, and the ones that were skipped. */
+    record Found(List<ModInfo> mods, List<Skipped> skipped) {
+    }
+
+    static Found find(Path folder, String minecraftVersion) throws IOException {
         List<ModInfo> mods = new ArrayList<>();
-        if (!Files.isDirectory(folder)) return mods;
+        List<Skipped> skipped = new ArrayList<>();
+        if (!Files.isDirectory(folder)) return new Found(mods, skipped);
 
         List<Path> jars;
         try (Stream<Path> files = Files.list(folder)) {
             jars = files.filter(p -> p.getFileName().toString().endsWith(".jar")).sorted().toList();
         }
-        Set<String> ids = new HashSet<>();
+        Map<String, ModInfo> byId = new LinkedHashMap<>();
         for (Path jar : jars) {
             ModInfo mod = read(jar);
             if (mod == null) {
                 System.out.println("[Squid] Skipping " + jar.getFileName() + ": it has no squid.json, so it isn't a Squid mod");
                 continue;
             }
-            if (!ids.add(mod.id())) {
-                throw new IOException("Two mods have the id \"" + mod.id() + "\". Remove one of them from the mods folder.");
+            ModInfo first = byId.get(mod.id());
+            if (first != null) {
+                skip(skipped, mod, "it's another copy of " + first.jar().getFileName() + ". You can delete " + jar.getFileName() + ".");
+            } else if (!mod.worksOn(minecraftVersion)) {
+                skip(skipped, mod, "it was made for Minecraft " + String.join(" or ", mod.minecraft())
+                        + ", not " + minecraftVersion + ". Look for an update to it.");
+            } else {
+                byId.put(mod.id(), mod);
             }
-            mods.add(mod);
         }
-        return inStartOrder(mods);
+        // Skip mods that need a mod that isn't here. Do it again until nothing changes, because skipping one
+        // mod can leave another mod without something it needs.
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (ModInfo mod : List.copyOf(byId.values())) {
+                for (String needed : mod.depends()) {
+                    if (!byId.containsKey(needed)) {
+                        skip(skipped, mod, why(needed, skipped));
+                        byId.remove(mod.id());
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+        mods.addAll(byId.values());
+        return new Found(inStartOrder(mods), List.copyOf(skipped));
+    }
+
+    private static void skip(List<Skipped> skipped, ModInfo mod, String reason) {
+        System.out.println("[Squid] Skipping " + mod.name() + ": " + reason);
+        skipped.add(new Skipped(mod.id(), mod.name(), reason));
+    }
+
+    /** Why a needed mod isn't there: it was skipped too, or it's missing. */
+    private static String why(String needed, List<Skipped> skipped) {
+        for (Skipped other : skipped) {
+            if (other.id().equals(needed)) return "it needs " + other.name() + ", which was skipped too.";
+        }
+        return "it needs the mod \"" + needed + "\", but it isn't in the mods folder.";
     }
 
     /** Puts every mod after the mods it depends on. Explains what's wrong if a mod is missing or mods need each other. */
@@ -96,12 +143,15 @@ final class Mods {
             }
             List<String> authors = strings(json, "authors");
             List<String> depends = strings(json, "depends");
+            // "minecraft" can be one version ("26.3") or a list (["26.3", "26.4"])
+            List<String> minecraft = json.get("minecraft") instanceof String one ? List.of(one) : strings(json, "minecraft");
             return new ModInfo(id,
                     json.get("name") != null ? (String) json.get("name") : id,
                     required(json, "version", jar),
                     json.get("description") != null ? (String) json.get("description") : "",
                     authors,
                     depends,
+                    minecraft,
                     required(json, "main", jar),
                     jar);
         }

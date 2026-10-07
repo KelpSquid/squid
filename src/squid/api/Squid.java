@@ -63,6 +63,20 @@ public final class Squid {
         return binding;
     }
 
+    /**
+     * Runs every frame while the game's HUD is showing, so the mod can draw on it with the {@link Hud}.
+     * It doesn't run while the HUD is hidden with F1.
+     */
+    public void onHud(Consumer<Hud> draw) {
+        // Minecraft draws the potion effects corner only while the HUD is showing, so right after it is a safe place
+        atEnd("net.minecraft.client.gui.Hud", "extractEffects", call -> draw.accept(new Hud(call.args()[0])));
+    }
+
+    /** Runs 20 times a second, all the time the game is open (in menus too). */
+    public void onTick(Runnable tick) {
+        atEnd("net.minecraft.client.Minecraft", "tick", "()V", call -> tick.run());
+    }
+
     /** For advanced mods: change a class's bytecode directly with ASM before it loads. */
     public void patch(String className, Consumer<ClassNode> patch) {
         Transformers.add(className, new Transformers.RawPatch(mod.id(), patch));
