@@ -93,6 +93,8 @@ public final class Main {
         // Tell Minecraft it's modded, so the F3 screen and crash reports say "squid" instead of "vanilla"
         Transformers.add("net.minecraft.client.ClientBrandRetriever", new Transformers.HookPatch(
                 "getClientModName", null, false, Hooks.register("squid", call -> call.setReturnValue("squid"))));
+        // Put mods' keys on Minecraft's Controls screen
+        KeyBindings.registerHooks();
     }
 
     /** The --gameDir Minecraft was given, or the current folder. */

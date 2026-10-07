@@ -78,10 +78,12 @@ public class Build {
         Path testClasses = BUILD.resolve("test");
         List<Path> sources = listJava(Path.of("test"));
         compile(sources, classes + ";" + squidClasspath, testClasses, "21");
-        // The test needs the example mod in a mods folder of its own
+        // The test needs the example mods in a mods folder of its own
         Path mods = BUILD.resolve("test-mods");
         Files.createDirectories(mods);
-        Files.copy(BUILD.resolve("hello-squid.jar"), mods.resolve("hello-squid.jar"), StandardCopyOption.REPLACE_EXISTING);
+        for (String mod : new String[] {"hello-squid.jar", "zoom.jar"}) {
+            Files.copy(BUILD.resolve(mod), mods.resolve(mod), StandardCopyOption.REPLACE_EXISTING);
+        }
 
         Path java = Path.of(System.getProperty("java.home"), "bin", "java.exe");
         Process run = new ProcessBuilder(java.toString(), "-cp", testClasses + ";" + classes + ";" + squidClasspath,

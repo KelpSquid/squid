@@ -54,6 +54,7 @@ What a mod can do in `init`:
 
 - `atStart(class, method, hook)` runs code at the start of a method. `call.cancel(value)` skips the rest of it.
 - `atEnd(class, method, hook)` runs code when a method returns. `call.setReturnValue(value)` changes what it returns.
+- `addKeyBinding(name, key)` adds a key to Minecraft's Controls screen, where players can change it. `isDown()` says if it's held.
 - `patch(class, node -> ...)` changes a class's bytecode directly with [ASM](https://asm.ow2.io/).
 
-Set hooks up in `init` before touching any Minecraft class, or that class will already be loaded without them. See [`examples/hello-squid`](examples/hello-squid) for a whole mod.
+Set hooks up in `init` before touching any Minecraft class, or that class will already be loaded without them. See [`examples/hello-squid`](examples/hello-squid) for a whole mod, and [`examples/zoom`](examples/zoom) for one that adds a key.

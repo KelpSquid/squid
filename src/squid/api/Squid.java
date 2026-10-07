@@ -2,6 +2,7 @@ package squid.api;
 
 import org.objectweb.asm.tree.ClassNode;
 import squid.Hooks;
+import squid.KeyBindings;
 import squid.Transformers;
 
 import java.util.List;
@@ -50,6 +51,16 @@ public final class Squid {
     /** Like {@link #atEnd(String, String, Hook)} but only for the method with this descriptor. */
     public void atEnd(String className, String methodName, String descriptor, Hook hook) {
         Transformers.add(className, new Transformers.HookPatch(methodName, descriptor, false, Hooks.register(mod.id(), hook)));
+    }
+
+    /**
+     * Adds a key to Minecraft's Controls screen, in the Miscellaneous group, where players can change it.
+     * defaultKey is one of Minecraft's key codes, like InputConstants.KEY_Z. Check it with {@link KeyBinding#isDown()}.
+     */
+    public KeyBinding addKeyBinding(String name, int defaultKey) {
+        KeyBinding binding = new KeyBinding(name, defaultKey);
+        KeyBindings.add(binding);
+        return binding;
     }
 
     /** For advanced mods: change a class's bytecode directly with ASM before it loads. */

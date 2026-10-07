@@ -43,12 +43,16 @@ public class PipelineTest {
         for (String e : a[0].split(File.pathSeparator)) urls.add(Path.of(e).toUri().toURL());
         urls.add(Path.of(a[2]).toUri().toURL());
         List<ModInfo> mods = Mods.find(Path.of(a[1]));
-        check("mods found", mods.size(), 1);
-        check("mod id", mods.get(0).id(), "hello-squid");
+        check("mods found", mods.stream().map(ModInfo::id).toList().toString(), "[hello-squid, zoom]");
         for (ModInfo m : mods) urls.add(m.jar().toUri().toURL());
         SquidClassLoader loader = new SquidClassLoader(urls.toArray(URL[]::new));
         Thread.currentThread().setContextClassLoader(loader);
         Main.registerBuiltInHooks();
+
+        // Some Minecraft objects get made without running their constructors, which need the whole game
+        Field unsafeField = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        Object unsafe = unsafeField.get(null);
 
         // Hooks on the demo class, registered the way a mod would
         Squid test = new Squid(mod("test"));
@@ -86,9 +90,6 @@ public class PipelineTest {
         // Minecraft's real SplashManager, loaded and patched through Squid. Made without running its constructor.
         Class<?> splashManager = loader.loadClass("net.minecraft.client.resources.SplashManager");
         check("Minecraft class came from Squid's loader", splashManager.getClassLoader() == loader, true);
-        Field unsafeField = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
-        unsafeField.setAccessible(true);
-        Object unsafe = unsafeField.get(null);
         Object manager = unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, splashManager);
         Object splash = splashManager.getMethod("getSplash").invoke(manager);
         Field text = splash.getClass().getDeclaredField("splash");
@@ -96,6 +97,25 @@ public class PipelineTest {
         Object component = text.get(splash);
         Method getString = component.getClass().getMethod("getString");
         check("Minecraft's splash says", getString.invoke(component), "Squid is working!");
+
+        // Mods' keys go into Minecraft's own key list, the one the Controls screen shows
+        Class<?> options = loader.loadClass("net.minecraft.client.Options");
+        java.lang.reflect.Field keyList = options.getField("keyMappings");
+        check("Squid made the key list changeable", java.lang.reflect.Modifier.isFinal(keyList.getModifiers()), false);
+        Object fakeOptions = unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, options);
+        Class<?> keyMapping = loader.loadClass("net.minecraft.client.KeyMapping");
+        keyList.set(fakeOptions, java.lang.reflect.Array.newInstance(keyMapping, 0));
+        KeyBindings.addTo(fakeOptions);
+        Object[] keys = (Object[]) keyList.get(fakeOptions);
+        check("Zoom's key is in Minecraft's list", keys.length == 1 ? keyMapping.getMethod("getName").invoke(keys[0]) : keys.length + " keys", "Zoom");
+        KeyBindings.addTo(fakeOptions);
+        check("adding again doesn't double it", ((Object[]) keyList.get(fakeOptions)).length, 1);
+
+        // Zoom's hooks go into Minecraft's camera and mouse code, which must still load and pass Java's checks
+        for (String name : new String[] {"net.minecraft.client.Camera", "net.minecraft.client.MouseHandler"}) {
+            Class<?> patched = Class.forName(name, true, loader);
+            check(name.substring(name.lastIndexOf('.') + 1) + " loads after Zoom patched it", patched.getClassLoader() == loader, true);
+        }
 
         // Squid tells Minecraft it's modded
         Object brand = loader.loadClass("net.minecraft.client.ClientBrandRetriever").getMethod("getClientModName").invoke(null);

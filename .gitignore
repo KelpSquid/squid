@@ -2,6 +2,9 @@
 build/
 lib/
 
+# Made by Minecraft code during build.bat test
+logs/
+
 # Compiled class files
 *.class
 
