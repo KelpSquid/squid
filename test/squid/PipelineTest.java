@@ -694,6 +694,20 @@ public class PipelineTest {
         check("spin angles wrap around like Minecraft's", squidpano.PanoStore.wrap(190f) + " " + squidpano.PanoStore.wrap(-200f) + " " + squidpano.PanoStore.wrap(45f),
                 "-170.0 160.0 45.0");
 
+        // Clips: the last seconds kept as JPEGs, and written as a Motion JPEG .avi
+        squidclips.ClipBuffer clipBuffer = new squidclips.ClipBuffer();
+        java.awt.image.BufferedImage clipFrame = squidclips.ClipBuffer.fit(new java.awt.image.BufferedImage(1920, 1080, java.awt.image.BufferedImage.TYPE_INT_RGB), 640, 360);
+        byte[] clipJpeg = squidclips.ClipBuffer.jpeg(clipFrame, 0.75f);
+        for (int i = 0; i < 100; i++) clipBuffer.add(clipJpeg, i * 50L, 2); // 20 a second, keeping 2 seconds
+        check("only the last seconds are kept, at their speed", clipBuffer.pictures().size() + " " + clipBuffer.fps(), "41 20");
+        Path clipFile = java.nio.file.Files.createTempDirectory("squid-clip").resolve("clip.avi");
+        squidclips.AviWriter.write(clipBuffer.pictures(), 640, 360, clipBuffer.fps(), clipFile);
+        byte[] avi = java.nio.file.Files.readAllBytes(clipFile);
+        java.nio.ByteBuffer header = java.nio.ByteBuffer.wrap(avi).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        check("a clip is a Motion JPEG .avi with every picture", new String(avi, 0, 4) + " " + new String(avi, 8, 4) + " " + (header.getInt(4) + 8 == avi.length)
+                + " " + new String(avi, 0, avi.length, java.nio.charset.StandardCharsets.ISO_8859_1).contains("MJPG")
+                + " " + (new String(avi, 0, avi.length, java.nio.charset.StandardCharsets.ISO_8859_1).split("00dc", -1).length - 1), "RIFF AVI  true true 82");
+
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
         check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
                 + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");

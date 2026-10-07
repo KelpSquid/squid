@@ -285,7 +285,7 @@ public class Build {
         // The Store's own logic (its list and installer) is tested too, so its classes go on the test's classpath
         String builtIn = BUILD.resolve("builtin-classes").resolve("store") + ";" + BUILD.resolve("builtin-classes").resolve("count")
                 + ";" + BUILD.resolve("builtin-classes").resolve("skins") + ";" + BUILD.resolve("builtin-classes").resolve("mods")
-                + ";" + BUILD.resolve("builtin-classes").resolve("panorama");
+                + ";" + BUILD.resolve("builtin-classes").resolve("panorama") + ";" + BUILD.resolve("builtin-classes").resolve("clips");
         compile(sources, classes + ";" + squidClasspath + ";" + builtIn, testClasses, "21");
         // The test needs the example mods in a mods folder of its own
         Path mods = BUILD.resolve("test-mods");
