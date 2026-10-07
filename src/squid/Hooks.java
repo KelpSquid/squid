@@ -3,8 +3,7 @@ package squid;
 import squid.api.Call;
 import squid.api.Hook;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -28,20 +27,24 @@ public final class Hooks {
     /** After this many failures, a hook is turned off so it can't keep breaking things (or flood the log). */
     private static final int MAX_FAILURES = 3;
 
-    private static final List<Entry> HOOKS = new ArrayList<>();
+    // Hooked methods can run thousands of times a frame on several threads (like building chunks), so finding a hook
+    // must be quick and never wait for a lock. Registering makes a new, longer array; running only reads it.
+    private static volatile Entry[] hooks = new Entry[0];
 
     private Hooks() {
     }
 
     /** Saves a hook and returns its number, which gets written into the hooked method. */
     public static synchronized int register(String modId, Hook hook) {
-        HOOKS.add(new Entry(modId, hook));
-        return HOOKS.size() - 1;
+        Entry[] longer = Arrays.copyOf(hooks, hooks.length + 1);
+        longer[hooks.length] = new Entry(modId, hook);
+        hooks = longer;
+        return hooks.length - 1;
     }
 
     /** Switches off every hook a mod set up, like when the mod broke while starting. */
     public static synchronized void turnOff(String modId) {
-        for (Entry entry : HOOKS) {
+        for (Entry entry : hooks) {
             if (entry.modId.equals(modId)) entry.turnedOff = true;
         }
     }
@@ -61,10 +64,7 @@ public final class Hooks {
     }
 
     private static void run(int id, Call call) {
-        Entry entry;
-        synchronized (Hooks.class) {
-            entry = HOOKS.get(id);
-        }
+        Entry entry = hooks[id];
         if (entry.turnedOff) return;
         try {
             entry.hook.run(call);

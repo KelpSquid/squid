@@ -147,6 +147,7 @@ final class SourceMods {
         return className.replace('_', ' ')
                 .replaceAll("(?<=[a-z0-9])(?=[A-Z])", " ")  // MyMod -> My Mod
                 .replaceAll("(?<=[A-Z])(?=[A-Z][a-z])", " ") // NotAMod -> Not A Mod, TNTRain -> TNT Rain
+                .replaceAll("(?<=[A-Za-z])(?=[0-9])", " ")   // RainbowSheep2 -> Rainbow Sheep 2
                 .trim();
     }
 

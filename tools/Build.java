@@ -81,7 +81,7 @@ public class Build {
         // The test needs the example mods in a mods folder of its own
         Path mods = BUILD.resolve("test-mods");
         Files.createDirectories(mods);
-        for (String mod : new String[] {"hello-squid.jar", "zoom.jar", "minimap.jar", "compass.jar"}) {
+        for (String mod : new String[] {"hello-squid.jar", "zoom.jar", "minimap.jar", "compass.jar", "fullbright.jar", "xray.jar"}) {
             Files.copy(BUILD.resolve(mod), mods.resolve(mod), StandardCopyOption.REPLACE_EXISTING);
         }
 

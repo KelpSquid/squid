@@ -1,0 +1,9 @@
+{
+    "id": "xray",
+    "name": "Xray",
+    "version": "1.0.0",
+    "description": "Press X to see ores through the ground. Many servers count this as cheating, so it's best in single player.",
+    "authors": ["Samuel"],
+    "minecraft": "26.3.x",
+    "main": "xray.Xray"
+}

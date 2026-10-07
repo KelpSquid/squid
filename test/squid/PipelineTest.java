@@ -52,7 +52,7 @@ public class PipelineTest {
         for (String e : a[0].split(File.pathSeparator)) urls.add(Path.of(e).toUri().toURL());
         urls.add(Path.of(a[2]).toUri().toURL());
         List<ModInfo> mods = Mods.find(Path.of(a[1]), "26.3").mods();
-        check("mods found", mods.stream().map(ModInfo::id).sorted().toList().toString(), "[compass, hello-squid, minimap, zoom]");
+        check("mods found", mods.stream().map(ModInfo::id).sorted().toList().toString(), "[compass, fullbright, hello-squid, minimap, xray, zoom]");
         for (ModInfo m : mods) urls.add(m.jar().toUri().toURL());
         SquidClassLoader loader = new SquidClassLoader(urls.toArray(URL[]::new));
         Thread.currentThread().setContextClassLoader(loader);
@@ -119,13 +119,15 @@ public class PipelineTest {
         List<Object> keyNames = new ArrayList<>();
         for (Object key : keys) keyNames.add(keyMapping.getMethod("getName").invoke(key));
         check("the mods' keys are in Minecraft's list", keyNames.stream().map(String::valueOf).sorted().toList().toString(),
-                "[Bigger Minimap, World Map, Zoom]");
+                "[Bigger Minimap, Fullbright, World Map, Xray, Zoom]");
         KeyBindings.addTo(fakeOptions);
-        check("adding again doesn't double them", ((Object[]) keyList.get(fakeOptions)).length, 3);
+        check("adding again doesn't double them", ((Object[]) keyList.get(fakeOptions)).length, 5);
 
         // Zoom's hooks go into Minecraft's camera and mouse code, which must still load and pass Java's checks
         for (String name : new String[] {"net.minecraft.client.Camera", "net.minecraft.client.MouseHandler",
-                "net.minecraft.client.gui.Hud", "net.minecraft.client.Minecraft"}) {
+                "net.minecraft.client.gui.Hud", "net.minecraft.client.Minecraft",
+                "net.minecraft.client.renderer.LightmapRenderStateExtractor", "net.minecraft.client.renderer.block.ModelBlockRenderer",
+                "net.minecraft.client.renderer.block.FluidRenderer"}) {
             Class<?> patched = Class.forName(name, true, loader);
             check(name.substring(name.lastIndexOf('.') + 1) + " loads after the mods patched it", patched.getClassLoader() == loader, true);
         }
