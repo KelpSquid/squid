@@ -16,7 +16,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * public class Hello extends EasyMod {
  *     void start() {
  *         say("Hello!");
- *         onKey("G", () -> giveItem("diamond", 1));
+ *         onKey("H", () -> giveItem("diamond", 1));
  *     }
  * }
  * </pre>

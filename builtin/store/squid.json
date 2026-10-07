@@ -1,0 +1,8 @@
+{
+    "id": "squid-store",
+    "name": "Squid Store",
+    "version": "1.0.0",
+    "description": "The community store, built into Squid: a Store button on the title screen.",
+    "authors": ["Samuel"],
+    "main": "squidstore.Store"
+}

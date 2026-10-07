@@ -1,0 +1,9 @@
+{
+    "id": "boost",
+    "name": "Squid Boost",
+    "version": "1.0.0",
+    "description": "Smoother play in busy places: skips drawing far-away dropped items, XP orbs, chests and signs. Works with resource-pack shaders.",
+    "authors": ["Samuel"],
+    "minecraft": "26.3.x",
+    "main": "boost.Boost"
+}

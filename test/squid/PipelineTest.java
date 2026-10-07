@@ -52,7 +52,7 @@ public class PipelineTest {
         for (String e : a[0].split(File.pathSeparator)) urls.add(Path.of(e).toUri().toURL());
         urls.add(Path.of(a[2]).toUri().toURL());
         List<ModInfo> mods = Mods.find(Path.of(a[1]), "26.3").mods();
-        check("mods found", mods.stream().map(ModInfo::id).sorted().toList().toString(), "[compass, fullbright, hello-squid, minimap, xray, zoom]");
+        check("mods found", mods.stream().map(ModInfo::id).sorted().toList().toString(), "[boost, compass, fullbright, hello-squid, minimap, xray, zoom]");
         for (ModInfo m : mods) urls.add(m.jar().toUri().toURL());
         SquidClassLoader loader = new SquidClassLoader(urls.toArray(URL[]::new));
         Thread.currentThread().setContextClassLoader(loader);
@@ -127,7 +127,8 @@ public class PipelineTest {
         for (String name : new String[] {"net.minecraft.client.Camera", "net.minecraft.client.MouseHandler",
                 "net.minecraft.client.gui.Hud", "net.minecraft.client.Minecraft",
                 "net.minecraft.client.renderer.LightmapRenderStateExtractor", "net.minecraft.client.renderer.block.ModelBlockRenderer",
-                "net.minecraft.client.renderer.block.FluidRenderer"}) {
+                "net.minecraft.client.renderer.block.FluidRenderer", "net.minecraft.client.renderer.entity.EntityRenderDispatcher",
+                "net.minecraft.client.renderer.blockentity.BlockEntityRenderer", "net.minecraft.client.renderer.blockentity.ChestRenderer"}) {
             Class<?> patched = Class.forName(name, true, loader);
             check(name.substring(name.lastIndexOf('.') + 1) + " loads after the mods patched it", patched.getClassLoader() == loader, true);
         }
@@ -255,6 +256,52 @@ public class PipelineTest {
         ModInfo again = sources.compile(easy.resolve("Hello.java"));
         check("an unchanged mod isn't compiled again", java.nio.file.Files.getLastModifiedTime(again.jar().resolve("ok")).toMillis(), compiledAt);
         check("file names become mod names", SourceMods.spaced("MyCoolMod") + " / " + SourceMods.spaced("TNT_Rain"), "My Cool Mod / TNT Rain");
+
+        // The Store: its list, safe file names, installing with a fingerprint check, and its Minecraft parts loading
+        String storeList = "{\"items\": ["
+                + "{\"id\": \"xray\", \"type\": \"mod\", \"name\": \"X-Ray\", \"author\": \"Samuel\", \"minecraft\": \"26.3.x\", \"devPicked\": true,"
+                + " \"file\": \"xray-1.0.0.jar\", \"url\": \"https://example.com/x.jar\", \"sha256\": \"ABC\", \"size\": 5},"
+                + "{\"id\": \"sneaky\", \"type\": \"mod\", \"name\": \"Sneaky\", \"file\": \"../../evil.jar\", \"url\": \"u\", \"sha256\": \"a\"},"
+                + "{\"id\": \"packed\", \"type\": \"resourcepack\", \"name\": \"Packed\", \"file\": \"wrong.jar\", \"url\": \"u\", \"sha256\": \"a\"},"
+                + "{\"id\": \"old\", \"type\": \"resourcepack\", \"name\": \"Old Pack\", \"minecraft\": [\"1.20.x\"], \"file\": \"old.zip\", \"url\": \"u\", \"sha256\": \"a\"}]}";
+        List<squidstore.Catalog.Item> storeItems = squidstore.Catalog.parse(storeList);
+        check("the store list keeps safe items only", storeItems.stream().map(squidstore.Catalog.Item::id).toList().toString(), "[xray, old]");
+        check("store items know their Minecraft versions and Dev-picked", storeItems.get(0).worksOn("26.3.1") + " "
+                + storeItems.get(1).worksOn("26.3") + " " + storeItems.get(0).devPicked() + " " + storeItems.get(0).sha256(), "true false true abc");
+
+        Path storeGame = java.nio.file.Files.createTempDirectory("squid-store-test");
+        Path hosted = java.nio.file.Files.createTempDirectory("squid-store-files");
+        byte[] modBytes = "pretend mod".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        java.nio.file.Files.write(hosted.resolve("fun.jar"), modBytes);
+        String goodHash = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(modBytes));
+        squidstore.Catalog.Item fun = new squidstore.Catalog.Item("fun", "mod", "Fun", "Sam", "", List.of(), false, "fun-1.0.jar",
+                hosted.resolve("fun.jar").toUri().toString(), goodHash, modBytes.length);
+        check("not installed yet", squidstore.Installer.installed(fun, storeGame), false);
+        squidstore.Installer.install(fun, storeGame);
+        check("installing puts a mod in mods/", java.nio.file.Files.readString(storeGame.resolve("mods/fun-1.0.jar")) + " "
+                + squidstore.Installer.installed(fun, storeGame), "pretend mod true");
+        squidstore.Catalog.Item swapped = new squidstore.Catalog.Item("swapped", "resourcepack", "Swapped", "", "", List.of(), false,
+                "swapped.zip", hosted.resolve("fun.jar").toUri().toString(), "0".repeat(64), -1);
+        String swapProblem;
+        try {
+            squidstore.Installer.install(swapped, storeGame);
+            swapProblem = "installed anyway";
+        } catch (java.io.IOException e) {
+            swapProblem = e.getMessage();
+        }
+        check("a file that doesn't match its fingerprint is refused", swapProblem + " | left behind: "
+                + java.nio.file.Files.exists(storeGame.resolve("resourcepacks/swapped.zip")), "it arrived damaged, so it wasn't installed | left behind: false");
+
+        List<URL> storeUrls = new ArrayList<>(urls);
+        storeUrls.add(Path.of(a[3]).toUri().toURL());
+        SquidClassLoader storeLoader = new SquidClassLoader(storeUrls.toArray(URL[]::new));
+        Main.registerBuiltInHooks(); // the title screen hook needs a fresh TitleScreen in the new loader
+        Squid storeSquid = new Squid(mod("squid-store"));
+        ((SquidMod) storeLoader.loadClass("squidstore.Store").getDeclaredConstructor().newInstance()).init(storeSquid);
+        for (String name : new String[] {"net.minecraft.client.gui.screens.TitleScreen", "squidstore.StoreScreen"}) {
+            Class<?> loaded = Class.forName(name, true, storeLoader);
+            check(name.substring(name.lastIndexOf('.') + 1) + " loads with the Store", loaded.getClassLoader() == storeLoader, true);
+        }
 
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);

@@ -30,6 +30,7 @@ public final class Main {
     private static volatile ClassLoader gameLoader;
     private static volatile boolean gameStarted;
     private static String minecraftVersion;
+    private static Path gameFolder = Path.of(".");
 
     private Main() {
     }
@@ -42,6 +43,16 @@ public final class Main {
     /** The class loader Minecraft and the mods run in, or null before the game starts. */
     public static ClassLoader gameLoader() {
         return gameLoader;
+    }
+
+    /** The game folder: the instance's folder, where its mods, resource packs and worlds are. */
+    public static Path gameFolder() {
+        return gameFolder;
+    }
+
+    /** The Minecraft version being played, like "26.3", or null if the launcher didn't say. */
+    public static String minecraftVersion() {
+        return minecraftVersion;
     }
 
     static void setGameLoader(ClassLoader loader) {
@@ -63,7 +74,7 @@ public final class Main {
 
         registerBuiltInHooks();
 
-        Path gameFolder = gameFolder(args);
+        gameFolder = gameFolder(args);
         minecraftVersion = argument(args, "--version");
         report = new Report(gameFolder);
         report.loading();
@@ -75,15 +86,19 @@ public final class Main {
                     System.getProperty("java.class.path") + File.pathSeparator + gameClasspath);
             Mods.Found found = Mods.find(modsFolder, minecraftVersion, sources);
             System.out.println("[Squid] Squid " + VERSION + " found " + found.mods().size() + " mod(s) in " + modsFolder);
+            // Squid's own parts, like the Store, come with Squid in its builtin folder. They aren't counted as mods.
+            List<ModInfo> builtIn = Mods.find(builtInFolder(), minecraftVersion).mods();
 
             List<URL> urls = new ArrayList<>();
             for (String entry : gameClasspath.split(File.pathSeparator)) urls.add(Path.of(entry).toUri().toURL());
+            for (ModInfo mod : builtIn) urls.add(mod.jar().toUri().toURL());
             for (ModInfo mod : found.mods()) urls.add(mod.jar().toUri().toURL());
             loader = new SquidClassLoader(urls.toArray(URL[]::new));
             Thread.currentThread().setContextClassLoader(loader);
             gameLoader = loader;
 
             List<Mods.Skipped> notStarted = new ArrayList<>(found.skipped());
+            start(builtIn, loader, notStarted);
             mods = start(found.mods(), loader, notStarted);
             skipped = List.copyOf(notStarted);
             report.skipped(skipped);
@@ -184,6 +199,16 @@ public final class Main {
         if (hud.textWidth(text) <= maxWidth) return text;
         while (text.length() > 4 && hud.textWidth(text + "...") > maxWidth) text = text.substring(0, text.length() - 1);
         return text + "...";
+    }
+
+    /** The builtin folder next to squid.jar, with Squid's own parts like the Store. */
+    static Path builtInFolder() {
+        try {
+            Path squidJar = Path.of(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            return squidJar.resolveSibling("builtin");
+        } catch (Exception e) {
+            return Path.of("builtin");
+        }
     }
 
     /** The --gameDir Minecraft was given, or the current folder. */

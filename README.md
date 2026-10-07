@@ -18,8 +18,8 @@ public class RainbowSheep extends EasyMod {
     void start() {
         say("Rainbow Sheep is working!");
 
-        onKey("G", () -> {
-            say("You pressed G! You're at " + x() + ", " + y() + ", " + z());
+        onKey("H", () -> {
+            say("You pressed H! You're at " + x() + ", " + y() + ", " + z());
             playSound("entity.experience_orb.pickup");
         });
     }
@@ -35,7 +35,7 @@ public class RainbowSheep extends EasyMod {
 | `command("time set day")` | Runs a command, like typing `/time set day` |
 | `splash("Hi!")` | Changes the yellow text on the title screen |
 | `onJoin(() -> { ... })` | Runs when you join a world |
-| `onKey("G", () -> { ... })` | Runs when you press a key (players can change it in Controls) |
+| `onKey("H", () -> { ... })` | Runs when you press a key (players can change it in Controls) |
 | `every(10, () -> { ... })` | Runs every 10 seconds |
 | `onTick(() -> { ... })` | Runs 20 times a second |
 | `x()`, `y()`, `z()`, `health()`, `playerName()`, `random(1, 6)` | Things to know |
@@ -57,9 +57,17 @@ Kelp starts Squid instead of Minecraft. Squid:
 You need Kelp to have downloaded Minecraft 26.3 once, because Squid builds with the Java 25 that Kelp downloads for it.
 
 ```
-build.bat         builds build/squid.jar and the example mods, and copies Squid into Kelp's folder
+build.bat         builds build/squid.jar, the built-in parts and the example mods, and copies Squid into Kelp's folder
 build.bat test    also runs the tests (they load real Minecraft classes without opening the game)
 ```
+
+## The Store
+
+The Squid Store is built into Squid (`builtin/store`), so everyone has it: a **Store** button on the title screen, next to Realms. It has three tabs: **Dev-picked**, **Mods** and **Resource Packs**. Install puts a mod in `mods` (it starts next time the game opens) or a resource pack in `resourcepacks`.
+
+The store reads one list, `store.json`, from the [squid-store](https://github.com/SamuelArther/squid-store) repo. Every item has a fingerprint (sha256), and a download that doesn't match it is thrown away. Nothing gets in the list without being approved; submissions will come through submit.kelplauncher.org.
+
+`build.bat` makes `build/store`: a `store.json` and a `files` folder with every first-party mod. Upload both to the squid-store repo and the store shows them. To test with another list, start the game with `-Dsquid.store=<link to a store.json>`.
 
 ## Making a mod
 

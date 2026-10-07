@@ -61,9 +61,30 @@ public class Build {
             }
         }
 
-        // 3. Put Squid where Kelp looks for it
+        // 3. Squid's built-in parts, like the Store. They're built against Minecraft like the examples,
+        //    and go in a builtin folder next to squid.jar, where Squid loads them by itself.
+        Path builtInFolder = Path.of("builtin");
+        List<Path> builtInJars = new ArrayList<>();
+        try (Stream<Path> parts = Files.isDirectory(builtInFolder) ? Files.list(builtInFolder) : Stream.empty()) {
+            for (Path part : parts.filter(Files::isDirectory).toList()) {
+                Path out = BUILD.resolve("builtin-classes").resolve(part.getFileName());
+                compile(listJava(part.resolve("src")), classes + ";" + squidClasspath + ";" + game, out, "25");
+                Path partJar = BUILD.resolve("builtin").resolve(part.getFileName() + ".jar");
+                jar(partJar, out, part.resolve("squid.json"));
+                builtInJars.add(partJar);
+                System.out.println("Built " + partJar);
+            }
+        }
+
+        // 4. The store folder: store.json plus the files, ready to upload to the squid-store repo as they are
+        storeFolder(examplesFolder);
+
+        // 5. Put Squid where Kelp looks for it
         Path installed = KELP.resolve("squid");
-        Files.createDirectories(installed);
+        Files.createDirectories(installed.resolve("builtin"));
+        for (Path part : builtInJars) {
+            Files.copy(part, installed.resolve("builtin").resolve(part.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+        }
         Files.copy(squidJar, installed.resolve("squid.jar"), StandardCopyOption.REPLACE_EXISTING);
         for (Path library : libraries) {
             Files.copy(library, installed.resolve(library.getFileName()), StandardCopyOption.REPLACE_EXISTING);
@@ -73,21 +94,88 @@ public class Build {
         if (args.length > 0 && args[0].equals("test")) test(classes, squidClasspath, game);
     }
 
+    /** Where the store's files are downloaded from: the squid-store repo on GitHub. */
+    static final String STORE_FILES = "https://raw.githubusercontent.com/SamuelArther/squid-store/main/files/";
+
+    /**
+     * Writes build/store: a files folder with each first-party mod (named like xray-1.0.0.jar) and a store.json
+     * listing them with their fingerprints. Upload both to the squid-store repo and the in-game Store shows them.
+     * Every first-party mod starts out Dev-picked; take "devPicked" off any you don't want there.
+     */
+    static void storeFolder(Path examplesFolder) throws Exception {
+        Path store = BUILD.resolve("store");
+        Path files = store.resolve("files");
+        Files.createDirectories(files);
+        StringBuilder json = new StringBuilder("{\n    \"items\": [");
+        boolean first = true;
+        try (Stream<Path> examples = Files.list(examplesFolder)) {
+            for (Path example : examples.filter(Files::isDirectory).sorted().toList()) {
+                if (example.getFileName().toString().equals("hello-squid")) continue; // a test mod, not for the store
+                String info = Files.readString(example.resolve("squid.json"));
+                String id = field(info, "id");
+                String version = field(info, "version");
+                String fileName = id + "-" + version + ".jar";
+                Path jar = files.resolve(fileName);
+                Files.copy(BUILD.resolve(example.getFileName() + ".jar"), jar, StandardCopyOption.REPLACE_EXISTING);
+                Matcher author = Pattern.compile("\"authors\"\\s*:\\s*\\[\\s*\"([^\"]*)\"").matcher(info);
+                json.append(first ? "\n" : ",\n");
+                first = false;
+                json.append("        {\"id\": ").append(quote(id))
+                        .append(", \"type\": \"mod\"")
+                        .append(", \"name\": ").append(quote(field(info, "name")))
+                        .append(", \"author\": ").append(quote(author.find() ? author.group(1) : ""))
+                        .append(",\n         \"description\": ").append(quote(field(info, "description")))
+                        .append(",\n         \"minecraft\": ").append(quote(field(info, "minecraft")))
+                        .append(", \"devPicked\": true")
+                        .append(", \"file\": ").append(quote(fileName))
+                        .append(",\n         \"url\": ").append(quote(STORE_FILES + fileName))
+                        .append(",\n         \"sha256\": ").append(quote(sha256(jar)))
+                        .append(", \"size\": ").append(Files.size(jar)).append("}");
+            }
+        }
+        json.append("\n    ]\n}\n");
+        Files.writeString(store.resolve("store.json"), json);
+        System.out.println("Made the store folder in " + store);
+    }
+
+    /** A text field from a squid.json, like "name". Empty if it isn't there. */
+    static String field(String json, String key) {
+        Matcher m = Pattern.compile("\"" + key + "\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"").matcher(json);
+        return m.find() ? m.group(1).replace("\\\"", "\"").replace("\\\\", "\\") : "";
+    }
+
+    static String quote(String text) {
+        return "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
+    static String sha256(Path file) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        try (InputStream in = Files.newInputStream(file)) {
+            byte[] buffer = new byte[65536];
+            int read;
+            while ((read = in.read(buffer)) != -1) digest.update(buffer, 0, read);
+        }
+        return HexFormat.of().formatHex(digest.digest());
+    }
+
     /** Builds and runs test/, which loads real Minecraft classes through Squid without starting the game. */
     static void test(Path classes, String squidClasspath, String game) throws Exception {
         Path testClasses = BUILD.resolve("test");
         List<Path> sources = listJava(Path.of("test"));
-        compile(sources, classes + ";" + squidClasspath, testClasses, "21");
+        // The Store's own logic (its list and installer) is tested too, so its classes go on the test's classpath
+        Path store = BUILD.resolve("builtin-classes").resolve("store");
+        compile(sources, classes + ";" + squidClasspath + ";" + store, testClasses, "21");
         // The test needs the example mods in a mods folder of its own
         Path mods = BUILD.resolve("test-mods");
         Files.createDirectories(mods);
-        for (String mod : new String[] {"hello-squid.jar", "zoom.jar", "minimap.jar", "compass.jar", "fullbright.jar", "xray.jar"}) {
+        for (String mod : new String[] {"hello-squid.jar", "zoom.jar", "minimap.jar", "compass.jar", "fullbright.jar", "xray.jar", "boost.jar"}) {
             Files.copy(BUILD.resolve(mod), mods.resolve(mod), StandardCopyOption.REPLACE_EXISTING);
         }
 
         Path java = Path.of(System.getProperty("java.home"), "bin", "java.exe");
-        Process run = new ProcessBuilder(java.toString(), "-cp", testClasses + ";" + classes + ";" + squidClasspath,
-                "squid.PipelineTest", game, mods.toString(), testClasses.toString()).inheritIO().start();
+        Process run = new ProcessBuilder(java.toString(), "-cp", testClasses + ";" + classes + ";" + squidClasspath + ";" + store,
+                "squid.PipelineTest", game, mods.toString(), testClasses.toString(), BUILD.resolve("builtin").resolve("store.jar").toString())
+                .inheritIO().start();
         if (run.waitFor() != 0) throw new IllegalStateException("Tests failed");
     }
 
