@@ -4,5 +4,6 @@
     "version": "1.0.0",
     "description": "Rewind the last few minutes and watch them again from any angle, like Skate 3's replay editor.",
     "authors": ["Samuel"],
-    "main": "squidreplay.Replay"
+    "main": "squidreplay.Replay",
+    "depends": ["squid-clips"]
 }

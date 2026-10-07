@@ -1,6 +1,8 @@
 package squidreplay;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -8,14 +10,28 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import squid.Lang;
+import squid.Main;
+import squidclips.AviWriter;
+import squidclips.ClipBuffer;
 
+import java.awt.image.BufferedImage;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The replay editor, Skate 3 style. Along the bottom: a timeline to scrub (with your keyframes on it and the trimmed
  * part greyed out), play and pause, speed, forward or backward. Four cameras: Free (fly it with WASD, Q/E for down
  * and up, drag to turn), Follow (rides behind someone; drag to circle them, scroll to zoom), Tripod (stays put and
  * turns to keep them in shot) and Path (glides through your keyframes). Lens sets how wide the camera sees.
+ * Export plays the trimmed part once with nothing drawn over it and saves it as a video in Kelp's Gallery.
  * Singleplayer pauses while it's open.
  */
 final class ReplayScreen extends Screen {
@@ -57,6 +73,22 @@ final class ReplayScreen extends Screen {
     private Button modeButton;
     private Button targetButton;
     private Button lensButton;
+
+    // Exporting: every video frame is shown, drawn once, then copied, so each picture is exactly that moment
+    private static final int EXPORT_FPS = 30;
+    private static final ExecutorService ENCODER = Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "Squid replay export");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private boolean exporting;
+    private boolean captureNext;
+    private double exportTime;
+    private int exportIndex;
+    private int exportWidth;
+    private int exportHeight;
+    private final TreeMap<Integer, byte[]> exportFrames = new TreeMap<>();
+    private final AtomicInteger exportPending = new AtomicInteger();
 
     ReplayScreen(Playback playback) {
         super(Component.literal(Lang.t("Replay")));
@@ -117,6 +149,7 @@ final class ReplayScreen extends Screen {
             say(Lang.t("The replay now ends here."));
         }).bounds(x + 322, y, 26, 20).build());
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Exit")), b -> onClose()).bounds(x + 352, y, 38, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Export")), b -> startExport()).bounds(width - 70, 4, 66, 20).build());
         updateLabels();
     }
 
@@ -189,6 +222,10 @@ final class ReplayScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        if (exporting) {
+            exportStep();
+            return; // nothing drawn over the picture
+        }
         long now = System.nanoTime();
         double seconds = Math.min(0.1, (now - lastFrame) / 1e9);
         lastFrame = now;
@@ -223,6 +260,98 @@ final class ReplayScreen extends Screen {
         g.text(font, clock(time) + " / " + clock(end()), left, top - 12, 0xFFFFFFFF, true);
         g.text(font, help(), left, 8, 0xFFE0E0E0, true);
         if (note != null && System.currentTimeMillis() < noteUntil) g.centeredText(font, note, width / 2, 24, 0xFFFFFF55);
+    }
+
+    // ---- Export ----
+
+    private void startExport() {
+        var target = minecraft.gameRenderer.mainRenderTarget();
+        exportWidth = Math.min(1280, target.width / 2 * 2);
+        exportHeight = Math.max(2, (int) Math.round(exportWidth * (double) target.height / target.width) / 2 * 2);
+        synchronized (exportFrames) {
+            exportFrames.clear();
+        }
+        exportIndex = 0;
+        exportTime = in;
+        captureNext = false;
+        playing = false;
+        exporting = true;
+        clearWidgets();
+    }
+
+    /** One step of exporting: show the next moment, or (a frame later, once it's drawn) copy the picture. */
+    private void exportStep() {
+        if (!captureNext) {
+            aim(1.0 / EXPORT_FPS);
+            playback.show(exportTime);
+            captureNext = true;
+            return;
+        }
+        captureNext = false;
+        capture(exportIndex++);
+        exportTime += 20.0 / EXPORT_FPS * SPEEDS[speed]; // slow motion exports as slow motion
+        if (exportTime > out) finishExport();
+    }
+
+    private void capture(int index) {
+        int width = exportWidth;
+        int height = exportHeight;
+        exportPending.incrementAndGet();
+        Screenshot.takeScreenshot(minecraft.gameRenderer.mainRenderTarget(), 1, image -> {
+            int[] pixels;
+            int w;
+            int h;
+            try (NativeImage picture = image) {
+                w = picture.getWidth();
+                h = picture.getHeight();
+                pixels = picture.getPixels();
+            } catch (RuntimeException e) {
+                exportPending.decrementAndGet();
+                return;
+            }
+            ENCODER.execute(() -> {
+                try {
+                    BufferedImage frame = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+                    frame.setRGB(0, 0, w, h, pixels, 0, w);
+                    byte[] jpeg = ClipBuffer.jpeg(ClipBuffer.fit(frame, width, height), 0.85f);
+                    synchronized (exportFrames) {
+                        exportFrames.put(index, jpeg);
+                    }
+                } catch (Exception e) {
+                    // a lost picture: the video skips it
+                } finally {
+                    exportPending.decrementAndGet();
+                }
+            });
+        });
+    }
+
+    /** Writes the video once every picture is ready, in the background, and says where it went. */
+    private void finishExport() {
+        exporting = false;
+        rebuildWidgets();
+        say(Lang.t("Saving the video..."));
+        String name = "replay-" + DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss").format(LocalDateTime.now());
+        Path folder = Main.gameFolder().resolve("clips");
+        int width = exportWidth;
+        int height = exportHeight;
+        Thread writer = new Thread(() -> {
+            try {
+                while (exportPending.get() > 0) Thread.sleep(20);
+                List<byte[]> frames;
+                synchronized (exportFrames) {
+                    frames = new ArrayList<>(exportFrames.values());
+                }
+                if (frames.size() < 2) throw new IllegalStateException(Lang.t("it's too short"));
+                AviWriter.write(frames, width, height, EXPORT_FPS, folder.resolve(name + ".avi"));
+                Files.write(folder.resolve(name + ".jpg"), frames.get(frames.size() / 2)); // the picture Kelp's Gallery shows
+                minecraft.execute(() -> say(Lang.t("Saved the video! It's in Kelp's Gallery.")));
+            } catch (Exception e) {
+                minecraft.execute(() -> say(Lang.t("Couldn't save the video: {0}", e.getMessage())));
+            }
+        }, "Squid replay video");
+        writer.setDaemon(true);
+        writer.start();
     }
 
     private String help() {
@@ -351,6 +480,14 @@ final class ReplayScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
+        if (exporting) {
+            if (event.key() == InputConstants.KEY_ESCAPE) { // stop exporting, keep editing
+                exporting = false;
+                rebuildWidgets();
+                say(Lang.t("Export stopped."));
+            }
+            return true;
+        }
         if (event.key() == InputConstants.KEY_SPACE) {
             togglePlay();
             return true;
