@@ -747,6 +747,30 @@ public class PipelineTest {
         float[] lookDown = squidreplay.CameraPath.lookAt(0, 10, 0, 10, 0, 0);
         check("the camera can look at someone", look[0] + " " + look[1] + " " + lookDown[0] + " " + lookDown[1], "0.0 0.0 -90.0 45.0");
 
+        // Video sound: sounds land at their moment, fade with distance, and come from the side they were on
+        short[] beep = new short[4410];
+        for (int i = 0; i < beep.length; i++) beep[i] = (short) (8000 * Math.sin(i * 2 * Math.PI * 440 / 44100.0));
+        squidclips.AudioMix.Listener ear = seconds -> new double[] {0, 64, 0, 0}; // facing south (+z), so +x is on the left
+        short[] mixed = squidclips.AudioMix.mix(java.util.List.of(
+                new squidclips.AudioMix.Hit(0.5, beep, 1, 44100, 1, 1, -4, 64, 0, false, true, 16),
+                new squidclips.AudioMix.Hit(1.0, beep, 1, 44100, 1, 1, 4, 64, 0, false, true, 16),
+                new squidclips.AudioMix.Hit(1.5, beep, 1, 44100, 1, 1, 40, 64, 0, false, true, 16)), ear, 2);
+        long[] loud = new long[8];
+        for (int part = 0; part < 4; part++) {
+            for (int i = part * 22050 + 1000; i < part * 22050 + 3000 && i < mixed.length / 2; i++) { // just after each half second
+                loud[part * 2] += Math.abs(mixed[i * 2]);
+                loud[part * 2 + 1] += Math.abs(mixed[i * 2 + 1]);
+            }
+        }
+        check("before the first sound it's quiet; a sound on the right is in the right ear; on the left, the left ear; too far away, silent",
+                (loud[0] + loud[1] == 0) + " " + (loud[3] > 0 && loud[2] == 0) + " " + (loud[4] > 0 && loud[5] == 0) + " " + (loud[6] + loud[7] == 0),
+                "true true true true");
+        java.nio.file.Path soundClip = java.nio.file.Files.createTempDirectory("squid-sound").resolve("clip.avi");
+        squidclips.AviWriter.write(java.util.List.of(clipJpeg, clipJpeg, clipJpeg), 640, 360, 30, mixed, squidclips.AudioMix.RATE, soundClip);
+        String soundAvi = new String(java.nio.file.Files.readAllBytes(soundClip), java.nio.charset.StandardCharsets.ISO_8859_1);
+        check("a clip with sound has a sound stream, with the sound split between the pictures",
+                soundAvi.contains("auds") + " " + (soundAvi.split("01wb", -1).length - 1), "true 6");
+
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
         check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
                 + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");

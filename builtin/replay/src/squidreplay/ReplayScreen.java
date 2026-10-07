@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * part greyed out), play and pause, speed, forward or backward. Four cameras: Free (fly it with WASD, Q/E for down
  * and up, drag to turn), Follow (rides behind someone; drag to circle them, scroll to zoom), Tripod (stays put and
  * turns to keep them in shot) and Path (glides through your keyframes). Lens sets how wide the camera sees.
- * Export plays the trimmed part once with nothing drawn over it and saves it as a video in Kelp's Gallery.
+ * Export plays the trimmed part once with nothing drawn over it and saves it as a video, with its sounds, in Kelp's Gallery.
  * Singleplayer pauses while it's open.
  */
 final class ReplayScreen extends Screen {
@@ -87,6 +87,7 @@ final class ReplayScreen extends Screen {
     private int exportIndex;
     private int exportWidth;
     private int exportHeight;
+    private final List<double[]> exportCameras = new ArrayList<>(); // where the camera was for each video frame, for the sound
     private final TreeMap<Integer, byte[]> exportFrames = new TreeMap<>();
     private final AtomicInteger exportPending = new AtomicInteger();
 
@@ -300,6 +301,7 @@ final class ReplayScreen extends Screen {
         exportHeight = Math.max(2, (int) Math.round(exportWidth * (double) target.height / target.width) / 2 * 2);
         synchronized (exportFrames) {
             exportFrames.clear();
+            exportCameras.clear();
         }
         exportIndex = 0;
         exportTime = in;
@@ -319,6 +321,7 @@ final class ReplayScreen extends Screen {
             return;
         }
         captureNext = false;
+        exportCameras.add(new double[] {playback.cameraX, playback.cameraY, playback.cameraZ, playback.cameraYaw});
         capture(exportIndex++);
         exportTime += 20.0 / EXPORT_FPS * SPEEDS[speed]; // slow motion exports as slow motion
         if (exportTime > out) finishExport();
@@ -374,7 +377,7 @@ final class ReplayScreen extends Screen {
                     frames = new ArrayList<>(exportFrames.values());
                 }
                 if (frames.size() < 2) throw new IllegalStateException(Lang.t("it's too short"));
-                AviWriter.write(frames, width, height, EXPORT_FPS, folder.resolve(name + ".avi"));
+                AviWriter.write(frames, width, height, EXPORT_FPS, exportSound(frames.size()), squidclips.AudioMix.RATE, folder.resolve(name + ".avi"));
                 Files.write(folder.resolve(name + ".jpg"), frames.get(frames.size() / 2)); // the picture Kelp's Gallery shows
                 minecraft.execute(() -> say(Lang.t("Saved the video! It's in Kelp's Gallery.")));
             } catch (Exception e) {
@@ -383,6 +386,22 @@ final class ReplayScreen extends Screen {
         }, "Squid replay video");
         writer.setDaemon(true);
         writer.start();
+    }
+
+    /** The exported video's sound track: every recorded sound in the trimmed part, heard from the replay camera. */
+    private short[] exportSound(int videoFrames) {
+        float pace = SPEEDS[speed];
+        long startTick = playback.recording.tickAt(in);
+        List<double[]> cameras = new ArrayList<>(exportCameras);
+        List<squidclips.AudioMix.Hit> hits = new ArrayList<>();
+        for (Timeline.Noise noise : playback.recording.noisesBetween(startTick - 1, playback.recording.tickAt(out))) {
+            double at = (noise.tick() - startTick) / (20.0 * pace); // seconds into the video, slower in slow motion
+            squidclips.AudioMix.Hit hit = squidclips.SoundLibrary.hit(at, noise.id(), noise.volume(), Math.max(0.5f, Math.min(2f, noise.pitch() * pace)),
+                    noise.x(), noise.y(), noise.z(), noise.relative(), noise.attenuation());
+            if (hit != null) hits.add(hit);
+        }
+        return squidclips.AudioMix.mix(hits, seconds -> cameras.isEmpty() ? new double[] {0, 0, 0, 0}
+                : cameras.get((int) Math.max(0, Math.min(cameras.size() - 1, Math.round(seconds * EXPORT_FPS)))), videoFrames / (double) EXPORT_FPS);
     }
 
     private String help() {
