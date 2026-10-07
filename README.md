@@ -85,7 +85,7 @@ dependencies {
 ```
 
 Use `compileOnly`: Squid is already in the game, so a mod's jar never includes it. Your mod also needs Minecraft
-itself to build against, which Kelp downloads to `%APPDATA%\Kelpersions.3.3.jar`. `build.bat test` checks
+itself to build against, which Kelp downloads to `%APPDATA%\Kelp\versions\26.3\26.3.jar`. `build.bat test` checks
 that every example mod builds with just the library.
 
 ## The Store
