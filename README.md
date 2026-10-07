@@ -90,10 +90,12 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
   or a Mojang cape (shown from Mojang's own servers, with a tag if you don't own it), with animated effects.
 - **Squid Count:** points for every advancement, like gamerscore.
 - **Panorama:** capture a spinning title-screen background where you stand, and set its speed and direction.
-- **Clips:** F8 saves the last 30 seconds as a video, which shows in Kelp's Gallery.
+- **Clips:** F8 saves the last 30 seconds as a video, with sound, which shows in Kelp's Gallery.
 - **Replay:** F9 rewinds the last few minutes, Skate 3 style: watch it from any angle with Free, Follow, Tripod
   or Path (keyframe) cameras, a lens setting, slow motion, backwards, trim, sounds and particles. Save replays to
   watch later, or export them as videos.
+- **Sounds:** resource packs can use `.wav`, `.mp3` and `.flac` sounds and music, not just `.ogg`. Squid has its
+  own decoders for all of them (`squid.audio`), written from scratch.
 - **120 languages:** Squid's own texts follow Minecraft's language setting (BETA, not checked yet).
 
 ## How it works

@@ -1,0 +1,8 @@
+{
+    "id": "squid-sounds",
+    "name": "Squid Sounds",
+    "version": "1.0.0",
+    "description": "Resource packs can use .wav, .mp3 and .flac sounds and music, not just .ogg, with Squid's own decoders.",
+    "authors": ["Samuel"],
+    "main": "squidsounds.Sounds"
+}

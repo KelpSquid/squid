@@ -6,22 +6,15 @@ import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.client.sounds.WeighedSoundEvents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
-import org.lwjgl.stb.STBVorbis;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.MemoryUtil;
 
 import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
-import java.nio.ShortBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Turns a sound Minecraft played into something {@link AudioMix} can mix: it picks the sound's file the way Minecraft
  * does (a sound event like "block.stone.break" has several files to choose from), reads it from the game's own
- * resources, and decodes the .ogg with the decoder Minecraft already ships (stb_vorbis, through LWJGL). Each file is
- * decoded once and kept.
+ * resources, and decodes it with Squid's own decoders (squid.audio). Each file is decoded once and kept.
  */
 public final class SoundLibrary {
     /** A decoded sound file: its samples (mono, or left/right pairs), and how many channels and samples a second. */
@@ -68,23 +61,9 @@ public final class SoundLibrary {
         });
     }
 
-    /** Decodes an .ogg file's bytes. Long ones (music) are cut at two minutes. */
+    /** Decodes a sound file's bytes (Ogg Vorbis, or WAV, MP3 or FLAC from a resource pack) with Squid's own decoders. */
     static Decoded decodeOgg(byte[] bytes) {
-        ByteBuffer file = ByteBuffer.allocateDirect(bytes.length);
-        file.put(bytes).flip();
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            IntBuffer channels = stack.mallocInt(1);
-            IntBuffer rate = stack.mallocInt(1);
-            ShortBuffer pcm = STBVorbis.stb_vorbis_decode_memory(file, channels, rate);
-            if (pcm == null) return NONE;
-            try {
-                int max = Math.min(pcm.remaining(), rate.get(0) * channels.get(0) * 120);
-                short[] samples = new short[max];
-                pcm.get(samples);
-                return new Decoded(samples, channels.get(0), rate.get(0));
-            } finally {
-                MemoryUtil.memFree(pcm); // LWJGL's own free: the C library's free crashes here
-            }
-        }
+        squid.audio.Pcm pcm = squid.audio.Audio.decode(bytes);
+        return new Decoded(pcm.samples(), pcm.channels(), pcm.rate());
     }
 }
