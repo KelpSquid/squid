@@ -72,8 +72,14 @@ public final class Timeline {
     public record Change(long tick, Object pos, Object before, Object after) {
     }
 
+    /** A sound that played: which, how loud and high, and where (the Minecraft details ride along as Objects). */
+    public record Noise(long tick, Object id, Object source, float volume, float pitch, double x, double y, double z,
+                        Object attenuation, boolean relative) {
+    }
+
     private final ArrayDeque<Frame> frames = new ArrayDeque<>();
     private final ArrayDeque<Change> changes = new ArrayDeque<>();
+    private final ArrayDeque<Noise> noises = new ArrayDeque<>();
 
     /** Adds a tick, and lets go of the ticks more than keep ticks old (and the block changes before them). */
     public synchronized void add(Frame frame, int keep) {
@@ -81,6 +87,11 @@ public final class Timeline {
         while (!frames.isEmpty() && frames.peekFirst().tick() <= frame.tick() - keep) frames.removeFirst();
         long oldest = frames.peekFirst().tick();
         while (!changes.isEmpty() && changes.peekFirst().tick() < oldest) changes.removeFirst();
+        while (!noises.isEmpty() && noises.peekFirst().tick() < oldest) noises.removeFirst();
+    }
+
+    public synchronized void add(Noise noise) {
+        noises.addLast(noise);
     }
 
     public synchronized void add(Change change) {
@@ -90,6 +101,7 @@ public final class Timeline {
     public synchronized void clear() {
         frames.clear();
         changes.clear();
+        noises.clear();
     }
 
     public synchronized int size() {
@@ -98,17 +110,28 @@ public final class Timeline {
 
     /** A still copy to play back, which keeps working while recording goes on. */
     public synchronized Recording freeze() {
-        return new Recording(frames.toArray(new Frame[0]), changes.toArray(new Change[0]));
+        return new Recording(frames.toArray(new Frame[0]), changes.toArray(new Change[0]), noises.toArray(new Noise[0]));
     }
 
     /** A frozen stretch of time to play back. */
     public static final class Recording {
         final Frame[] frames;
         final Change[] changes;
+        final Noise[] noises;
 
-        Recording(Frame[] frames, Change[] changes) {
+        Recording(Frame[] frames, Change[] changes, Noise[] noises) {
             this.frames = frames;
             this.changes = changes;
+            this.noises = noises;
+        }
+
+        /** The sounds that played after one tick, up to and including another. */
+        public List<Noise> noisesBetween(long after, long upTo) {
+            List<Noise> out = new ArrayList<>();
+            for (Noise noise : noises) {
+                if (noise.tick() > after && noise.tick() <= upTo) out.add(noise);
+            }
+            return out;
         }
 
         public int length() {

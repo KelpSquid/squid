@@ -230,7 +230,9 @@ final class ReplayScreen extends Screen {
         double seconds = Math.min(0.1, (now - lastFrame) / 1e9);
         lastFrame = now;
         if (playing && !scrubbing) {
+            double before = time;
             time += seconds * 20 * SPEEDS[speed] * (backward ? -1 : 1);
+            if (!backward && SPEEDS[speed] >= 0.25f && SPEEDS[speed] <= 2) playback.playSounds(before, Math.min(time, out), SPEEDS[speed]);
             if (time >= out || time <= in) {
                 time = Math.max(in, Math.min(out, time));
                 playing = false;

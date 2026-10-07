@@ -717,11 +717,15 @@ public class PipelineTest {
             if (tick == 15 || tick == 25) replayTimeline.add(new squidreplay.Timeline.Change(tick, "block at " + tick, "air", "stone"));
             if (tick == 5) replayTimeline.add(new squidreplay.Timeline.Change(tick, "too old", "air", "dirt"));
         }
+        replayTimeline.add(new squidreplay.Timeline.Noise(26, "entity.pig.ambient", "NEUTRAL", 1, 1, 0, 64, 0, "LINEAR", false));
+        replayTimeline.add(new squidreplay.Timeline.Noise(28, "block.stone.break", "BLOCKS", 1, 1, 0, 64, 0, "LINEAR", false));
         squidreplay.Timeline.Recording replayRecording = replayTimeline.freeze();
         check("a replay keeps only the last ticks, and the block changes in them", replayRecording.length() + " " + replayRecording.changesBy(Long.MAX_VALUE)
                 + " " + replayRecording.tickAt(0), "20 2 11");
         squidreplay.Timeline.Thing halfway = replayRecording.at(18.5).get(0);
         check("between two ticks, things are halfway, turning the short way round", halfway.x + " " + halfway.yRot, "29.5 360.0"); // from 350 to 10 through 360, not back through 180
+        check("sounds play once, as the replay moves past them", replayRecording.noisesBetween(25, 26).size() + " " + replayRecording.noisesBetween(26, 30).size()
+                + " " + replayRecording.noisesBetween(28, 30).size(), "1 1 0");
         check("blocks changed by a tick are counted in order", replayRecording.changesBy(14) + " " + replayRecording.changesBy(15) + " "
                 + replayRecording.changesBy(24) + " " + replayRecording.changesBy(25), "0 1 1 2");
         check("angles turn the short way", squidreplay.Timeline.angle(10, 350, 0.5f) + " " + squidreplay.Timeline.angle(90, 180, 0.5f), "0.0 135.0");

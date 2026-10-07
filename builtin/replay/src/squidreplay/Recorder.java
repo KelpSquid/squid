@@ -61,6 +61,15 @@ final class Recorder {
         timeline.add(new Timeline.Change(tick, pos.immutable(), before, after));
     }
 
+    /** A sound playing in the recorded world (Squid calls this from Minecraft's SoundManager.play). */
+    void soundPlayed(Minecraft minecraft, net.minecraft.client.resources.sounds.SoundInstance sound) {
+        if (minecraft.level != level || timeline.size() == 0) return;
+        net.minecraft.sounds.SoundSource source = sound.getSource();
+        if (source == net.minecraft.sounds.SoundSource.MUSIC || source == net.minecraft.sounds.SoundSource.UI || sound.isLooping()) return;
+        timeline.add(new Timeline.Noise(tick, sound.getIdentifier(), source, sound.getVolume(), sound.getPitch(), sound.getX(), sound.getY(),
+                sound.getZ(), sound.getAttenuation(), sound.isRelative()));
+    }
+
     void clear() {
         timeline.clear();
         last = new HashMap<>();

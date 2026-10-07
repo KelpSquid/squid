@@ -154,6 +154,27 @@ final class Playback {
         moveCamera();
     }
 
+    /**
+     * Plays the sounds from between two moments, as the replay moves forward through them. In slow motion they play
+     * lower, and fast, higher, like the tape speeding up and slowing down.
+     */
+    void playSounds(double from, double to, float speed) {
+        long after = recording.tickAt(from);
+        long upTo = recording.tickAt(to);
+        if (upTo <= after) return;
+        for (Timeline.Noise noise : recording.noisesBetween(after, upTo)) {
+            try {
+                minecraft.getSoundManager().play(new net.minecraft.client.resources.sounds.SimpleSoundInstance(
+                        (net.minecraft.resources.Identifier) noise.id(), (net.minecraft.sounds.SoundSource) noise.source(), noise.volume(),
+                        Math.max(0.5f, Math.min(2f, noise.pitch() * speed)), net.minecraft.client.resources.sounds.SoundInstance.createUnseededRandom(),
+                        false, 0, (net.minecraft.client.resources.sounds.SoundInstance.Attenuation) noise.attenuation(), noise.x(), noise.y(),
+                        noise.z(), noise.relative()));
+            } catch (RuntimeException e) {
+                // a sound that can't play again: skip it
+            }
+        }
+    }
+
     /** Puts blocks back (or forward) until exactly the first count changes have happened. */
     private void showBlocks(int count) {
         while (appliedChanges > count) {

@@ -21,7 +21,7 @@ import java.lang.reflect.Method;
 /**
  * Skate 3 style replays. While you play, Squid quietly remembers the last few minutes around you: every player, mob
  * and item, how they moved and looked, and every block that changed. Press F9 (or Replay in the pause menu) to rewind
- * and watch it again from any angle, in slow motion or backwards. Nothing is saved to disk yet.
+ * and watch it again from any angle, in slow motion or backwards, with its sounds. Nothing is saved to disk yet.
  */
 public class Replay implements SquidMod {
     private final Recorder recorder = new Recorder();
@@ -42,6 +42,13 @@ public class Replay implements SquidMod {
                     ClientLevel level = (ClientLevel) call.self();
                     BlockPos pos = (BlockPos) call.args()[0];
                     recorder.blockChanged(level, pos, level.getBlockState(pos), (BlockState) call.args()[1]);
+                });
+        // Every sound, so replays aren't silent
+        squid.atStart("net.minecraft.client.sounds.SoundManager", "play",
+                "(Lnet/minecraft/client/resources/sounds/SoundInstance;)Lnet/minecraft/client/sounds/SoundEngine$PlayResult;", call -> {
+                    if (Playback.current() == null) {
+                        recorder.soundPlayed(Minecraft.getInstance(), (net.minecraft.client.resources.sounds.SoundInstance) call.args()[0]);
+                    }
                 });
         // While a replay plays, only its look-alikes are drawn
         squid.atStart("net.minecraft.client.renderer.entity.EntityRenderDispatcher", "shouldRender", call -> {
