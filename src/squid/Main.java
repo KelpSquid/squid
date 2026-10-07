@@ -66,6 +66,11 @@ public final class Main {
         return gameFolder;
     }
 
+    /** Whether Squid is running a Minecraft server (started by {@link ServerLauncher}) rather than the game. */
+    public static boolean isServer() {
+        return "server".equals(System.getProperty("squid.side"));
+    }
+
     /** The Minecraft version being played, like "26.3", or null if the launcher didn't say. */
     public static String minecraftVersion() {
         return minecraftVersion;
@@ -97,6 +102,7 @@ public final class Main {
 
         gameFolder = gameFolder(args);
         minecraftVersion = argument(args, "--version");
+        if (minecraftVersion == null) minecraftVersion = System.getProperty("squid.minecraftVersion"); // servers don't pass --version
         report = new Report(gameFolder);
         report.loading();
         SquidClassLoader loader;

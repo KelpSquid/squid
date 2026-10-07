@@ -230,6 +230,12 @@ final class Mods {
         if (!id.matches("[a-z0-9_-]+")) {
             throw new IOException(Lang.t("{0}: a mod id can only use a-z, 0-9, _ and -", where.getFileName()));
         }
+        // "side" says where a mod runs: "client" (the game, the default), "server", or "both"
+        String side = text(json, "side", "client", where);
+        if (!side.equals("both") && !side.equals(Main.isServer() ? "server" : "client")) {
+            throw new IOException(side.equals("server") ? Lang.t("it's a server mod, so it only runs on servers.")
+                    : Lang.t("it's a mod for the game, so it doesn't run on servers."));
+        }
         // "minecraft" can be one version ("26.3") or a list (["26.3", "26.4"])
         List<String> minecraft = json.get("minecraft") instanceof String one ? List.of(one) : strings(json, "minecraft");
         return new ModInfo(id,

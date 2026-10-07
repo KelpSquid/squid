@@ -46,7 +46,7 @@ public class Build {
         compile(listJava(Path.of("src")), squidClasspath, classes, "21");
         copyResources(Path.of("."), classes, "lang"); // Squid's languages go inside squid.jar
         Path squidJar = BUILD.resolve("squid.jar");
-        jar(squidJar, classes, null);
+        jar(squidJar, classes, Path.of(""), null, "squid.ServerLauncher"); // "java -jar squid.jar" runs a server with Squid
         System.out.println("Built " + squidJar);
         library(classes, squidClasspath);
 
@@ -375,17 +375,28 @@ public class Build {
 
     /** Packs a folder of classes (plus an optional squid.json) into a jar. */
     static void jar(Path jarFile, Path classes, Path squidJson) throws IOException {
-        jar(jarFile, classes, Path.of(""), squidJson);
+        jar(jarFile, classes, Path.of(""), squidJson, null);
     }
 
     /** Packs just one part of a folder, like squid/api, keeping its place in the folder. */
     static void jarPart(Path jarFile, Path classes, Path part) throws IOException {
-        jar(jarFile, classes, part, null);
+        jar(jarFile, classes, part, null, null);
     }
 
-    private static void jar(Path jarFile, Path classes, Path part, Path squidJson) throws IOException {
+    private static void jar(Path jarFile, Path classes, Path part, Path squidJson, String mainClass) throws IOException {
         Files.createDirectories(jarFile.getParent());
-        try (OutputStream file = Files.newOutputStream(jarFile); JarOutputStream jar = new JarOutputStream(file);
+        java.util.jar.Manifest manifest = new java.util.jar.Manifest();
+        manifest.getMainAttributes().put(java.util.jar.Attributes.Name.MANIFEST_VERSION, "1.0");
+        if (mainClass != null) {
+            manifest.getMainAttributes().put(java.util.jar.Attributes.Name.MAIN_CLASS, mainClass);
+            // On a server, Squid's two libraries sit in a lib folder next to squid.jar
+            StringBuilder libs = new StringBuilder();
+            try (Stream<Path> l = Files.list(Path.of("lib"))) {
+                for (Path lib : l.filter(f -> f.toString().endsWith(".jar")).sorted().toList()) libs.append(libs.isEmpty() ? "" : " ").append("lib/").append(lib.getFileName());
+            }
+            manifest.getMainAttributes().put(java.util.jar.Attributes.Name.CLASS_PATH, libs.toString());
+        }
+        try (OutputStream file = Files.newOutputStream(jarFile); JarOutputStream jar = new JarOutputStream(file, manifest);
              Stream<Path> walk = Files.walk(classes.resolve(part))) {
             for (Path p : walk.filter(Files::isRegularFile).sorted().toList()) {
                 jar.putNextEntry(new JarEntry(classes.relativize(p).toString().replace('\\', '/')));
