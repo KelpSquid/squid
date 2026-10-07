@@ -150,6 +150,12 @@ final class ReplayScreen extends Screen {
         }).bounds(x + 322, y, 26, 20).build());
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Exit")), b -> onClose()).bounds(x + 352, y, 38, 20).build());
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Export")), b -> startExport()).bounds(width - 70, 4, 66, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Save")), b -> save()).bounds(width - 140, 4, 66, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Saved...")), b -> {
+            keepPlaying();
+            minecraft.setScreenAndShow(new SavedReplaysScreen(this));
+        })
+                .bounds(width - 210, 4, 66, 20).build());
         updateLabels();
     }
 
@@ -262,6 +268,27 @@ final class ReplayScreen extends Screen {
         g.text(font, clock(time) + " / " + clock(end()), left, top - 12, 0xFFFFFFFF, true);
         g.text(font, help(), left, 8, 0xFFE0E0E0, true);
         if (note != null && System.currentTimeMillis() < noteUntil) g.centeredText(font, note, width / 2, 24, 0xFFFFFF55);
+    }
+
+    /** Saves the trimmed part to the replays folder, to open again later in this world. */
+    private void save() {
+        int first = (int) Math.floor(in);
+        int last = (int) Math.ceil(out);
+        Thread saver = new Thread(() -> {
+            try {
+                java.nio.file.Path file = ReplayFile.save(minecraft, playback.recording, first, last);
+                minecraft.execute(() -> say(Lang.t("Saved as {0}", file.getFileName())));
+            } catch (Exception e) {
+                minecraft.execute(() -> say(Lang.t("Couldn't save it: {0}", e.getMessage())));
+            }
+        }, "Squid replay save");
+        saver.setDaemon(true);
+        saver.start();
+    }
+
+    /** Whether this editor is still the one playing (a saved replay opened from it takes over). */
+    Playback playback() {
+        return playback;
     }
 
     // ---- Export ----
@@ -507,8 +534,18 @@ final class ReplayScreen extends Screen {
         return super.keyPressed(event);
     }
 
+    private boolean switching; // going to the saved-replays list keeps this replay playing
+
+    void keepPlaying() {
+        switching = true;
+    }
+
     @Override
     public void removed() {
+        if (switching) {
+            switching = false;
+            return;
+        }
         playback.stop();
     }
 

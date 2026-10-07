@@ -47,6 +47,8 @@ final class Playback {
     private final Entity camera;
     private final boolean hudWasHidden;
     private int appliedChanges;
+    // How every block the replay touches looks right now, to put back exactly when it ends
+    private final Map<BlockPos, BlockState> before = new HashMap<>();
     private int nextId = -1_000_000; // ghosts get ids no real entity uses
 
     /** The camera's place and direction, which the replay screen moves around. */
@@ -60,6 +62,7 @@ final class Playback {
         this.recording = recording;
         this.level = minecraft.level;
         this.appliedChanges = recording.changes.length; // the world starts out as it is now: every change happened
+        for (Timeline.Change change : recording.changes) before.putIfAbsent((BlockPos) change.pos(), level.getBlockState((BlockPos) change.pos()));
         camera = EntityTypes.MARKER.create(level, EntitySpawnReason.LOAD);
         Entity player = minecraft.player;
         cameraX = player.getX();
@@ -265,7 +268,7 @@ final class Playback {
     void stop() {
         if (current != this) return;
         if (minecraft.level == level) {
-            showBlocks(recording.changes.length);
+            for (Map.Entry<BlockPos, BlockState> block : before.entrySet()) setBlock(block.getKey(), block.getValue());
             for (Entity ghost : ghosts.values()) remove(ghost);
         }
         ghosts.clear();
