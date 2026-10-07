@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 final class StoreScreen extends Screen {
     private enum Tab {
-        PICKS("Dev-picked"), MODS("Mods"), PACKS("Resource Packs");
+        PICKS("Dev-picked"), MODS("Mods"), PACKS("Packs"), CAPES("Capes");
 
         final String label;
 
@@ -66,7 +66,8 @@ final class StoreScreen extends Screen {
             boolean fits = switch (tab) {
                 case PICKS -> item.devPicked();
                 case MODS -> item.isMod();
-                case PACKS -> !item.isMod();
+                case PACKS -> "resourcepack".equals(item.type());
+                case CAPES -> item.isCape();
             };
             if (fits) list.add(item);
         }
@@ -93,14 +94,14 @@ final class StoreScreen extends Screen {
         }
         // Tabs along the top. The open one is greyed out, like a pressed button.
         int tabX = width / 2 - 155;
-        for (Tab t : Tab.values()) {
+        for (Tab t : Tab.values()) { // four tabs of 74, side by side
             Button button = addRenderableWidget(Button.builder(Component.literal(t.label), b -> {
                 tab = t;
                 page = 0;
                 rebuildWidgets();
-            }).bounds(tabX, 28, 100, 20).build());
+            }).bounds(tabX, 28, 74, 20).build());
             button.active = t != tab;
-            tabX += 105;
+            tabX += 79;
         }
 
         List<Catalog.Item> list = shown();
@@ -141,6 +142,7 @@ final class StoreScreen extends Screen {
                 Installer.install(item, gameFolder);
                 state.put(item.id(), "Installed!");
                 notice = item.isMod() ? "Restart the game to start " + item.name() + "."
+                        : item.isCape() ? "Wear " + item.name() + " from Options > Skin Customization > Squid Skin & Cape."
                         : "Turn on " + item.name() + " in Options > Resource Packs.";
             } catch (Exception e) {
                 state.remove(item.id());
@@ -173,7 +175,7 @@ final class StoreScreen extends Screen {
         for (int i = page * perPage(); i < Math.min(list.size(), (page + 1) * perPage()); i++) {
             Catalog.Item item = list.get(i);
             g.fill(left - 4, y, width / 2 + 159, y + ROW - 4, 0x60000000);
-            String kind = tab == Tab.PICKS ? (item.isMod() ? " [Mod]" : " [Pack]") : "";
+            String kind = tab == Tab.PICKS ? (item.isMod() ? " [Mod]" : item.isCape() ? " [Cape]" : " [Pack]") : "";
             String heading = item.name() + kind + (item.author().isEmpty() ? "" : " by " + item.author());
             boolean update = updatesNow.contains(item.id());
             String tag = update ? " Update available" : installedNow.contains(item.id()) ? " Installed" : "";

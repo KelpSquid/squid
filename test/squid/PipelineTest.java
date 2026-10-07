@@ -266,6 +266,15 @@ public class PipelineTest {
                 + "{\"id\": \"old\", \"type\": \"resourcepack\", \"name\": \"Old Pack\", \"minecraft\": [\"1.20.x\"], \"file\": \"old.zip\", \"url\": \"u\", \"sha256\": \"a\"}]}";
         List<squidstore.Catalog.Item> storeItems = squidstore.Catalog.parse(storeList);
         check("the store list keeps safe items only", storeItems.stream().map(squidstore.Catalog.Item::id).toList().toString(), "[xray, old]");
+        List<squidstore.Catalog.Item> capeItems = squidstore.Catalog.parse("{\"items\": ["
+                + "{\"id\": \"wave\", \"type\": \"cape\", \"name\": \"Wave\", \"file\": \"wave.png\", \"url\": \"u\", \"sha256\": \"a\"},"
+                + "{\"id\": \"notpng\", \"type\": \"cape\", \"name\": \"Bad\", \"file\": \"cape.jar\", \"url\": \"u\", \"sha256\": \"a\"}]}");
+        check("capes are store items too (pictures only)", capeItems.stream().map(squidstore.Catalog.Item::id).toList().toString(), "[wave]");
+        System.setProperty("squid.home", "/kelp-home");
+        check("a store cape goes in Kelp's capes folder, for every instance",
+                squidstore.Installer.target(capeItems.get(0), Path.of("/kelp-home/instances/Survival")).toString().replace('\\', '/'),
+                "/kelp-home/capes/wave.png");
+        System.clearProperty("squid.home");
         check("store items know their Minecraft versions and Dev-picked", storeItems.get(0).worksOn("26.3.1") + " "
                 + storeItems.get(1).worksOn("26.3") + " " + storeItems.get(0).devPicked() + " " + storeItems.get(0).sha256(), "true false true abc");
 

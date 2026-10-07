@@ -22,14 +22,30 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-/** Puts store items where the game finds them: mods in mods/, resource packs in resourcepacks/. */
+/**
+ * Puts store items where they're used: mods in the instance's mods folder, resource packs in its resourcepacks
+ * folder, and capes in Kelp's capes folder (shared by every instance), where the Skin & Cape wardrobe finds them.
+ */
 public final class Installer {
     private Installer() {
     }
 
     /** Where the item goes in this game folder. */
     public static Path target(Catalog.Item item, Path gameFolder) {
+        if (item.isCape()) return kelpFolder(gameFolder).resolve("capes").resolve(item.file());
         return gameFolder.resolve(item.isMod() ? "mods" : "resourcepacks").resolve(item.file());
+    }
+
+    /** Kelp's folder, which Kelp passes as -Dsquid.home (or, without it, two folders up from the instance). */
+    static Path kelpFolder(Path gameFolder) {
+        String home = System.getProperty("squid.home");
+        if (home != null) return Path.of(home);
+        Path instances = gameFolder.toAbsolutePath().getParent();
+        if (instances != null && instances.getFileName() != null && instances.getFileName().toString().equals("instances")
+                && instances.getParent() != null) {
+            return instances.getParent();
+        }
+        return gameFolder;
     }
 
     /**
