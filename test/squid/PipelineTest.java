@@ -669,6 +669,31 @@ public class PipelineTest {
         check("the Mods screen knows which mods have settings", squid.api.ModSettings.has("settings-test") + " " + squid.api.ModSettings.has("nothing"), "true false");
         Main.setGameFolder(Path.of("."));
 
+        // Panoramas: captured ones are kept with their six pictures, and the one in use and its spin are remembered
+        Path kelpHome = java.nio.file.Files.createTempDirectory("squid-pano");
+        squidpano.PanoStore panos = new squidpano.PanoStore(kelpHome.resolve("panoramas"));
+        Path captured = java.nio.file.Files.createDirectories(kelpHome.resolve("capture/screenshots"));
+        for (int side = 0; side < 6; side++) {
+            javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(8, 8, java.awt.image.BufferedImage.TYPE_INT_RGB), "png",
+                    captured.resolve("panorama_" + side + ".png").toFile());
+        }
+        String pano = panos.keep(captured.getParent());
+        check("a captured panorama is kept", panos.list().size() + " " + java.nio.file.Files.exists(panos.picture(pano, 5)), "1 true");
+        check("Minecraft's own is used until one is picked", String.valueOf(panos.active()), "null");
+        panos.setActive(pano);
+        panos.setSpeed(9);
+        panos.setReversed(true);
+        squidpano.PanoStore reopenedPanos = new squidpano.PanoStore(kelpHome.resolve("panoramas"));
+        check("the picked one and its spin are remembered", (pano.equals(reopenedPanos.active())) + " " + reopenedPanos.speed() + " " + reopenedPanos.reversed(),
+                "true 3.0 true");
+        Path kelpTheme = panos.makeKelpTheme(pano);
+        check("a panorama can become a Kelp theme", java.nio.file.Files.exists(kelpTheme.resolve("background.png")) + " "
+                + java.nio.file.Files.readString(kelpTheme.resolve("theme.properties")).contains("scene=plain"), "true true");
+        panos.delete(pano);
+        check("deleting the one in use goes back to Minecraft's own", panos.list().size() + " " + panos.active(), "0 null");
+        check("spin angles wrap around like Minecraft's", squidpano.PanoStore.wrap(190f) + " " + squidpano.PanoStore.wrap(-200f) + " " + squidpano.PanoStore.wrap(45f),
+                "-170.0 160.0 45.0");
+
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
         check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
                 + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");

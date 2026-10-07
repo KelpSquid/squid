@@ -1,0 +1,8 @@
+{
+    "id": "squid-panorama",
+    "name": "Squid Panorama",
+    "version": "1.0.0",
+    "description": "Your own spinning title-screen background: capture one where you stand, pick it, and set its speed and direction.",
+    "authors": ["Samuel"],
+    "main": "squidpano.Pano"
+}
