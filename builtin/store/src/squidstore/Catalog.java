@@ -18,7 +18,7 @@ import java.util.Map;
  * The store's list of everything Samuel has approved, read from store.json. Each item is a mod or a resource pack.
  *
  * <pre>
- * {"items": [{"id": "xray", "type": "mod", "name": "X-Ray", "author": "Samuel", "description": "...",
+ * {"items": [{"id": "xray", "type": "mod", "name": "X-Ray", "version": "1.0.0", "author": "Samuel", "description": "...",
  *             "minecraft": ["26.3.x"], "devPicked": true, "file": "xray-1.0.0.jar",
  *             "url": "https://...", "sha256": "...", "size": 3558}]}
  * </pre>
@@ -32,7 +32,7 @@ public final class Catalog {
 
     /** One thing in the store. type is "mod" or "resourcepack". */
     public record Item(String id, String type, String name, String author, String description, List<String> minecraft,
-                       boolean devPicked, String file, String url, String sha256, long size) {
+                       boolean devPicked, String file, String url, String sha256, long size, String version) {
         public boolean isMod() {
             return "mod".equals(type);
         }
@@ -74,7 +74,7 @@ public final class Catalog {
             else if (it.get("minecraft") != null) for (Object v : Json.array(it.get("minecraft"))) minecraft.add(String.valueOf(v));
             items.add(new Item(string(it, "id"), type, string(it, "name"), string(it, "author"), string(it, "description"),
                     List.copyOf(minecraft), Boolean.TRUE.equals(it.get("devPicked")), file, string(it, "url"),
-                    string(it, "sha256").toLowerCase(), it.get("size") instanceof Double d ? d.longValue() : -1));
+                    string(it, "sha256").toLowerCase(), it.get("size") instanceof Double d ? d.longValue() : -1, string(it, "version")));
         }
         return items;
     }

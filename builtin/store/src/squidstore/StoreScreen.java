@@ -77,8 +77,20 @@ final class StoreScreen extends Screen {
         return Math.max(1, (height - TOP - 60) / ROW);
     }
 
+    /** Which items are installed, worked out when the buttons are made (looking inside jars every frame would be slow). */
+    private final java.util.Set<String> installedNow = ConcurrentHashMap.newKeySet();
+    private final java.util.Set<String> updatesNow = ConcurrentHashMap.newKeySet(); // installed, but the Store has a newer one
+
     @Override
     protected void init() {
+        installedNow.clear();
+        updatesNow.clear();
+        if (items != null) {
+            for (Catalog.Item item : items) {
+                if (Installer.installed(item, gameFolder)) installedNow.add(item.id());
+                if (Installer.updateAvailable(item, gameFolder)) updatesNow.add(item.id());
+            }
+        }
         // Tabs along the top. The open one is greyed out, like a pressed button.
         int tabX = width / 2 - 155;
         for (Tab t : Tab.values()) {
@@ -98,11 +110,11 @@ final class StoreScreen extends Screen {
         for (int i = page * perPage(); i < Math.min(list.size(), (page + 1) * perPage()); i++) {
             Catalog.Item item = list.get(i);
             String now = state.get(item.id());
-            boolean installed = Installer.installed(item, gameFolder);
-            String label = now != null ? now : installed ? "Installed" : "Install";
+            boolean installed = installedNow.contains(item.id());
+            String label = now != null ? now : updatesNow.contains(item.id()) ? "Update" : installed ? "Reinstall" : "Install";
             Button install = addRenderableWidget(Button.builder(Component.literal(label), b -> install(item))
                     .bounds(width / 2 + 85, y + 6, 70, 20).build());
-            install.active = now == null && !installed;
+            install.active = now == null; // anything can always be installed again
             y += ROW;
         }
 
@@ -163,7 +175,11 @@ final class StoreScreen extends Screen {
             g.fill(left - 4, y, width / 2 + 159, y + ROW - 4, 0x60000000);
             String kind = tab == Tab.PICKS ? (item.isMod() ? " [Mod]" : " [Pack]") : "";
             String heading = item.name() + kind + (item.author().isEmpty() ? "" : " by " + item.author());
-            g.text(font, font.plainSubstrByWidth(heading, textWidth), left, y + 5, 0xFFFFFFFF);
+            boolean update = updatesNow.contains(item.id());
+            String tag = update ? " Update available" : installedNow.contains(item.id()) ? " Installed" : "";
+            String shownHeading = font.plainSubstrByWidth(heading, textWidth - font.width(tag));
+            g.text(font, shownHeading, left, y + 5, 0xFFFFFFFF);
+            if (!tag.isEmpty()) g.text(font, tag, left + font.width(shownHeading), y + 5, update ? 0xFFFFFF55 : 0xFF55FF55);
             g.text(font, fit(item.description(), textWidth), left, y + 17, 0xFFA0A0A0);
             y += ROW;
         }

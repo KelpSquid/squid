@@ -275,13 +275,23 @@ public class PipelineTest {
         java.nio.file.Files.write(hosted.resolve("fun.jar"), modBytes);
         String goodHash = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(modBytes));
         squidstore.Catalog.Item fun = new squidstore.Catalog.Item("fun", "mod", "Fun", "Sam", "", List.of(), false, "fun-1.0.jar",
-                hosted.resolve("fun.jar").toUri().toString(), goodHash, modBytes.length);
+                hosted.resolve("fun.jar").toUri().toString(), goodHash, modBytes.length, "1.0");
         check("not installed yet", squidstore.Installer.installed(fun, storeGame), false);
+        java.nio.file.Files.createDirectories(storeGame.resolve("mods"));
+        modJar(storeGame.resolve("mods/my-old-fun.jar"), "{\"id\": \"fun\", \"name\": \"Fun\", \"version\": \"0.9\", \"main\": \"x\"}");
+        check("a mod is installed even under another file name (found by its id)", squidstore.Installer.installed(fun, storeGame), true);
+        check("an older installed version means Update", squidstore.Installer.updateAvailable(fun, storeGame), true);
+        check("versions compare by number", squidstore.Installer.compare("1.10", "1.9") + " " + squidstore.Installer.compare("1.0", "1.0.0")
+                + " " + squidstore.Installer.compare("1.0-beta", "1.0"), "1 0 -1");
         squidstore.Installer.install(fun, storeGame);
+        check("reinstalling replaces the old copy of the same mod", java.nio.file.Files.exists(storeGame.resolve("mods/my-old-fun.jar")), false);
+        modJar(storeGame.resolve("mods/fun-1.0.jar"), "{\"id\": \"fun\", \"name\": \"Fun\", \"version\": \"1.0\", \"main\": \"x\"}");
+        check("the same version means no update", squidstore.Installer.updateAvailable(fun, storeGame), false);
+        java.nio.file.Files.write(storeGame.resolve("mods/fun-1.0.jar"), modBytes); // back to the store's real file
         check("installing puts a mod in mods/", java.nio.file.Files.readString(storeGame.resolve("mods/fun-1.0.jar")) + " "
                 + squidstore.Installer.installed(fun, storeGame), "pretend mod true");
         squidstore.Catalog.Item swapped = new squidstore.Catalog.Item("swapped", "resourcepack", "Swapped", "", "", List.of(), false,
-                "swapped.zip", hosted.resolve("fun.jar").toUri().toString(), "0".repeat(64), -1);
+                "swapped.zip", hosted.resolve("fun.jar").toUri().toString(), "0".repeat(64), -1, "");
         String swapProblem;
         try {
             squidstore.Installer.install(swapped, storeGame);

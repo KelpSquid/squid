@@ -123,6 +123,7 @@ public class Build {
                 json.append("        {\"id\": ").append(quote(id))
                         .append(", \"type\": \"mod\"")
                         .append(", \"name\": ").append(quote(field(info, "name")))
+                        .append(", \"version\": ").append(quote(version))
                         .append(", \"author\": ").append(quote(author.find() ? author.group(1) : ""))
                         .append(",\n         \"description\": ").append(quote(field(info, "description")))
                         .append(",\n         \"minecraft\": ").append(quote(field(info, "minecraft")))
