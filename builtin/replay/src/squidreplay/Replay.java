@@ -52,6 +52,11 @@ public class Replay implements SquidMod {
             Float swing = Playback.swingOf(call.self());
             if (swing != null) call.setReturnValue(swing);
         });
+        // The replay camera's lens
+        squid.atEnd("net.minecraft.client.renderer.GameRenderer", "calculateFov", call -> {
+            Float fov = Playback.fovOverride();
+            if (fov != null) call.setReturnValue(fov);
+        });
         squid.atEnd("net.minecraft.client.gui.screens.PauseScreen", "init", "()V", call -> addButton((Screen) call.self()));
     }
 

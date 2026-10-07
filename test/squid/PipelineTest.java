@@ -726,6 +726,21 @@ public class PipelineTest {
                 + replayRecording.changesBy(24) + " " + replayRecording.changesBy(25), "0 1 1 2");
         check("angles turn the short way", squidreplay.Timeline.angle(10, 350, 0.5f) + " " + squidreplay.Timeline.angle(90, 180, 0.5f), "0.0 135.0");
 
+        // Replay camera paths: smooth through every keyframe, still before the first and after the last
+        squidreplay.CameraPath cameraPath = new squidreplay.CameraPath();
+        cameraPath.add(new squidreplay.CameraPath.Key(0, 0, 70, 0, 0, 0, 70));
+        cameraPath.add(new squidreplay.CameraPath.Key(20, 10, 70, 0, 90, 10, 50));
+        cameraPath.add(new squidreplay.CameraPath.Key(40, 10, 80, 10, 180, 0, 70));
+        cameraPath.add(new squidreplay.CameraPath.Key(20.2, 10, 70, 0, 90, 10, 50)); // replaces the one at 20
+        squidreplay.CameraPath.Key atKey = cameraPath.at(20.2);
+        squidreplay.CameraPath.Key between = cameraPath.at(10);
+        check("a camera path passes through its keyframes", cameraPath.size() + " " + atKey.x() + " " + atKey.yaw() + " " + cameraPath.at(-5).x() + " " + cameraPath.at(99).z(),
+                "3 10.0 90.0 0.0 10.0");
+        check("between keyframes the camera is on its way", (between.x() > 0 && between.x() < 10) + " " + (between.fov() > 50 && between.fov() < 70), "true true");
+        float[] look = squidreplay.CameraPath.lookAt(0, 0, 0, 0, 0, 5);
+        float[] lookDown = squidreplay.CameraPath.lookAt(0, 10, 0, 10, 0, 0);
+        check("the camera can look at someone", look[0] + " " + look[1] + " " + lookDown[0] + " " + lookDown[1], "0.0 0.0 -90.0 45.0");
+
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
         check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
                 + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");

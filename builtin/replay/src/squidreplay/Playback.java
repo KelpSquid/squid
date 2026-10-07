@@ -52,6 +52,8 @@ final class Playback {
     /** The camera's place and direction, which the replay screen moves around. */
     double cameraX, cameraY, cameraZ;
     float cameraYaw, cameraPitch;
+    /** The lens: the field of view in degrees, or 0 for the player's own. */
+    volatile float fov;
 
     private Playback(Minecraft minecraft, Timeline.Recording recording) {
         this.minecraft = minecraft;
@@ -93,6 +95,30 @@ final class Playback {
     static boolean hides(Object entity) {
         Playback playback = current;
         return playback != null && !playback.ghostSet.contains(entity);
+    }
+
+    /** The replay camera's field of view, or null when there's no replay or it uses the player's own. */
+    static Float fovOverride() {
+        Playback playback = current;
+        return playback == null || playback.fov <= 0 ? null : playback.fov;
+    }
+
+    /** Everything recorded at a time, to pick a camera target from. */
+    List<Timeline.Thing> things(double time) {
+        return recording.at(time);
+    }
+
+    /** How high a thing's eyes are, for cameras that look at it. */
+    double eyeHeight(Timeline.Thing thing) {
+        Entity ghost = ghosts.get(thing.id);
+        if (ghost != null) return ghost.getEyeHeight();
+        return thing.profile != null ? 1.62 : 0.5;
+    }
+
+    /** A thing's name: a player's name, or what it is ("Pig"). */
+    static String name(Timeline.Thing thing) {
+        if (thing.profile instanceof GameProfile profile) return profile.name();
+        return ((EntityType<?>) thing.type).getDescription().getString();
     }
 
     /** The recorded swing of a ghost's arm, or null for anything else. */
