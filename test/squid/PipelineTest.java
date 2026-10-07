@@ -199,6 +199,61 @@ public class PipelineTest {
         check("a broken hook is tried 3 times, then turned off", calls[0], 3);
         check("other mods' hooks keep working", Hooks.end(fine, null, new Object[0], "vanilla"), "still works");
 
+        // Mods written as one .java file: Squid compiles them, and explains mistakes in plain words
+        Path easy = java.nio.file.Files.createTempDirectory("squid-easy-test");
+        String[][] easyMods = {
+                {"Hello", "public class Hello extends EasyMod {\n    void start() {\n        say(\"Hi!\");\n"
+                        + "        onKey(\"G\", () -> say(\"You pressed G\"));\n        splash(\"Made with Squid!\");\n    }\n}\n"},
+                {"NoSemicolon", "public class NoSemicolon extends EasyMod {\n    void start() {\n        say(\"Hi!\")\n    }\n}\n"},
+                {"Typo", "public class Typo extends EasyMod {\n    void start() {\n        sya(\"Hi!\");\n    }\n}\n"},
+                {"MissingBrace", "public class MissingBrace extends EasyMod {\n    void start() {\n        say(\"Hi!\");\n    }\n"},
+                {"DividesByZero", "public class DividesByZero extends EasyMod {\n    void start() {\n        int zero = 0;\n"
+                        + "        say(10 / zero);\n    }\n}\n"},
+                {"BadKey", "public class BadKey extends EasyMod {\n    void start() {\n        onKey(\"NOPE\", () -> say(\"x\"));\n    }\n}\n"},
+                {"NotAMod", "public class NotAMod {\n}\n"},
+        };
+        for (String[] m : easyMods) java.nio.file.Files.writeString(easy.resolve(m[0] + ".java"), m[1]);
+        SourceMods sources = new SourceMods(easy.resolve(".squid-cache"), System.getProperty("java.class.path") + File.pathSeparator + a[0]);
+        Mods.Found easyFound = Mods.find(easy, "26.3", sources);
+        check("mods that compile are found", easyFound.mods().stream().map(ModInfo::name).sorted().toList().toString(),
+                "[Bad Key, Divides By Zero, Hello, Not A Mod]");
+        java.util.Map<String, String> mistakes = new java.util.TreeMap<>();
+        for (Mods.Skipped s : easyFound.skipped()) mistakes.put(s.name(), s.reason());
+        check("a missing ;", mistakes.get("NoSemicolon.java"), "there's a mistake on line 3: a ; is missing at the end of the line");
+        check("a misspelled command", mistakes.get("Typo.java"),
+                "there's a mistake on line 3: Squid doesn't know \"sya\". Check the spelling, and that big and small letters match");
+        check("a missing }", mistakes.get("MissingBrace.java"), "there's a mistake on line 4: a } is missing at the end. Every { needs a }");
+
+        List<URL> easyUrls = new ArrayList<>(urls);
+        for (ModInfo m : easyFound.mods()) easyUrls.add(m.jar().toUri().toURL());
+        SquidClassLoader easyLoader = new SquidClassLoader(easyUrls.toArray(URL[]::new));
+        Main.setGameLoader(easyLoader);
+        List<Mods.Skipped> notStarted = new ArrayList<>();
+        List<ModInfo> started = Main.start(easyFound.mods(), easyLoader, notStarted);
+        check("a good easy mod starts", started.stream().map(ModInfo::name).toList().toString(), "[Hello]");
+        for (Mods.Skipped s : notStarted) mistakes.put(s.name(), s.reason());
+        check("an error while starting says which line", mistakes.get("Divides By Zero"), "there's a problem on line 4: you divided by zero");
+        check("an unknown key is explained", mistakes.get("Bad Key"),
+                "there's a problem on line 3: Squid doesn't know the key \"NOPE\". Try a letter like \"G\", a number like \"5\", or a key like \"SPACE\" or \"F6\"");
+        check("a class that isn't a mod is explained", mistakes.get("Not A Mod"),
+                "it isn't a Squid mod yet. Write \"extends EasyMod\" after its class name");
+        Object easyOptions = unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, options);
+        keyList.set(easyOptions, java.lang.reflect.Array.newInstance(keyMapping, 0));
+        KeyBindings.addTo(easyOptions);
+        List<Object> easyKeys = new ArrayList<>();
+        for (Object key : (Object[]) keyList.get(easyOptions)) {
+            easyKeys.add(keyMapping.getMethod("getName").invoke(key) + "=" + keyMapping.getMethod("getDefaultKey").invoke(key));
+        }
+        check("onKey(\"G\") adds a G key to Controls", easyKeys.stream().map(String::valueOf).filter(k -> k.startsWith("Hello")).toList().toString(),
+                "[Hello (G)=key.keyboard.g]");
+
+        long compiledAt = java.nio.file.Files.getLastModifiedTime(easyFound.mods().stream()
+                .filter(m -> m.name().equals("Hello")).findFirst().orElseThrow().jar().resolve("ok")).toMillis();
+        Thread.sleep(50);
+        ModInfo again = sources.compile(easy.resolve("Hello.java"));
+        check("an unchanged mod isn't compiled again", java.nio.file.Files.getLastModifiedTime(again.jar().resolve("ok")).toMillis(), compiledAt);
+        check("file names become mod names", SourceMods.spaced("MyCoolMod") + " / " + SourceMods.spaced("TNT_Rain"), "My Cool Mod / TNT Rain");
+
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);
     }

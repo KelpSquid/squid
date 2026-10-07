@@ -39,6 +39,13 @@ public final class Hooks {
         return HOOKS.size() - 1;
     }
 
+    /** Switches off every hook a mod set up, like when the mod broke while starting. */
+    public static synchronized void turnOff(String modId) {
+        for (Entry entry : HOOKS) {
+            if (entry.modId.equals(modId)) entry.turnedOff = true;
+        }
+    }
+
     /** Called at the start of a hooked method. If the result is cancelled, the method returns right away. */
     public static Call start(int id, Object self, Object[] args) {
         Call call = new Call(self, args, null);

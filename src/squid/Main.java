@@ -1,5 +1,6 @@
 package squid;
 
+import squid.api.Hud;
 import squid.api.ModInfo;
 import squid.api.Squid;
 import squid.api.SquidMod;
@@ -24,7 +25,11 @@ public final class Main {
     public static final String VERSION = "0.1";
 
     private static List<ModInfo> mods = List.of();
+    private static List<Mods.Skipped> skipped = List.of();
     private static Report report;
+    private static volatile ClassLoader gameLoader;
+    private static volatile boolean gameStarted;
+    private static String minecraftVersion;
 
     private Main() {
     }
@@ -32,6 +37,23 @@ public final class Main {
     /** Every mod that was loaded. */
     public static List<ModInfo> mods() {
         return mods;
+    }
+
+    /** The class loader Minecraft and the mods run in, or null before the game starts. */
+    public static ClassLoader gameLoader() {
+        return gameLoader;
+    }
+
+    static void setGameLoader(ClassLoader loader) {
+        gameLoader = loader;
+    }
+
+    /**
+     * Whether Minecraft has started. Before that, nothing may touch Minecraft's classes: loading one early
+     * would load it before every mod has set up its hooks.
+     */
+    public static boolean gameStarted() {
+        return gameStarted;
     }
 
     public static void main(String[] args) throws Throwable {
@@ -42,46 +64,70 @@ public final class Main {
         registerBuiltInHooks();
 
         Path gameFolder = gameFolder(args);
+        minecraftVersion = argument(args, "--version");
         report = new Report(gameFolder);
         report.loading();
-        ModInfo starting = null; // the mod being started right now, to blame if something breaks
         SquidClassLoader loader;
         try {
             Path modsFolder = gameFolder.resolve("mods");
-            Mods.Found found = Mods.find(modsFolder, argument(args, "--version"));
-            mods = found.mods();
-            report.skipped(found.skipped());
-            System.out.println("[Squid] Squid " + VERSION + " found " + mods.size() + " mod(s) in " + modsFolder);
+            // .java mods can use Squid (on the normal classpath) and Minecraft
+            SourceMods sources = new SourceMods(modsFolder.resolve(".squid-cache"),
+                    System.getProperty("java.class.path") + File.pathSeparator + gameClasspath);
+            Mods.Found found = Mods.find(modsFolder, minecraftVersion, sources);
+            System.out.println("[Squid] Squid " + VERSION + " found " + found.mods().size() + " mod(s) in " + modsFolder);
 
             List<URL> urls = new ArrayList<>();
             for (String entry : gameClasspath.split(File.pathSeparator)) urls.add(Path.of(entry).toUri().toURL());
-            for (ModInfo mod : mods) urls.add(mod.jar().toUri().toURL());
+            for (ModInfo mod : found.mods()) urls.add(mod.jar().toUri().toURL());
             loader = new SquidClassLoader(urls.toArray(URL[]::new));
             Thread.currentThread().setContextClassLoader(loader);
+            gameLoader = loader;
 
-            for (ModInfo mod : mods) {
-                starting = mod;
-                System.out.println("[Squid] Starting " + mod.name() + " " + mod.version());
-                Object instance = loader.loadClass(mod.main()).getDeclaredConstructor().newInstance();
-                if (!(instance instanceof SquidMod squidMod)) {
-                    throw new IllegalStateException(mod.main() + " (from " + mod.id() + ") doesn't implement SquidMod");
-                }
-                squidMod.init(new Squid(mod));
-            }
-            starting = null;
+            List<Mods.Skipped> notStarted = new ArrayList<>(found.skipped());
+            mods = start(found.mods(), loader, notStarted);
+            skipped = List.copyOf(notStarted);
+            report.skipped(skipped);
         } catch (Throwable problem) {
-            if (problem instanceof InvocationTargetException wrapped) problem = wrapped.getCause(); // the mod's own error
-            report.failed(mods, starting == null ? null : starting.name(), describe(problem));
+            report.failed(mods, null, describe(problem));
             throw problem;
         }
         report.running(mods);
 
         Method main = loader.loadClass(mainClass).getMethod("main", String[].class);
+        gameStarted = true;
         try {
             main.invoke(null, (Object) args);
         } catch (InvocationTargetException e) {
             throw e.getCause(); // show Minecraft's own error, not the reflection wrapper
         }
+    }
+
+    /**
+     * Starts each mod. A mod that breaks while starting is switched off and skipped, with the line where it broke,
+     * and the game opens without it. Gives back the mods that started.
+     */
+    static List<ModInfo> start(List<ModInfo> mods, ClassLoader loader, List<Mods.Skipped> skipped) {
+        List<ModInfo> started = new ArrayList<>();
+        for (ModInfo mod : mods) {
+            System.out.println("[Squid] Starting " + mod.name() + " " + mod.version());
+            Class<?> main = null;
+            try {
+                main = loader.loadClass(mod.main());
+                Object instance = main.getDeclaredConstructor().newInstance();
+                if (!(instance instanceof SquidMod squidMod)) {
+                    throw new IllegalStateException("it isn't a Squid mod yet. Write \"extends EasyMod\" after its class name");
+                }
+                squidMod.init(new Squid(mod));
+                started.add(mod);
+            } catch (Throwable problem) {
+                Hooks.turnOff(mod.id()); // any hooks it set up before breaking do nothing now
+                String why = Mistakes.explain(problem, main);
+                System.out.println("[Squid] Skipping " + mod.name() + ": " + why);
+                problem.printStackTrace(System.out);
+                skipped.add(new Mods.Skipped(mod.id(), mod.name(), why));
+            }
+        }
+        return started;
     }
 
     /** Tells Kelp (through the report) that a mod's hook had to be turned off. */
@@ -109,6 +155,35 @@ public final class Main {
                 "getClientModName", null, false, Hooks.register("squid", call -> call.setReturnValue("squid"))));
         // Put mods' keys on Minecraft's Controls screen
         KeyBindings.registerHooks();
+        // Say on the title screen that Squid is on, and which mods it couldn't load
+        Transformers.add("net.minecraft.client.gui.screens.TitleScreen", new Transformers.HookPatch(
+                "extractRenderState", null, false, Hooks.register("squid", call -> drawTitleNotice(new Hud(call.args()[0])))));
+    }
+
+    /** Bottom-left of the title screen, above Minecraft's own version line. */
+    static void drawTitleNotice(Hud hud) {
+        int y = hud.height() - 20;
+        String version = minecraftVersion != null ? " - Minecraft " + minecraftVersion : "";
+        hud.text("Squid" + version, 2, y, 0xFF55FFFF);
+        List<Mods.Skipped> problems = skipped;
+        int maxWidth = hud.width() - 170; // leave room for Mojang's copyright line on the right
+        int shown = Math.min(3, problems.size());
+        if (problems.size() > shown) {
+            y -= 10;
+            hud.text("...and " + (problems.size() - shown) + " more. Kelp shows them all.", 2, y, 0xFFFFFF55);
+        }
+        for (int i = shown - 1; i >= 0; i--) {
+            y -= 10;
+            Mods.Skipped s = problems.get(i);
+            hud.text(fit(hud, s.name() + ": " + s.reason(), maxWidth), 2, y, 0xFFFFFF55);
+        }
+    }
+
+    /** Cuts text down with "..." until it fits. */
+    private static String fit(Hud hud, String text, int maxWidth) {
+        if (hud.textWidth(text) <= maxWidth) return text;
+        while (text.length() > 4 && hud.textWidth(text + "...") > maxWidth) text = text.substring(0, text.length() - 1);
+        return text + "...";
     }
 
     /** The --gameDir Minecraft was given, or the current folder. */

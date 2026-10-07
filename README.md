@@ -7,6 +7,43 @@
 
 A Minecraft mod loader, made from scratch. It works with the [Kelp](https://github.com/SamuelArther/kelp) launcher and Minecraft 26.3.
 
+## Your first mod in 5 minutes
+
+1. In Kelp, open **Instances**, pick one, click **Mods**, then **New Mod**.
+2. Type a name, like "Rainbow Sheep", and click **Create**. Kelp makes `RainbowSheep.java` and opens it.
+3. Change what's inside `start()`, save, and play. That's it: no build step, no jar. Squid compiles it as the game starts.
+
+```java
+public class RainbowSheep extends EasyMod {
+    void start() {
+        say("Rainbow Sheep is working!");
+
+        onKey("G", () -> {
+            say("You pressed G! You're at " + x() + ", " + y() + ", " + z());
+            playSound("entity.experience_orb.pickup");
+        });
+    }
+}
+```
+
+| Command | What it does |
+| --- | --- |
+| `say("Hi!")` | A chat message only you see |
+| `showText("Hi!")` | Text just above your hotbar |
+| `playSound("entity.experience_orb.pickup")` | Plays a sound only you hear |
+| `giveItem("diamond", 3)` | Gives you items (cheats need to be on) |
+| `command("time set day")` | Runs a command, like typing `/time set day` |
+| `splash("Hi!")` | Changes the yellow text on the title screen |
+| `onJoin(() -> { ... })` | Runs when you join a world |
+| `onKey("G", () -> { ... })` | Runs when you press a key (players can change it in Controls) |
+| `every(10, () -> { ... })` | Runs every 10 seconds |
+| `onTick(() -> { ... })` | Runs 20 times a second |
+| `x()`, `y()`, `z()`, `health()`, `playerName()`, `random(1, 6)` | Things to know |
+
+If there's a mistake, the game still opens. The title screen and Kelp say which line it's on and what's wrong, like *"there's a mistake on line 3: a ; is missing at the end of the line"*. A mod that goes wrong while you play says so in the chat and switches that part off.
+
+When you're ready for more, `squid()` gives an easy mod everything below.
+
 ## How it works
 
 Kelp starts Squid instead of Minecraft. Squid:

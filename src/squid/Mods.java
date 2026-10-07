@@ -17,11 +17,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * Finds Squid mods: .jar files in the mods folder that have a squid.json inside.
+ * Finds Squid mods: .jar files in the mods folder that have a squid.json inside, and single .java files
+ * that Squid compiles itself (see {@link SourceMods}).
  * They come back in the order they should start: every mod after the mods it depends on.
  *
- * A mod that can't work this time (made for another Minecraft version, a second copy of a mod, or missing a mod it
- * needs) is skipped with a reason, instead of stopping the game. The rest still load.
+ * A mod that can't work this time (not a Squid mod, a mistake in its code, made for another Minecraft version,
+ * a second copy of a mod, or missing a mod it needs) is skipped with a reason, instead of stopping the game.
+ * The rest still load.
  */
 final class Mods {
     private Mods() {
@@ -36,29 +38,52 @@ final class Mods {
     }
 
     static Found find(Path folder, String minecraftVersion) throws IOException {
+        return find(folder, minecraftVersion, null);
+    }
+
+    /** sources compiles .java mods. Without it (null), .java files are skipped. */
+    static Found find(Path folder, String minecraftVersion, SourceMods sources) throws IOException {
         List<ModInfo> mods = new ArrayList<>();
         List<Skipped> skipped = new ArrayList<>();
         if (!Files.isDirectory(folder)) return new Found(mods, skipped);
 
-        List<Path> jars;
-        try (Stream<Path> files = Files.list(folder)) {
-            jars = files.filter(p -> p.getFileName().toString().endsWith(".jar")).sorted().toList();
+        List<Path> files;
+        try (Stream<Path> list = Files.list(folder)) {
+            files = list.filter(p -> p.getFileName().toString().endsWith(".jar") || p.getFileName().toString().endsWith(".java"))
+                    .sorted().toList();
         }
         Map<String, ModInfo> byId = new LinkedHashMap<>();
-        for (Path jar : jars) {
-            ModInfo mod = read(jar);
+        Map<String, Path> fileOf = new LinkedHashMap<>(); // mod id -> the file it came from
+        for (Path file : files) {
+            String fileName = file.getFileName().toString();
+            ModInfo mod;
+            try {
+                if (fileName.endsWith(".jar")) {
+                    mod = read(file);
+                } else if (sources != null) {
+                    mod = sources.compile(file);
+                } else {
+                    skipFile(skipped, file, "Squid can't compile mods here.");
+                    continue;
+                }
+            } catch (IOException e) {
+                // A broken jar or a mistake in a mod's code only skips that mod
+                skipFile(skipped, file, e.getMessage());
+                continue;
+            }
             if (mod == null) {
-                System.out.println("[Squid] Skipping " + jar.getFileName() + ": it has no squid.json, so it isn't a Squid mod");
+                skipFile(skipped, file, "it isn't a Squid mod (it has no squid.json), so Squid can't load it.");
                 continue;
             }
             ModInfo first = byId.get(mod.id());
             if (first != null) {
-                skip(skipped, mod, "it's another copy of " + first.jar().getFileName() + ". You can delete " + jar.getFileName() + ".");
+                skip(skipped, mod, "it's another copy of " + fileOf.get(mod.id()).getFileName() + ". You can delete " + fileName + ".");
             } else if (!mod.worksOn(minecraftVersion)) {
                 skip(skipped, mod, "it was made for Minecraft " + String.join(" or ", mod.minecraft())
                         + ", not " + minecraftVersion + ". Look for an update to it.");
             } else {
                 byId.put(mod.id(), mod);
+                fileOf.put(mod.id(), file);
             }
         }
         // Skip mods that need a mod that isn't here. Do it again until nothing changes, because skipping one
@@ -79,6 +104,13 @@ final class Mods {
         }
         mods.addAll(byId.values());
         return new Found(inStartOrder(mods), List.copyOf(skipped));
+    }
+
+    /** Skips a file that couldn't become a mod at all. It's named after the file, like "Hello.java". */
+    private static void skipFile(List<Skipped> skipped, Path file, String reason) {
+        String name = file.getFileName().toString();
+        System.out.println("[Squid] Skipping " + name + ": " + reason);
+        skipped.add(new Skipped(name, name, reason));
     }
 
     private static void skip(List<Skipped> skipped, ModInfo mod, String reason) {
