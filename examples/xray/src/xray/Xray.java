@@ -33,12 +33,12 @@ public class Xray implements SquidMod {
 
     @Override
     public void init(Squid squid) {
-        key = squid.addKeyBinding("Xray", InputConstants.KEY_X);
+        key = squid.addKeyBinding("X-Ray", InputConstants.KEY_X);
         squid.onTick(() -> {
             while (key.pressed()) toggle();
         });
 
-        // Minecraft builds each chunk's look block by block. With Xray on, it skips every block that isn't shown...
+        // Minecraft builds each chunk's look block by block. With X-Ray on, it skips every block that isn't shown...
         squid.atStart("net.minecraft.client.renderer.block.ModelBlockRenderer", "tesselateBlock", call -> {
             if (on && !shows((BlockState) call.args()[6])) call.cancel();
         });
@@ -51,7 +51,7 @@ public class Xray implements SquidMod {
             if (on && shows((BlockState) call.args()[1])) call.setReturnValue(true);
         });
 
-        // Ores deep in the ground get no light, so light everything up while Xray is on
+        // Ores deep in the ground get no light, so light everything up while X-Ray is on
         squid.atStart("net.minecraft.client.renderer.LightmapRenderStateExtractor", "extract", call -> {
             if (changed) {
                 changed = false;
@@ -77,7 +77,7 @@ public class Xray implements SquidMod {
         minecraft.smartCull = !on;
         // Build every chunk's look again, with or without the hidden blocks. This is what F3+A does.
         minecraft.levelExtractor.allChanged();
-        minecraft.gui.chatListener().handleOverlay(Component.literal("Xray: " + (on ? "ON" : "OFF")));
+        minecraft.gui.chatListener().handleOverlay(Component.literal("X-Ray: " + (on ? "ON" : "OFF")));
     }
 
     private boolean shows(BlockState state) {

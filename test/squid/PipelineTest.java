@@ -119,7 +119,7 @@ public class PipelineTest {
         List<Object> keyNames = new ArrayList<>();
         for (Object key : keys) keyNames.add(keyMapping.getMethod("getName").invoke(key));
         check("the mods' keys are in Minecraft's list", keyNames.stream().map(String::valueOf).sorted().toList().toString(),
-                "[Bigger Minimap, Fullbright, World Map, Xray, Zoom]");
+                "[Bigger Minimap, Fullbright, World Map, X-Ray, Zoom]");
         KeyBindings.addTo(fakeOptions);
         check("adding again doesn't double them", ((Object[]) keyList.get(fakeOptions)).length, 5);
 
