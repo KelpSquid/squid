@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid تيدق داڤت مليهت سکليليڠ
 Squid couldn't make the particles => Squid تيدق داڤت ممبوات ڤرتيکل
 onBeat only works inside start() => onBeat هاڽ برفوڠسي د دالم start()
+Back to Minecraft's own texture. => کمبالي ک تيکستور اصل Minecraft.
+Block Painter => ڤلوکيس بلوک
+Colors => ورنا
+Couldn't read this texture, so you're starting blank. => تيکستور اين تيدق داڤت دباچ، جادي اندا برمولا دڠن کوسوڠ.
+Couldn't reset it: {0} => تيدق داڤت منتڤکن سمولا: {0}
+No blocks with that name. => تياد بلوک دڠن نام ايت.
+Pick a block to paint. A * means you've painted it. => ڤيليه بلوک اونتوق دلوکيس. تندا * برمقصود اندا سوده ملوکيسڽ.
+Reset => تتڤ سمولا
+Saved! Reloading so it shows in the world... => دسيمڤن! سدڠ دموات سمولا سوڤايا اي کليهتن د دنيا...
+Search => چاري
+Search blocks, like "diamond" or "oak" => چاري بلوک، چونتوهڽ "برليان" اتاو "اوک"
+This texture is too big to paint here (the most is 64 x 64). => تيکستور اين ترلالو بسر اونتوق دلوکيس د سيني (ڤاليڠ بسر 64 x 64).

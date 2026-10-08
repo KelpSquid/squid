@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid не смогъ осмотрѣться
 Squid couldn't make the particles => Squid не смогъ создать частицы
 onBeat only works inside start() => onBeat работаетъ только внутри start()
+Back to Minecraft's own texture. => Вернуть собственную текстуру Minecraft.
+Block Painter => Художникъ блоковъ
+Colors => Цвѣта
+Couldn't read this texture, so you're starting blank. => Не удалось прочитать эту текстуру, поэтому начинаешь съ чистаго листа.
+Couldn't reset it: {0} => Не удалось сбросить: {0}
+No blocks with that name. => Нѣтъ блоковъ съ такимъ названіемъ.
+Pick a block to paint. A * means you've painted it. => Выбери блокъ, чтобы рисовать. * значитъ, что ты его уже рисовалъ.
+Reset => Сбросить
+Saved! Reloading so it shows in the world... => Сохранено! Перезагрузка, чтобы это было видно въ мірѣ...
+Search => Поискъ
+Search blocks, like "diamond" or "oak" => Ищи блоки, напримѣръ «алмазъ» или «дубъ»
+This texture is too big to paint here (the most is 64 x 64). => Эта текстура слишкомъ большая, чтобы рисовать здѣсь (максимумъ 64 x 64).

@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid לא הצליח להסתכל מסביב
 Squid couldn't make the particles => Squid לא הצליח ליצור את החלקיקים
 onBeat only works inside start() => onBeat עובד רק בתוך start()
+Back to Minecraft's own texture. => חזרה לטקסטורה המקורית של Minecraft.
+Block Painter => צייר בלוקים
+Colors => צבעים
+Couldn't read this texture, so you're starting blank. => לא ניתן לקרוא את הטקסטורה הזאת, אז מתחילים מדף ריק.
+Couldn't reset it: {0} => לא ניתן לאפס: {0}
+No blocks with that name. => אין בלוקים בשם הזה.
+Pick a block to paint. A * means you've painted it. => בחרו בלוק לציור. * אומר שכבר ציירתם אותו.
+Reset => איפוס
+Saved! Reloading so it shows in the world... => נשמר! טוען מחדש כדי שזה יופיע בעולם...
+Search => חיפוש
+Search blocks, like "diamond" or "oak" => חיפוש בלוקים, למשל "יהלום" או "אלון"
+This texture is too big to paint here (the most is 64 x 64). => הטקסטורה הזאת גדולה מדי לציור כאן (לכל היותר 64 x 64).

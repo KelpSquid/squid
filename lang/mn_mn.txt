@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid эргэн тойрноо харж чадсангүй
 Squid couldn't make the particles => Squid бөөмсийг үүсгэж чадсангүй
 onBeat only works inside start() => onBeat зөвхөн start() дотор ажилладаг
+Back to Minecraft's own texture. => Minecraft-ын өөрийн текстур руу буцах.
+Block Painter => Блок будагч
+Colors => Өнгөнүүд
+Couldn't read this texture, so you're starting blank. => Энэ текстурыг уншиж чадсангүй, тиймээс хоосноос эхэлнэ.
+Couldn't reset it: {0} => Анхны байдалд оруулж чадсангүй: {0}
+No blocks with that name. => Ийм нэртэй блок алга.
+Pick a block to paint. A * means you've painted it. => Будах блокоо сонго. * нь чи үүнийг будсан гэсэн үг.
+Reset => Анхны байдал
+Saved! Reloading so it shows in the world... => Хадгаллаа! Ертөнцөд харагдуулахаар дахин ачааллаж байна...
+Search => Хайх
+Search blocks, like "diamond" or "oak" => Блок хайх, жишээ нь "алмаз" эсвэл "царс"
+This texture is too big to paint here (the most is 64 x 64). => Энэ текстур энд будахад хэтэрхий том (дээд тал нь 64 x 64).

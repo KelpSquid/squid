@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid-მა ვერ მიმოიხედა
 Squid couldn't make the particles => Squid-მა ვერ შექმნა ნაწილაკები
 onBeat only works inside start() => onBeat მხოლოდ start()-ის შიგნით მუშაობს
+Back to Minecraft's own texture. => Minecraft-ის საკუთარ ტექსტურაზე დაბრუნება.
+Block Painter => ბლოკების მხატვარი
+Colors => ფერები
+Couldn't read this texture, so you're starting blank. => ამ ტექსტურის წაკითხვა ვერ მოხერხდა, ამიტომ ცარიელიდან იწყებ.
+Couldn't reset it: {0} => ვერ განულდა: {0}
+No blocks with that name. => ამ სახელით ბლოკები არ არის.
+Pick a block to paint. A * means you've painted it. => აირჩიე ბლოკი დასახატად. * ნიშნავს, რომ ის უკვე დახატე.
+Reset => განულება
+Saved! Reloading so it shows in the world... => შენახულია! ხელახლა იტვირთება, რომ სამყაროში გამოჩნდეს...
+Search => ძიება
+Search blocks, like "diamond" or "oak" => მოძებნე ბლოკები, მაგ. „ალმასი“ ან „მუხა“
+This texture is too big to paint here (the most is 64 x 64). => ეს ტექსტურა ძალიან დიდია აქ დასახატად (მაქსიმუმ 64 x 64).

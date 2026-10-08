@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid kò lè wò yíká
 Squid couldn't make the particles => Squid kò lè ṣe àwọn èérún náà
 onBeat only works inside start() => onBeat ń ṣiṣẹ́ nínú start() nìkan
+Back to Minecraft's own texture. => Padà sí ìrísí Minecraft fúnra rẹ̀.
+Block Painter => Ayàwòrán Búlọ́ọ̀kù
+Colors => Àwọ̀
+Couldn't read this texture, so you're starting blank. => Kò lè ka ìrísí yìí, nítorí náà o ń bẹ̀rẹ̀ láti òfo.
+Couldn't reset it: {0} => Kò lè tún un tò: {0}
+No blocks with that name. => Kò sí búlọ́ọ̀kù tó ní orúkọ yẹn.
+Pick a block to paint. A * means you've painted it. => Yan búlọ́ọ̀kù kan láti yà. * túmọ̀ sí pé o ti yà á.
+Reset => Tún Tò
+Saved! Reloading so it shows in the world... => A ti fi pamọ́! A ń tún un gbé wọlé kí ó lè hàn nínú ayé...
+Search => Wá
+Search blocks, like "diamond" or "oak" => Wá búlọ́ọ̀kù, bíi "dáyámọ́ǹdì" tàbí "oaku"
+This texture is too big to paint here (the most is 64 x 64). => Ìrísí yìí ti tóbi jù láti yà níbí (èyí tó pọ̀ jù ni 64 x 64).

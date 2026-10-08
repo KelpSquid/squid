@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => ʻAʻole hiki iā Squid ke nānā a puni
 Squid couldn't make the particles => ʻAʻole hiki iā Squid ke hana i nā huna
 onBeat only works inside start() => hana wale ʻo onBeat i loko o start()
+Back to Minecraft's own texture. => E hoʻi i ka ʻili ponoʻī o Minecraft.
+Block Painter => Mea Pena Poloka
+Colors => Nā Waihoʻoluʻu
+Couldn't read this texture, so you're starting blank. => ʻAʻole hiki ke heluhelu i kēia ʻili, no laila e hoʻomaka ʻoe me ka hakahaka.
+Couldn't reset it: {0} => ʻAʻole hiki ke hoʻonohonoho hou: {0}
+No blocks with that name. => ʻAʻohe poloka me ia inoa.
+Pick a block to paint. A * means you've painted it. => E koho i poloka e pena ai. ʻO ka * ke ʻano, ua pena ʻoe iā ia.
+Reset => Hoʻonohonoho Hou
+Saved! Reloading so it shows in the world... => Ua mālama ʻia! Ke hoʻouka hou nei i ʻike ʻia ma ka honua...
+Search => Huli
+Search blocks, like "diamond" or "oak" => E huli i nā poloka, e like me "daimana" a i ʻole "ʻoka"
+This texture is too big to paint here (the most is 64 x 64). => Nui loa kēia ʻili no ka pena ʻana ma ʻaneʻi (64 x 64 ka nui loa).

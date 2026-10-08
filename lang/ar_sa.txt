@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => تعذّر على Squid النظر حوله
 Squid couldn't make the particles => تعذّر على Squid إنشاء الجسيمات
 onBeat only works inside start() => onBeat يعمل فقط داخل start()
+Back to Minecraft's own texture. => العودة إلى نسيج Minecraft الأصلي.
+Block Painter => رسّام المكعبات
+Colors => الألوان
+Couldn't read this texture, so you're starting blank. => تعذّرت قراءة هذا النسيج، لذا ستبدأ بصفحة فارغة.
+Couldn't reset it: {0} => تعذّرت إعادة التعيين: {0}
+No blocks with that name. => لا توجد مكعبات بهذا الاسم.
+Pick a block to paint. A * means you've painted it. => اختر مكعبًا لترسمه. علامة * تعني أنك رسمته.
+Reset => إعادة تعيين
+Saved! Reloading so it shows in the world... => تم الحفظ! جارٍ إعادة التحميل ليظهر في العالم...
+Search => بحث
+Search blocks, like "diamond" or "oak" => ابحث عن المكعبات، مثل "ألماس" أو "بلوط"
+This texture is too big to paint here (the most is 64 x 64). => هذا النسيج أكبر من أن يُرسم هنا (الحد الأقصى 64 x 64).

@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid gat ekki litið í kringum sig
 Squid couldn't make the particles => Squid gat ekki búið til agnirnar
 onBeat only works inside start() => onBeat virkar bara inni í start()
+Back to Minecraft's own texture. => Aftur í eigin áferð Minecraft.
+Block Painter => Kubbamálari
+Colors => Litir
+Couldn't read this texture, so you're starting blank. => Gat ekki lesið þessa áferð, svo þú byrjar með autt.
+Couldn't reset it: {0} => Gat ekki endurstillt það: {0}
+No blocks with that name. => Engir kubbar með þessu nafni.
+Pick a block to paint. A * means you've painted it. => Veldu kubb til að mála. * þýðir að þú hefur málað hann.
+Reset => Endurstilla
+Saved! Reloading so it shows in the world... => Vistað! Endurhleð svo það sjáist í heiminum...
+Search => Leita
+Search blocks, like "diamond" or "oak" => Leita að kubbum, t.d. „demantur“ eða „eik“
+This texture is too big to paint here (the most is 64 x 64). => Þessi áferð er of stór til að mála hér (mest 64 x 64).

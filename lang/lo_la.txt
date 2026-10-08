@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid ເບິ່ງອ້ອມຂ້າງບໍ່ໄດ້
 Squid couldn't make the particles => Squid ສ້າງອະນຸພາກບໍ່ໄດ້
 onBeat only works inside start() => onBeat ໃຊ້ໄດ້ແຕ່ໃນ start()
+Back to Minecraft's own texture. => ກັບຄືນຫາເທັກເຈີຂອງ Minecraft ເອງ
+Block Painter => ຊ່າງທາສີບລັອກ
+Colors => ສີ
+Couldn't read this texture, so you're starting blank. => ອ່ານເທັກເຈີນີ້ບໍ່ໄດ້ ເຈົ້າຈຶ່ງເລີ່ມຈາກຫວ່າງເປົ່າ
+Couldn't reset it: {0} => ຣີເຊັດບໍ່ໄດ້: {0}
+No blocks with that name. => ບໍ່ມີບລັອກຊື່ນັ້ນ
+Pick a block to paint. A * means you've painted it. => ເລືອກບລັອກເພື່ອທາສີ. * ໝາຍຄວາມວ່າເຈົ້າທາສີມັນແລ້ວ
+Reset => ຣີເຊັດ
+Saved! Reloading so it shows in the world... => ບັນທຶກແລ້ວ! ກຳລັງໂຫຼດໃໝ່ເພື່ອໃຫ້ເຫັນໃນໂລກ...
+Search => ຊອກຫາ
+Search blocks, like "diamond" or "oak" => ຊອກຫາບລັອກ ເຊັ່ນ "ເພັດ" ຫຼື "ໂອັກ"
+This texture is too big to paint here (the most is 64 x 64). => ເທັກເຈີນີ້ໃຫຍ່ເກີນໄປທີ່ຈະທາສີຢູ່ນີ້ (ສູງສຸດ 64 x 64)

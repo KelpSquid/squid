@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid ma setax iħares madwaru
 Squid couldn't make the particles => Squid ma setax jagħmel il-partiċelli
 onBeat only works inside start() => onBeat jaħdem biss ġewwa start()
+Back to Minecraft's own texture. => Lura għat-tessut oriġinali ta' Minecraft.
+Block Painter => Pittur tal-Blokki
+Colors => Kuluri
+Couldn't read this texture, so you're starting blank. => It-tessut ma setax jinqara, allura qed tibda vojt.
+Couldn't reset it: {0} => Ma setax jiġi rrisettjat: {0}
+No blocks with that name. => L-ebda blokk b'dak l-isem.
+Pick a block to paint. A * means you've painted it. => Agħżel blokk biex tpinġi. * tfisser li diġà pinġejtu.
+Reset => Irrisettja
+Saved! Reloading so it shows in the world... => Salvat! Qed jerġa' jitgħabba biex jidher fid-dinja...
+Search => Fittex
+Search blocks, like "diamond" or "oak" => Fittex blokki, bħal "djamant" jew "ballut"
+This texture is too big to paint here (the most is 64 x 64). => Dan it-tessut huwa kbir wisq biex tpinġih hawn (l-iktar 64 x 64).

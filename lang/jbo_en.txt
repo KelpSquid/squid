@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => la Squid na pu ka'e catlu lo se sruri
 Squid couldn't make the particles => la Squid na pu ka'e zbasu lo kantu
 onBeat only works inside start() => onBeat cu gunka po'o ne'i start()
+Back to Minecraft's own texture. => xruti lo krasi skapi be la Minecraft
+Block Painter => bliku pixra
+Colors => skari
+Couldn't read this texture, so you're starting blank. => na pu ka'e tcidu le skapi .i se ki'u bo do cfari fi lo kunti
+Couldn't reset it: {0} => na pu ka'e xruti ri: {0}
+No blocks with that name. => no bliku cu se cmene ra
+Pick a block to paint. A * means you've painted it. => ko cuxna pa bliku lo nu pixra .i lo * cu sinxa lo du'u do pu pixra ri
+Reset => xruti
+Saved! Reloading so it shows in the world... => pu rejgau! ca krefu nerbei lo nu ri se viska bu'u lo munje...
+Search => sisku
+Search blocks, like "diamond" or "oak" => sisku lo bliku, mu'u "diamond" .a "oak"
+This texture is too big to paint here (the most is 64 x 64). => le skapi cu dukse lo ka barda lo nu pixra ti (lo traji cu 64 x 64)

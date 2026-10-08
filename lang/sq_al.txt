@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid nuk mundi të shikonte përreth
 Squid couldn't make the particles => Squid nuk mundi të krijonte grimcat
 onBeat only works inside start() => onBeat punon vetëm brenda start()
+Back to Minecraft's own texture. => Kthehu te tekstura origjinale e Minecraft.
+Block Painter => Piktor blloqesh
+Colors => Ngjyra
+Couldn't read this texture, so you're starting blank. => Kjo teksturë nuk u lexua dot, ndaj fillon bosh.
+Couldn't reset it: {0} => Nuk u rivendos dot: {0}
+No blocks with that name. => Asnjë bllok me atë emër.
+Pick a block to paint. A * means you've painted it. => Zgjidh një bllok për ta pikturuar. Një * do të thotë që e ke pikturuar.
+Reset => Rivendos
+Saved! Reloading so it shows in the world... => U ruajt! Po ringarkohet që të shfaqet në botë...
+Search => Kërko
+Search blocks, like "diamond" or "oak" => Kërko blloqe, si „diamant” ose „lis”
+This texture is too big to paint here (the most is 64 x 64). => Kjo teksturë është shumë e madhe për t'u pikturuar këtu (maksimumi 64 x 64).

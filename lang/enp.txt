@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid couldn't look around
 Squid couldn't make the particles => Squid couldn't make the specks
 onBeat only works inside start() => onBeat only works inside start()
+Back to Minecraft's own texture. => Back to Minecraft's own look.
+Block Painter => Block Painter
+Colors => Hues
+Couldn't read this texture, so you're starting blank. => Couldn't read this look, so you're starting bare.
+Couldn't reset it: {0} => Couldn't set it back: {0}
+No blocks with that name. => No blocks with that name.
+Pick a block to paint. A * means you've painted it. => Pick a block to paint. A * means you've painted it.
+Reset => Set Back
+Saved! Reloading so it shows in the world... => Kept! Loading anew so it shows in the world...
+Search => Seek
+Search blocks, like "diamond" or "oak" => Seek blocks, like "diamond" or "oak"
+This texture is too big to paint here (the most is 64 x 64). => This look is too big to paint here (the most is 64 x 64).

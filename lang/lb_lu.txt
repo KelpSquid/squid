@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid konnt sech net ëmkucken
 Squid couldn't make the particles => Squid konnt d'Partikelen net maachen
 onBeat only works inside start() => onBeat geet just an start()
+Back to Minecraft's own texture. => Zréck op déi eegen Textur vu Minecraft.
+Block Painter => Block-Moler
+Colors => Faarwen
+Couldn't read this texture, so you're starting blank. => Dës Textur konnt net gelies ginn, also fänks de eidel un.
+Couldn't reset it: {0} => Zrécksetzen huet net geklappt: {0}
+No blocks with that name. => Keng Bléck mat deem Numm.
+Pick a block to paint. A * means you've painted it. => Wiel e Block fir ze molen. E * heescht, du hues en scho gemoolt.
+Reset => Zrécksetzen
+Saved! Reloading so it shows in the world... => Gespäichert! Lued nei, fir datt et an der Welt ze gesinn ass...
+Search => Sichen
+Search blocks, like "diamond" or "oak" => Bléck sichen, z. B. „Diamant“ oder „Eech“
+This texture is too big to paint here (the most is 64 x 64). => Dës Textur ass ze grouss fir hei ze molen (héchstens 64 x 64).

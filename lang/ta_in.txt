@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid-ஆல் சுற்றிப் பார்க்க முடியவில்லை
 Squid couldn't make the particles => Squid-ஆல் துகள்களை உருவாக்க முடியவில்லை
 onBeat only works inside start() => onBeat start()-க்குள் மட்டுமே வேலை செய்யும்
+Back to Minecraft's own texture. => Minecraft-இன் சொந்த டெக்ஸ்சருக்குத் திரும்பு.
+Block Painter => கட்ட ஓவியர்
+Colors => நிறங்கள்
+Couldn't read this texture, so you're starting blank. => இந்த டெக்ஸ்சரைப் படிக்க முடியவில்லை, அதனால் வெறுமையாகத் தொடங்குகிறீர்கள்.
+Couldn't reset it: {0} => மீட்டமைக்க முடியவில்லை: {0}
+No blocks with that name. => அந்தப் பெயரில் கட்டங்கள் இல்லை.
+Pick a block to paint. A * means you've painted it. => வரைய ஒரு கட்டத்தைத் தேர்ந்தெடுங்கள். * என்றால் நீங்கள் அதை வரைந்துள்ளீர்கள்.
+Reset => மீட்டமை
+Saved! Reloading so it shows in the world... => சேமிக்கப்பட்டது! உலகில் தெரிய மீண்டும் ஏற்றப்படுகிறது...
+Search => தேடு
+Search blocks, like "diamond" or "oak" => கட்டங்களைத் தேடுங்கள், எ.கா. "வைரம்" அல்லது "ஓக்"
+This texture is too big to paint here (the most is 64 x 64). => இந்த டெக்ஸ்சர் இங்கே வரைய மிகவும் பெரியது (அதிகபட்சம் 64 x 64).

@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid kós neet rondkieke
 Squid couldn't make the particles => Squid kós de deeltjes neet make
 onBeat only works inside start() => onBeat wirk allein binne start()
+Back to Minecraft's own texture. => Trök nao de eige textuur van Minecraft.
+Block Painter => Blokketeikenaer
+Colors => Kleure
+Couldn't read this texture, so you're starting blank. => Kós dees textuur neet leze, dus te begins laeg.
+Couldn't reset it: {0} => Kós 't neet trökzètte: {0}
+No blocks with that name. => Gein blokke mèt dae naam.
+Pick a block to paint. A * means you've painted it. => Kees 'ne blok óm te teikene. 'n * wilt zègke dats te 'm al geteikend höbs.
+Reset => Trökzètte
+Saved! Reloading so it shows in the world... => Opgesjlage! Opnuuj aan 't laoje, da zuus te 't in de wereld...
+Search => Zeuke
+Search blocks, like "diamond" or "oak" => Zeuk blokke, wie "diamant" of "eik"
+This texture is too big to paint here (the most is 64 x 64). => Dees textuur is te groet óm hie te teikene (hoeagstens 64 x 64).

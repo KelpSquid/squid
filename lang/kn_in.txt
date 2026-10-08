@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid ಗೆ ಸುತ್ತಲೂ ನೋಡಲಾಗಲಿಲ್ಲ
 Squid couldn't make the particles => Squid ಗೆ ಕಣಗಳನ್ನು ಮಾಡಲಾಗಲಿಲ್ಲ
 onBeat only works inside start() => onBeat start() ಒಳಗೆ ಮಾತ್ರ ಕೆಲಸ ಮಾಡುತ್ತದೆ
+Back to Minecraft's own texture. => Minecraft ನ ಸ್ವಂತ ಟೆಕ್ಸ್ಚರ್‌ಗೆ ಹಿಂತಿರುಗಿ.
+Block Painter => ಬ್ಲಾಕ್ ಪೇಂಟರ್
+Colors => ಬಣ್ಣಗಳು
+Couldn't read this texture, so you're starting blank. => ಈ ಟೆಕ್ಸ್ಚರ್ ಓದಲಾಗಲಿಲ್ಲ, ಆದ್ದರಿಂದ ನೀವು ಖಾಲಿಯಿಂದ ಆರಂಭಿಸುತ್ತಿದ್ದೀರಿ.
+Couldn't reset it: {0} => ಮರುಹೊಂದಿಸಲಾಗಲಿಲ್ಲ: {0}
+No blocks with that name. => ಆ ಹೆಸರಿನ ಬ್ಲಾಕ್‌ಗಳಿಲ್ಲ.
+Pick a block to paint. A * means you've painted it. => ಬಣ್ಣಿಸಲು ಒಂದು ಬ್ಲಾಕ್ ಆರಿಸಿ. * ಎಂದರೆ ನೀವು ಅದನ್ನು ಬಣ್ಣಿಸಿದ್ದೀರಿ.
+Reset => ಮರುಹೊಂದಿಸಿ
+Saved! Reloading so it shows in the world... => ಉಳಿಸಲಾಗಿದೆ! ಜಗತ್ತಿನಲ್ಲಿ ಕಾಣುವಂತೆ ಮರುಲೋಡ್ ಆಗುತ್ತಿದೆ...
+Search => ಹುಡುಕಿ
+Search blocks, like "diamond" or "oak" => ಬ್ಲಾಕ್‌ಗಳನ್ನು ಹುಡುಕಿ, ಉದಾ. "ವಜ್ರ" ಅಥವಾ "ಓಕ್"
+This texture is too big to paint here (the most is 64 x 64). => ಈ ಟೆಕ್ಸ್ಚರ್ ಇಲ್ಲಿ ಬಣ್ಣಿಸಲು ತುಂಬಾ ದೊಡ್ಡದು (ಗರಿಷ್ಠ 64 x 64).

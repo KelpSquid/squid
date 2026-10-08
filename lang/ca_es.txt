@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid no ha pogut mirar al voltant
 Squid couldn't make the particles => Squid no ha pogut crear les partícules
 onBeat only works inside start() => onBeat només funciona dins de start()
+Back to Minecraft's own texture. => Torna a la textura pròpia de Minecraft.
+Block Painter => Pintor de blocs
+Colors => Colors
+Couldn't read this texture, so you're starting blank. => No s'ha pogut llegir aquesta textura, així que comences en blanc.
+Couldn't reset it: {0} => No s'ha pogut restablir: {0}
+No blocks with that name. => No hi ha cap bloc amb aquest nom.
+Pick a block to paint. A * means you've painted it. => Tria un bloc per pintar. Un * vol dir que ja l'has pintat.
+Reset => Restableix
+Saved! Reloading so it shows in the world... => Desat! Recarregant perquè es vegi al món...
+Search => Cerca
+Search blocks, like "diamond" or "oak" => Cerca blocs, com ara «diamant» o «roure»
+This texture is too big to paint here (the most is 64 x 64). => Aquesta textura és massa gran per pintar-la aquí (com a màxim 64 x 64).

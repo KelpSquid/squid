@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid тирә-яҡҡа ҡарай алманы
 Squid couldn't make the particles => Squid киҫәксәктәрҙе яһай алманы
 onBeat only works inside start() => onBeat start() эсендә генә эшләй
+Back to Minecraft's own texture. => Minecraft-тың үҙ текстураһына кире ҡайтарыу.
+Block Painter => Блок буяусыһы
+Colors => Төҫтәр
+Couldn't read this texture, so you're starting blank. => Был текстураны уҡып булманы, шуға буштан башлайһың.
+Couldn't reset it: {0} => Тергеҙеп булманы: {0}
+No blocks with that name. => Был исемле блоктар юҡ.
+Pick a block to paint. A * means you've painted it. => Буяу өсөн блок һайла. * һин уны буяғаныңды аңлата.
+Reset => Тергеҙеү
+Saved! Reloading so it shows in the world... => Һаҡланды! Донъяла күренһен өсөн яңынан йөкләнә...
+Search => Эҙләү
+Search blocks, like "diamond" or "oak" => Блоктарҙы эҙлә, мәҫәлән, «алмаз» йәки «имән»
+This texture is too big to paint here (the most is 64 x 64). => Был текстура бында буяу өсөн бик ҙур (иң күбе 64 x 64).

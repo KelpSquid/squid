@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid ei saanud ringi vaadata
 Squid couldn't make the particles => Squid ei saanud osakesi teha
 onBeat only works inside start() => onBeat töötab ainult start() sees
+Back to Minecraft's own texture. => Tagasi Minecrafti enda tekstuurile.
+Block Painter => Plokimaalija
+Colors => Värvid
+Couldn't read this texture, so you're starting blank. => Seda tekstuuri ei saanud lugeda, seega alustad tühjalt.
+Couldn't reset it: {0} => Ei saanud lähtestada: {0}
+No blocks with that name. => Selle nimega plokke pole.
+Pick a block to paint. A * means you've painted it. => Vali plokk, mida maalida. * tähendab, et oled seda maalinud.
+Reset => Lähtesta
+Saved! Reloading so it shows in the world... => Salvestatud! Laadin uuesti, et see maailmas näha oleks...
+Search => Otsi
+Search blocks, like "diamond" or "oak" => Otsi plokke, nt "teemant" või "tamm"
+This texture is too big to paint here (the most is 64 x 64). => See tekstuur on siin maalimiseks liiga suur (kõige rohkem 64 x 64).

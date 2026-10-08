@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid가 주변을 둘러보지 못했어요
 Squid couldn't make the particles => Squid가 파티클을 만들지 못했어요
 onBeat only works inside start() => onBeat는 start() 안에서만 쓸 수 있어요
+Back to Minecraft's own texture. => Minecraft 원래 텍스처로 되돌려요.
+Block Painter => 블록 페인터
+Colors => 색
+Couldn't read this texture, so you're starting blank. => 이 텍스처를 읽지 못해서 빈 상태로 시작해요.
+Couldn't reset it: {0} => 초기화하지 못했어요: {0}
+No blocks with that name. => 그 이름의 블록이 없어요.
+Pick a block to paint. A * means you've painted it. => 칠할 블록을 골라요. *는 칠한 적이 있다는 뜻이에요.
+Reset => 초기화
+Saved! Reloading so it shows in the world... => 저장했어요! 월드에 보이도록 다시 불러오는 중...
+Search => 검색
+Search blocks, like "diamond" or "oak" => 블록 검색, 예: "다이아몬드", "참나무"
+This texture is too big to paint here (the most is 64 x 64). => 이 텍스처는 여기서 칠하기엔 너무 커요 (최대 64 x 64).

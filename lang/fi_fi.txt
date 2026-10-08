@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid ei voinut katsella ympärilleen
 Squid couldn't make the particles => Squid ei voinut luoda partikkeleita
 onBeat only works inside start() => onBeat toimii vain start()-metodin sisällä
+Back to Minecraft's own texture. => Takaisin Minecraftin omaan tekstuuriin.
+Block Painter => Kuutiomaalari
+Colors => Värit
+Couldn't read this texture, so you're starting blank. => Tätä tekstuuria ei voitu lukea, joten aloitat tyhjästä.
+Couldn't reset it: {0} => Palautus epäonnistui: {0}
+No blocks with that name. => Ei kuutioita tuolla nimellä.
+Pick a block to paint. A * means you've painted it. => Valitse maalattava kuutio. * tarkoittaa, että olet maalannut sen.
+Reset => Palauta
+Saved! Reloading so it shows in the world... => Tallennettu! Ladataan uudelleen, jotta se näkyy maailmassa...
+Search => Haku
+Search blocks, like "diamond" or "oak" => Hae kuutioita, esim. "timantti" tai "tammi"
+This texture is too big to paint here (the most is 64 x 64). => Tämä tekstuuri on liian suuri maalattavaksi täällä (enintään 64 x 64).

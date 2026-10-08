@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Methodd Squid edrych o gwmpas
 Squid couldn't make the particles => Methodd Squid greu'r gronynnau
 onBeat only works inside start() => dim ond y tu mewn i start() mae onBeat yn gweithio
+Back to Minecraft's own texture. => Yn ôl i wead Minecraft ei hun.
+Block Painter => Peintiwr Blociau
+Colors => Lliwiau
+Couldn't read this texture, so you're starting blank. => Methu darllen y gwead hwn, felly rwyt ti'n dechrau'n wag.
+Couldn't reset it: {0} => Methu ei ailosod: {0}
+No blocks with that name. => Dim blociau gyda'r enw yna.
+Pick a block to paint. A * means you've painted it. => Dewis bloc i'w baentio. Mae * yn golygu dy fod di wedi'i baentio.
+Reset => Ailosod
+Saved! Reloading so it shows in the world... => Wedi cadw! Yn ail-lwytho er mwyn iddo ddangos yn y byd...
+Search => Chwilio
+Search blocks, like "diamond" or "oak" => Chwilio blociau, fel "diemwnt" neu "derw"
+This texture is too big to paint here (the most is 64 x 64). => Mae'r gwead hwn yn rhy fawr i'w baentio yma (64 x 64 ar y mwyaf).

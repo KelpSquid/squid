@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid enweghị ike ilegharị anya
 Squid couldn't make the particles => Squid enweghị ike ịme irighiri ihe ndị ahụ
 onBeat only works inside start() => onBeat na-arụ ọrụ naanị n'ime start()
+Back to Minecraft's own texture. => Laghachi na ihu nke Minecraft n'onwe ya.
+Block Painter => Onye Na-ese Ngọngọ
+Colors => Agba
+Couldn't read this texture, so you're starting blank. => Enweghị ike ịgụ ihu a, ya mere ị na-amalite n'efu.
+Couldn't reset it: {0} => Enweghị ike ịtọgharị ya: {0}
+No blocks with that name. => Enweghị ngọngọ nwere aha ahụ.
+Pick a block to paint. A * means you've painted it. => Họrọ ngọngọ ka ị see. * pụtara na ị seela ya.
+Reset => Tọgharịa
+Saved! Reloading so it shows in the world... => Echekwala! Ọ na-ebugharị ka o gosi n'ụwa...
+Search => Chọọ
+Search blocks, like "diamond" or "oak" => Chọọ ngọngọ, dị ka "diamọnd" ma ọ bụ "oak"
+This texture is too big to paint here (the most is 64 x 64). => Ihu a buru oke ibu iji see ebe a (nke kachasị bụ 64 x 64).

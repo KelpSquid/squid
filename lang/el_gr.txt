@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Το Squid δεν μπόρεσε να κοιτάξει γύρω
 Squid couldn't make the particles => Το Squid δεν μπόρεσε να φτιάξει τα σωματίδια
 onBeat only works inside start() => το onBeat δουλεύει μόνο μέσα στο start()
+Back to Minecraft's own texture. => Επιστροφή στην αρχική υφή του Minecraft.
+Block Painter => Ζωγράφος κύβων
+Colors => Χρώματα
+Couldn't read this texture, so you're starting blank. => Δεν ήταν δυνατή η ανάγνωση αυτής της υφής, οπότε ξεκινάς από κενό.
+Couldn't reset it: {0} => Η επαναφορά απέτυχε: {0}
+No blocks with that name. => Δεν υπάρχουν κύβοι με αυτό το όνομα.
+Pick a block to paint. A * means you've painted it. => Διάλεξε έναν κύβο για ζωγραφική. Το * σημαίνει ότι τον έχεις ζωγραφίσει.
+Reset => Επαναφορά
+Saved! Reloading so it shows in the world... => Αποθηκεύτηκε! Γίνεται επαναφόρτωση για να φανεί στον κόσμο...
+Search => Αναζήτηση
+Search blocks, like "diamond" or "oak" => Αναζήτηση κύβων, π.χ. «διαμάντι» ή «βελανιδιά»
+This texture is too big to paint here (the most is 64 x 64). => Αυτή η υφή είναι πολύ μεγάλη για ζωγραφική εδώ (το μέγιστο είναι 64 x 64).

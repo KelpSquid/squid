@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => punoɹɐ ʞooꞁ ʇ,upꞁnoɔ Squid
 Squid couldn't make the particles => sǝꞁɔᴉʇɹɐd ǝɥʇ ǝʞɐɯ ʇ,upꞁnoɔ Squid
 onBeat only works inside start() => start() ǝpᴉsuᴉ sʞɹoʍ ʎꞁuo onBeat
+Back to Minecraft's own texture. => ˙ǝɹnʇxǝʇ uʍo s,Minecraft oʇ ʞɔɐᗺ
+Block Painter => ɹǝʇuᴉɐԀ ʞɔoꞁᗺ
+Colors => sɹoꞁoƆ
+Couldn't read this texture, so you're starting blank. => ˙ʞuɐꞁq ᵷuᴉʇɹɐʇs ǝɹ,noʎ os 'ǝɹnʇxǝʇ sᴉɥʇ pɐǝɹ ʇ,upꞁnoƆ
+Couldn't reset it: {0} => {0} :ʇᴉ ʇǝsǝɹ ʇ,upꞁnoƆ
+No blocks with that name. => ˙ǝɯɐu ʇɐɥʇ ɥʇᴉʍ sʞɔoꞁq oN
+Pick a block to paint. A * means you've painted it. => ˙ʇᴉ pǝʇuᴉɐd ǝʌ,noʎ suɐǝɯ * Ɐ ˙ʇuᴉɐd oʇ ʞɔoꞁq ɐ ʞɔᴉԀ
+Reset => ʇǝsǝᴚ
+Saved! Reloading so it shows in the world... => ˙˙˙pꞁɹoʍ ǝɥʇ uᴉ sʍoɥs ʇᴉ os ᵷuᴉpɐoꞁǝᴚ ¡pǝʌɐS
+Search => ɥɔɹɐǝS
+Search blocks, like "diamond" or "oak" => "ʞɐo" ɹo "puoɯɐᴉp" ǝʞᴉꞁ 'sʞɔoꞁq ɥɔɹɐǝS
+This texture is too big to paint here (the most is 64 x 64). => ˙(64 x 64 sᴉ ʇsoɯ ǝɥʇ) ǝɹǝɥ ʇuᴉɐd oʇ ᵷᴉq ooʇ sᴉ ǝɹnʇxǝʇ sᴉɥ⟘

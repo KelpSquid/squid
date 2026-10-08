@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid आसपास नहीं देख सका
 Squid couldn't make the particles => Squid पार्टिकल नहीं बना सका
 onBeat only works inside start() => onBeat सिर्फ़ start() के अंदर काम करता है
+Back to Minecraft's own texture. => Minecraft के अपने टेक्सचर पर वापस।
+Block Painter => ब्लॉक पेंटर
+Colors => रंग
+Couldn't read this texture, so you're starting blank. => यह टेक्सचर पढ़ा नहीं जा सका, इसलिए आप खाली से शुरू कर रहे हैं।
+Couldn't reset it: {0} => रीसेट नहीं कर सके: {0}
+No blocks with that name. => इस नाम का कोई ब्लॉक नहीं।
+Pick a block to paint. A * means you've painted it. => रंगने के लिए एक ब्लॉक चुनें। * का मतलब है कि आपने उसे रंगा है।
+Reset => रीसेट
+Saved! Reloading so it shows in the world... => सहेजा गया! फिर से लोड हो रहा है ताकि यह दुनिया में दिखे...
+Search => खोजें
+Search blocks, like "diamond" or "oak" => ब्लॉक खोजें, जैसे "हीरा" या "बलूत"
+This texture is too big to paint here (the most is 64 x 64). => यह टेक्सचर यहाँ रंगने के लिए बहुत बड़ा है (ज़्यादा से ज़्यादा 64 x 64)।

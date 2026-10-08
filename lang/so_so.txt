@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid ma uusan eegi karin hareeraha
 Squid couldn't make the particles => Squid ma uusan samayn karin qaybaha-yar
 onBeat only works inside start() => onBeat wuxuu ku shaqeeyaa oo keliya gudaha start()
+Back to Minecraft's own texture. => Ku noqo muuqaalka asalka ah ee Minecraft.
+Block Painter => Rinjiyaha Blookka
+Colors => Midabyo
+Couldn't read this texture, so you're starting blank. => Muuqaalkan lama akhrin karo, markaa waxaad ka bilaabaysaa bannaan.
+Couldn't reset it: {0} => Dib looma dejin karo: {0}
+No blocks with that name. => Ma jiro blook magacaas leh.
+Pick a block to paint. A * means you've painted it. => Dooro blook aad rinjiyeyso. * waxay ka dhigan tahay inaad rinjiyeysay.
+Reset => Dib u deji
+Saved! Reloading so it shows in the world... => Waa la kaydiyay! Dib ayaa loo rarayaa si uu adduunka uga muuqdo...
+Search => Raadi
+Search blocks, like "diamond" or "oak" => Raadi blookyo, sida "dheeman" ama "oak"
+This texture is too big to paint here (the most is 64 x 64). => Muuqaalkan aad buu u weyn yahay in halkan lagu rinjiyeeyo (ugu badnaan 64 x 64).

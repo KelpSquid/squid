@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid no pudo mirâh arrededó
 Squid couldn't make the particles => Squid no pudo creâh lâ partícula
 onBeat only works inside start() => onBeat solo funçiona dentro de start()
+Back to Minecraft's own texture. => Atrâ a la tehtura orihinâh de Minecraft.
+Block Painter => Pintôh de bloquê
+Colors => Colorê
+Couldn't read this texture, so you're starting blank. => No se pudo leêh ehta tehtura, açí que empieçâ en blanco.
+Couldn't reset it: {0} => No se pudo rehtableçêh: {0}
+No blocks with that name. => No hay bloquê con ese nombre.
+Pick a block to paint. A * means you've painted it. => Elihe un bloque pa pintâh. Un * quiere deçî que ya lo âh pintao.
+Reset => Rehtableçêh
+Saved! Reloading so it shows in the world... => ¡Guardao! Recargando pa que se bea en er mundo...
+Search => Buscâh
+Search blocks, like "diamond" or "oak" => Buscâh bloquê, como «diamante» o «roble»
+This texture is too big to paint here (the most is 64 x 64). => Ehta tehtura ê demaçiao grande pa pintâla aquí (como mucho 64 x 64).

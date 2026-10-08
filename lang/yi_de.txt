@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid האָט זיך ניט געקענט אַרומקוקן
 Squid couldn't make the particles => Squid האָט ניט געקענט מאַכן די פּאַרטיקלען
 onBeat only works inside start() => onBeat אַרבעט נאָר אין start()
+Back to Minecraft's own texture. => צוריק צו Minecraft-ס אייגענער טעקסטור.
+Block Painter => בלאָק־מאָלער
+Colors => קאָלירן
+Couldn't read this texture, so you're starting blank. => קען ניט לייענען די טעקסטור, איז הייבסטו אָן פּוסט.
+Couldn't reset it: {0} => קען עס ניט צוריקשטעלן: {0}
+No blocks with that name. => קיין בלאָקן מיט אַזאַ נאָמען.
+Pick a block to paint. A * means you've painted it. => קלײַב אויס אַ בלאָק צו מאָלן. אַ * מיינט אַז דו האָסט אים שוין געמאָלט.
+Reset => צוריקשטעלן
+Saved! Reloading so it shows in the world... => אָפּגעהיט! לאָד איבער, כּדי מע זאָל עס זען אין דער וועלט...
+Search => זוכן
+Search blocks, like "diamond" or "oak" => זוך בלאָקן, למשל „דימענט“ אָדער „דעמב“
+This texture is too big to paint here (the most is 64 x 64). => די טעקסטור איז צו גרויס צו מאָלן דאָ (מאַקסימום 64 x 64).

@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Ny allas Squid mires a-dro
 Squid couldn't make the particles => Ny allas Squid gul an temmigow
 onBeat only works inside start() => ny ober onBeat marnas a-ji dhe start()
+Back to Minecraft's own texture. => War-dhelergh dhe wias Minecraft y honan.
+Block Painter => Payntyer Stock
+Colors => Liwyow
+Couldn't read this texture, so you're starting blank. => Ny yllis redya an gwias ma, ytho yth esos ow talleth gwag.
+Couldn't reset it: {0} => Ny yllis y dhassettya: {0}
+No blocks with that name. => Nyns eus stock gans an hanow na.
+Pick a block to paint. A * means you've painted it. => Dewis stock dhe bayntya. * a styr y'n payntsys genes.
+Reset => Dassettya
+Saved! Reloading so it shows in the world... => Gwithys! Ow taskarga may fo gwelys y'n bys...
+Search => Hwilas
+Search blocks, like "diamond" or "oak" => Hwilas stockys, kepar ha "adamant" po "derow"
+This texture is too big to paint here (the most is 64 x 64). => Re vras yw an gwias ma dhe bayntya omma (64 x 64 dhe'n moyha).

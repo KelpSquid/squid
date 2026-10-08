@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid kunne ikkje sjå seg rundt
 Squid couldn't make the particles => Squid kunne ikkje lage partiklane
 onBeat only works inside start() => onBeat verkar berre inni start()
+Back to Minecraft's own texture. => Attende til Minecraft sin eigen tekstur.
+Block Painter => Blokkmålar
+Colors => Fargar
+Couldn't read this texture, so you're starting blank. => Kunne ikkje lese denne teksturen, så du byrjar med ein tom.
+Couldn't reset it: {0} => Kunne ikkje tilbakestille det: {0}
+No blocks with that name. => Ingen blokker med det namnet.
+Pick a block to paint. A * means you've painted it. => Vel ei blokk å måle. Ei * tyder at du har måla ho.
+Reset => Tilbakestill
+Saved! Reloading so it shows in the world... => Lagra! Lastar på nytt så det syner i verda...
+Search => Søk
+Search blocks, like "diamond" or "oak" => Søk etter blokker, til dømes «diamant» eller «eik»
+This texture is too big to paint here (the most is 64 x 64). => Denne teksturen er for stor til å måle her (maks 64 x 64).

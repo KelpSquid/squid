@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squidek ezin izan du inguruan begiratu
 Squid couldn't make the particles => Squidek ezin izan ditu partikulak sortu
 onBeat only works inside start() => onBeat start() barruan bakarrik dabil
+Back to Minecraft's own texture. => Minecraften jatorrizko testurara itzuli.
+Block Painter => Bloke-margolaria
+Colors => Koloreak
+Couldn't read this texture, so you're starting blank. => Ezin izan da testura hau irakurri, beraz hutsetik hasiko zara.
+Couldn't reset it: {0} => Ezin izan da berrezarri: {0}
+No blocks with that name. => Ez dago izen hori duen blokerik.
+Pick a block to paint. A * means you've painted it. => Aukeratu bloke bat margotzeko. * batek esan nahi du margotu duzula.
+Reset => Berrezarri
+Saved! Reloading so it shows in the world... => Gordeta! Birkargatzen, munduan ager dadin...
+Search => Bilatu
+Search blocks, like "diamond" or "oak" => Bilatu blokeak, adibidez "diamantea" edo "haritza"
+This texture is too big to paint here (the most is 64 x 64). => Testura hau handiegia da hemen margotzeko (gehienez 64 x 64).

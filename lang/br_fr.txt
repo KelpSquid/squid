@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid n'en deus ket gallet sellet tro-dro
 Squid couldn't make the particles => Squid n'en deus ket gallet ober ar partikulennoù
 onBeat only works inside start() => onBeat ne ya en-dro nemet e-barzh start()
+Back to Minecraft's own texture. => Distreiñ da dekstur Minecraft e-unan.
+Block Painter => Liver bloc'hoù
+Colors => Livioù
+Couldn't read this texture, so you're starting blank. => N'eus ket bet gallet lenn an tekstur-mañ, neuze e kregez gant ur bajenn wenn.
+Couldn't reset it: {0} => N'eus ket bet gallet e adderaouekaat : {0}
+No blocks with that name. => Bloc'h ebet gant an anv-se.
+Pick a block to paint. A * means you've painted it. => Dibab ur bloc'h da livañ. Ur * a dalvez ez peus e livet.
+Reset => Adderaouekaat
+Saved! Reloading so it shows in the world... => Enrollet ! Oc'h adkargañ evit ma vo gwelet er bed...
+Search => Klask
+Search blocks, like "diamond" or "oak" => Klask bloc'hoù, evel « diamant » pe « dero »
+This texture is too big to paint here (the most is 64 x 64). => Re vras eo an tekstur-mañ evit e livañ amañ (64 x 64 d'ar muiañ).

@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Níorbh fhéidir le Squid breathnú timpeall
 Squid couldn't make the particles => Níorbh fhéidir le Squid na cáithníní a dhéanamh
 onBeat only works inside start() => ní oibríonn onBeat ach taobh istigh de start()
+Back to Minecraft's own texture. => Ar ais chuig uigeacht Minecraft féin.
+Block Painter => Péintéir Bloc
+Colors => Dathanna
+Couldn't read this texture, so you're starting blank. => Níorbh fhéidir an uigeacht seo a léamh, mar sin tosaíonn tú bán.
+Couldn't reset it: {0} => Níorbh fhéidir é a athshocrú: {0}
+No blocks with that name. => Níl aon bhloc leis an ainm sin.
+Pick a block to paint. A * means you've painted it. => Roghnaigh bloc le péinteáil. Ciallaíonn * gur phéinteáil tú é.
+Reset => Athshocraigh
+Saved! Reloading so it shows in the world... => Sábháilte! Á athlódáil ionas go dtaispeánfar sa domhan é...
+Search => Cuardaigh
+Search blocks, like "diamond" or "oak" => Cuardaigh bloic, mar shampla "diamant" nó "dair"
+This texture is too big to paint here (the most is 64 x 64). => Tá an uigeacht seo rómhór le péinteáil anseo (64 x 64 ar a mhéad).

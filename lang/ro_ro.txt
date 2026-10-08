@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid nu s-a putut uita în jur
 Squid couldn't make the particles => Squid nu a putut face particulele
 onBeat only works inside start() => onBeat merge doar în start()
+Back to Minecraft's own texture. => Înapoi la textura proprie a Minecraft.
+Block Painter => Pictor de blocuri
+Colors => Culori
+Couldn't read this texture, so you're starting blank. => Nu s-a putut citi textura asta, așa că începi de la zero.
+Couldn't reset it: {0} => Nu s-a putut reseta: {0}
+No blocks with that name. => Niciun bloc cu numele ăsta.
+Pick a block to paint. A * means you've painted it. => Alege un bloc de pictat. Un * înseamnă că l-ai pictat deja.
+Reset => Resetează
+Saved! Reloading so it shows in the world... => Salvat! Se reîncarcă ca să apară în lume...
+Search => Caută
+Search blocks, like "diamond" or "oak" => Caută blocuri, de ex. „diamant” sau „stejar”
+This texture is too big to paint here (the most is 64 x 64). => Textura asta e prea mare ca s-o pictezi aici (cel mult 64 x 64).

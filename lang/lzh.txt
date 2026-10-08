@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid 不能四顧
 Squid couldn't make the particles => Squid 不能成粒
 onBeat only works inside start() => onBeat 唯於 start() 中可用
+Back to Minecraft's own texture. => 復 Minecraft 本紋。
+Block Painter => 繪塊
+Colors => 色
+Couldn't read this texture, so you're starting blank. => 不能讀此紋，故自素始。
+Couldn't reset it: {0} => 不能復原：{0}
+No blocks with that name. => 無塊名此。
+Pick a block to paint. A * means you've painted it. => 擇塊而繪之。有 * 者，汝已繪也。
+Reset => 復原
+Saved! Reloading so it shows in the world... => 已存！復載之，使見於世...
+Search => 尋
+Search blocks, like "diamond" or "oak" => 尋塊，如「鑽石」、「橡」
+This texture is too big to paint here (the most is 64 x 64). => 此紋太大，不能繪於此（至多 64 x 64）。

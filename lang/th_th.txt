@@ -353,3 +353,15 @@ Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_vill
 Squid couldn't look around => Squid มองไปรอบ ๆ ไม่ได้
 Squid couldn't make the particles => Squid สร้างอนุภาคไม่ได้
 onBeat only works inside start() => onBeat ใช้ได้แค่ใน start()
+Back to Minecraft's own texture. => กลับไปใช้เท็กซ์เจอร์เดิมของ Minecraft
+Block Painter => จิตรกรบล็อก
+Colors => สี
+Couldn't read this texture, so you're starting blank. => อ่านเท็กซ์เจอร์นี้ไม่ได้ เลยเริ่มจากหน้าว่าง
+Couldn't reset it: {0} => รีเซ็ตไม่ได้: {0}
+No blocks with that name. => ไม่มีบล็อกชื่อนั้น
+Pick a block to paint. A * means you've painted it. => เลือกบล็อกที่จะระบาย * หมายถึงคุณเคยระบายแล้ว
+Reset => รีเซ็ต
+Saved! Reloading so it shows in the world... => บันทึกแล้ว! กำลังโหลดใหม่เพื่อให้เห็นในโลก...
+Search => ค้นหา
+Search blocks, like "diamond" or "oak" => ค้นหาบล็อก เช่น "เพชร" หรือ "โอ๊ก"
+This texture is too big to paint here (the most is 64 x 64). => เท็กซ์เจอร์นี้ใหญ่เกินกว่าจะระบายที่นี่ (สูงสุด 64 x 64)
