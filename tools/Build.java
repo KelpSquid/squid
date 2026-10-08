@@ -231,7 +231,7 @@ public class Build {
     }
 
     /** Where the store's files are downloaded from: the squid-store repo on GitHub. */
-    static final String STORE_FILES = "https://raw.githubusercontent.com/SamuelArther/squid-store/main/files/";
+    static final String STORE_FILES = "https://raw.githubusercontent.com/KelpSquid/squid-store/main/files/";
 
     /**
      * Writes build/store: a files folder with each first-party mod (named like xray-1.0.0.jar) and a store.json

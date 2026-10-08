@@ -28,9 +28,9 @@ import java.util.Map;
 public final class Catalog {
     /** Where the list lives. -Dsquid.store=... points the store somewhere else, like a test list. */
     public static final String URL = System.getProperty("squid.store",
-            "https://raw.githubusercontent.com/SamuelArther/squid-store/main/store.json");
+            "https://raw.githubusercontent.com/KelpSquid/squid-store/main/store.json");
 
-    static final String USER_AGENT = "SamuelArther/squid/0.1 (squid@kelplauncher.org)";
+    static final String USER_AGENT = "KelpSquid/squid/0.1 (squid@kelplauncher.org)";
 
     /** One thing in the store. type is "mod", "resourcepack" or "cape". */
     public record Item(String id, String type, String name, String author, String description, List<String> minecraft,

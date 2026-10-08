@@ -35,4 +35,4 @@ MyMod/
   resources/     pictures and sounds
 
 Squid adds "import squid.api.*;" to every file by itself, so you never need it, but editors like seeing it.
-More: https://github.com/SamuelArther/squid
+More: https://github.com/KelpSquid/squid

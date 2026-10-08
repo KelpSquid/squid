@@ -5,7 +5,7 @@
 
 # Squid
 
-A Minecraft mod loader, made from scratch. It works with the [Kelp](https://github.com/SamuelArther/kelp) launcher and Minecraft 26.3.
+A Minecraft mod loader, made from scratch. It works with the [Kelp](https://github.com/KelpSquid/kelp) launcher and Minecraft 26.3.
 
 ## Your first mod in 5 minutes
 
@@ -70,7 +70,7 @@ and Minecraft command and explain each one, using the Squid library that comes w
 code, in Kelp's `squid/library` folder).
 
 Not using Kelp? The **Squid Kit** has the same library on its own, with its docs as web pages, an example project and
-a readme. It's on the [Releases](https://github.com/SamuelArther/squid/releases) page, and `build.bat` makes it in
+a readme. It's on the [Releases](https://github.com/KelpSquid/squid/releases) page, and `build.bat` makes it in
 `build/squid-kit-<version>.zip`.
 
 ## .squid files
@@ -120,7 +120,7 @@ build.bat test    also runs the tests (they load real Minecraft classes without 
 
 The Squid Store is built into Squid (`builtin/store`), so everyone has it: a **Store** button on the title screen, next to Realms. It has four tabs: **Dev-picked**, **Mods**, **Packs** and **Capes**. Install puts a mod in `mods` (it starts next time the game opens) or a resource pack in `resourcepacks`.
 
-The store reads one list, `store.json`, from the [squid-store](https://github.com/SamuelArther/squid-store) repo. Every item has a fingerprint (sha256), and a download that doesn't match it is thrown away. Nothing gets in the list without being approved; submissions will come through submit.kelplauncher.org.
+The store reads one list, `store.json`, from the [squid-store](https://github.com/KelpSquid/squid-store) repo. Every item has a fingerprint (sha256), and a download that doesn't match it is thrown away. Nothing gets in the list without being approved; submissions will come through submit.kelplauncher.org.
 
 `build.bat` makes `build/store`: a `store.json` and a `files` folder with every first-party mod. Upload both to the squid-store repo and the store shows them. To test with another list, start the game with `-Dsquid.store=<link to a store.json>`.
 

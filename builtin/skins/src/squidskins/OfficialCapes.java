@@ -31,7 +31,7 @@ public final class OfficialCapes {
 
     /** The list of links. Tests (or a test list) can point it somewhere else with -Dsquid.officialCapes. */
     public static String list = System.getProperty("squid.officialCapes",
-            "https://raw.githubusercontent.com/SamuelArther/squid-store/main/official-capes.json");
+            "https://raw.githubusercontent.com/KelpSquid/squid-store/main/official-capes.json");
     /** Mojang's texture server: the only place official cape pictures are ever loaded from. */
     public static String mojangTextures = "https://textures.minecraft.net/texture/";
 
@@ -104,7 +104,7 @@ public final class OfficialCapes {
     }
 
     private static HttpRequest request(String url) {
-        return HttpRequest.newBuilder(URI.create(url)).header("User-Agent", "SamuelArther/squid/0.1 (squid@kelplauncher.org)")
+        return HttpRequest.newBuilder(URI.create(url)).header("User-Agent", "KelpSquid/squid/0.1 (squid@kelplauncher.org)")
                 .timeout(Duration.ofSeconds(20)).build();
     }
 }

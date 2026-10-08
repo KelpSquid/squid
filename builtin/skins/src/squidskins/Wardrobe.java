@@ -285,7 +285,7 @@ public final class Wardrobe {
 
     private static HttpResponse<String> get(HttpClient client, String url) throws IOException, InterruptedException {
         try {
-            return client.send(HttpRequest.newBuilder(URI.create(url)).header("User-Agent", "SamuelArther/squid/0.1 (squid@kelplauncher.org)")
+            return client.send(HttpRequest.newBuilder(URI.create(url)).header("User-Agent", "KelpSquid/squid/0.1 (squid@kelplauncher.org)")
                     .timeout(Duration.ofSeconds(20)).build(), HttpResponse.BodyHandlers.ofString());
         } catch (java.net.ConnectException | java.net.UnknownHostException e) {
             throw new IOException(Lang.t("No internet connection."));
