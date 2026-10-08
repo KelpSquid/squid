@@ -8,7 +8,9 @@ import squid.api.SquidMod;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -28,8 +30,6 @@ final class Reloader {
     private final ClassLoader game;
     private final String minecraftVersion;
     private final Map<Path, String> fingerprints = new HashMap<>();
-    /** Copies of a mod that didn't start because another copy was running, by the mod's id: they start when it goes. */
-    private final Map<Path, String> waiting = new HashMap<>();
 
     Reloader(Path mods, SourceMods sources, ClassLoader game, String minecraftVersion) {
         this.mods = mods;
@@ -66,10 +66,7 @@ final class Reloader {
             if (!entry.getValue().equals(before)) rebuild(entry.getKey());
         }
         for (Path gone : fingerprints.keySet()) {
-            if (!now.containsKey(gone)) {
-                waiting.remove(gone);
-                unload(gone);
-            }
+            if (!now.containsKey(gone)) unload(gone, now.keySet());
         }
         fingerprints.clear();
         fingerprints.putAll(now);
@@ -118,7 +115,6 @@ final class Reloader {
     /** Builds a changed mod again and, if that works, swaps it in on the game's own thread. */
     void rebuild(Path path) {
         LiveReload.building(path);
-        waiting.remove(path);
         String name = path.getFileName().toString();
         // What this file was before, in case its squid.json now gives it another id
         String before = sources.built.get(path);
@@ -133,7 +129,6 @@ final class Reloader {
             // Another file that's already running this mod: two copies can't run at once
             for (Map.Entry<Path, String> other : sources.built.entrySet()) {
                 if (other.getValue().equals(described.id()) && !other.getKey().equals(path) && Files.exists(other.getKey())) {
-                    waiting.put(path, described.id());
                     tell(path, false, Lang.t("Squid didn't load {0}: it's another copy of {1}. You can delete {2}.", name,
                             other.getKey().getFileName(), name), "YELLOW");
                     return;
@@ -198,19 +193,29 @@ final class Reloader {
         }
     }
 
-    /** A mod's file or folder is gone (or turned off): it stops. */
-    void unload(Path path) {
+    /** A mod's file or folder is gone (or turned off): it stops. present is every mod file that's there now. */
+    void unload(Path path, Set<Path> present) {
         String id = sources.built.remove(path);
         if (id == null) return;
         // Renamed (X.squid became X-v2.squid) or updated under a new name: the new file runs this mod now
         if (sources.built.containsValue(id)) return;
-        // A copy that was waiting for this one to go (like a newer download added before the old one was turned
-        // off) takes over now, instead of the mod stopping until the game restarts
-        for (Map.Entry<Path, String> copy : Map.copyOf(waiting).entrySet()) {
-            if (copy.getValue().equals(id) && Files.exists(copy.getKey())) {
-                rebuild(copy.getKey());
-                if (sources.built.containsValue(id)) return;
+        // Another copy of the mod that isn't running (it was skipped as a second copy, like a newer download added
+        // before the old one was turned off) takes over now, the best one first, instead of the mod stopping until the
+        // game restarts
+        List<Map.Entry<Path, ModInfo>> copies = new ArrayList<>();
+        for (Path other : present) {
+            if (sources.built.containsKey(other)) continue;
+            try {
+                ModInfo described = Mods.describe(other);
+                if (described != null && described.id().equals(id)) copies.add(Map.entry(other, described));
+            } catch (IOException | RuntimeException broken) {
+                // not a copy that could run
             }
+        }
+        copies.sort((a, b) -> Mods.compareVersions(b.getValue().version(), a.getValue().version()));
+        for (Map.Entry<Path, ModInfo> copy : copies) {
+            rebuild(copy.getKey());
+            if (sources.built.containsValue(id)) return;
         }
         stop(id);
     }
