@@ -61,6 +61,26 @@ public class RainbowSheep extends EasyMod {
 | `biome()`, `dimension()`, `worldName()`, `isNight()`, `isRaining()`, `holding()`, `lookingAt()` | Where you are, what's in your hand, and the block or mob you're looking at |
 | `nearby("creeper", 16)` | How many of a mob are within 16 blocks (`""` counts every mob) |
 | `setting("Show map", true)`, `setting("Zoom", 4, 1, 10)` | A setting players change in the Mods screen (top-left of the title screen and pause menu) |
+| `markBlock(x(), y() - 1, z(), "gold")`, `unmarkBlock(x(), y() - 1, z())` | Outlines a block in the world, seen through walls, so you find it again |
+| `waypoint("Home", 0, 64, 0)`, `removeWaypoint("Home")` | A beam of light with its name and how far away it is, seen from anywhere |
+| `floatingText("Treasure here!", x(), y() + 2, z())` | Text floating in the world, facing you |
+| `drawLine(0, 64, 0, x(), y(), z(), "red")` | A line in the world, from one spot to another |
+| `clearMarks()` | Takes away every block, waypoint, text and line the mod marked |
+| `keepDrawing(draw -> draw.block(x(), y() - 1, z(), "lime"))` | Draws in the world every frame, always up to date (`block`, `filledBlock`, `box`, `line`, `text`, `waypoint`) |
+| `screen("My Menu").button("Day", () -> command("time set day")).open()` | A screen of your own, with `button`, `toggle`, `slider`, `textBox` and `label` |
+| `send("score", 10)` | Sends something (text, numbers, true/false, lists) to this mod's copy on the server |
+| `onMessage("score", (from, data) -> say(from + " scored " + data))` | Runs when the other copy of this mod sends something (`from` is `server` or a player's name) |
+| `sendTo("Steve", "score", 10)`, `sendToAll("start", "Go!")` | The server's copy of the mod sends to one player, or to everyone |
+| `signal("treasure-found", 5)` | Tells every other mod something happened |
+| `onSignal("treasure-found", value -> say("Treasure! " + value))` | Runs when any mod signals it |
+| `hasMod("minimap")`, `share("diamonds", 5)`, `shared("diamonds", 0)` | Works with other mods without needing their code: is one on, and values shared by name |
+
+Colors are names like `"red"`, `"gold"`, `"lime"` or `"light_blue"` (Minecraft's dye and chat colors), `"#FF8800"`, or
+numbers like `0xFF8800`.
+
+Messages to the server work in single player straight away (your world's server runs in your game). On a real server,
+the server needs Squid and the mod too, so a project with `"side": "both"`. A message can be up to 30,000 bytes, and a
+mod can send about 40 a second; more than that is held back, so no mod can flood a server.
 
 If there's a mistake, the game still opens. The title screen and Kelp say which line it's on and what's wrong, like *"there's a mistake on line 3: a ; is missing at the end of the line"*. A mod that goes wrong while you play says so in the chat and switches that part off.
 
@@ -77,7 +97,7 @@ mods/
   MegaMod/               a project
     squid.json           {"name": "Mega Mod"}
     src/                 the code: MegaMod.java, and any other files and folders
-    resources/           pictures and sounds
+    resources/           pictures and sounds (assets/), and recipes and such (data/)
 ```
 
 `squid.json` only needs what isn't obvious. The id and name come from the folder (`MegaMod` is `mega-mod`,
@@ -285,5 +305,43 @@ What a mod can do in `init`:
   `number(name, default, min, max)` and `choice(name, default, choices...)`.
 - `addMenuButton(label, inWorldOnly, menu -> ...)` adds a button to the Squid menu, to open the mod's own screen.
 - `patch(class, node -> ...)` changes a class's bytecode directly with [ASM](https://asm.ow2.io/).
+- `around(class, method, (call, original) -> ...)` wraps a method: the hook decides when the original runs (once,
+  twice, with other arguments, or not at all) and what it gives back. If the hook breaks, the original runs instead.
+- `atCall(class, method, calledClass, calledMethod, (call, original) -> ...)` wraps one call made inside a method:
+  `call.self()` is what it's called on, `call.args()` its arguments; change them, skip the call, or change its result.
+- `Reflect.get(object, "field")`, `Reflect.set(...)`, `Reflect.call(object, "method", args...)` read and change any
+  field and call any method by its real name, private ones too. A wrong name says so, with a guess for typos.
+- `send(channel, data)` and `onMessage(channel, (from, data) -> ...)` talk between the mod in the game and the mod on
+  a Squid server; on the server, `sendTo(player, ...)` and `sendToAll(...)` talk back. No payload classes or codecs.
+- `emit(event, value)` and `on(event, value -> ...)` let mods talk to each other with no compile-time dependency;
+  `share(name, value)`, `shared(name)`, `offer(name, x -> ...)` and `ask(name, x)` share values and functions, and
+  `hasMod(id)` says if a mod is on.
+- `onWorldDraw(draw -> ...)` draws in the world every frame: `draw.block(...)`, `box`, `filledBox`, `line`, `text`
+  and `waypoint`, with `draw.throughWalls(true)` to see them through walls. They're Minecraft's own gizmos.
+- `screen(title)` makes a screen without knowing Minecraft's screen classes: `.button(...)`, `.toggle(...)`,
+  `.slider(...)`, `.textBox(...)`, `.label(...)`, then `.open()`.
+
+```java
+// Every mob has twice the health, and fall damage is halved
+squid.around("net.minecraft.world.entity.LivingEntity", "getMaxHealth", (call, original) -> (float) original.call() * 2);
+squid.atCall("net.minecraft.world.entity.LivingEntity", "causeFallDamage",
+        "net.minecraft.world.entity.LivingEntity", "calculateFallDamage", (call, original) -> (int) original.call() / 2);
+
+// A private field, by its real name
+int level = Reflect.get(player, "experienceLevel");
+
+// The server answers every ping
+squid.onMessage("ping", (from, data) -> from.reply("pong", "Hi " + from.name()));
+
+// Another mod listens for this without needing this mod's code
+squid.emit("treasure-found", 5);
+squid.on("treasure-found", value -> squid.log("Someone found " + value));
+```
+
+A project's `resources` folder works on its own too: `resources/assets/<namespace>/...` (textures, sounds, `.sqda`,
+lang files, models) is a resource pack while the mod is on, and `resources/data/<namespace>/...` (recipes, loot
+tables, advancements) is a data pack on every world and server the mod runs on. There's nothing to switch on, and
+saving new pictures or sounds while playing loads them straight away.
+
 
 Set hooks up in `init` before touching any Minecraft class, or that class will already be loaded without them. See [`examples`](examples) for whole mods: Hello Squid, Zoom, Compass and Minimap.
