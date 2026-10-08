@@ -343,6 +343,9 @@ public class Build {
                         BUILD.resolve("library-check").resolve(example.getFileName()), "25");
             }
         }
+        // ...and so does a mod using every newer power (around, atCall, messages, world drawing, screens...)
+        compile(List.of(Path.of("test", "librarycheck", "PowersMod.java")), library + ";" + squidClasspath,
+                BUILD.resolve("library-check").resolve("powers"), "21");
         System.out.println("PASS every example builds with just the Squid library");
 
         Path testClasses = BUILD.resolve("test");
