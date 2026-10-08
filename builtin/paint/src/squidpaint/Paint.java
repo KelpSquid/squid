@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The Block Painter: repaint any block's texture inside the game. Painted textures go into a resource pack Squid
+ * The Block Painter (and the Sound Swapper, see {@link SoundSwapScreen}): repaint any block's texture inside the game. Painted textures go into a resource pack Squid
  * makes and keeps for you ("Squid Paint", in the instance's resourcepacks folder), which is switched on and
  * reloaded on every save, so the world changes right away. Reset puts Minecraft's own texture back.
  */
@@ -28,6 +28,7 @@ public class Paint implements SquidMod {
     @Override
     public void init(Squid squid) {
         squid.addMenuButton("Block Painter", false, menu -> Minecraft.getInstance().setScreenAndShow(new BlockPickScreen(menu)));
+        squid.addMenuButton("Sound Swapper", false, menu -> Minecraft.getInstance().setScreenAndShow(new SoundSwapScreen(menu)));
     }
 
     /** The pack's folder, made (with its pack.mcmeta) the first time it's needed. */
@@ -41,7 +42,7 @@ public class Paint implements SquidMod {
             Files.writeString(meta, """
                     {
                         "pack": {
-                            "description": "Blocks painted with Squid's Block Painter",
+                            "description": "Made with Squid's Block Painter and Sound Swapper",
                             "min_format": [%d, %d],
                             "max_format": [%d, %d]
                         }

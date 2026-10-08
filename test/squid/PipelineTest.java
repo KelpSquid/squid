@@ -1341,8 +1341,9 @@ public class PipelineTest {
         ((SquidMod) netLoader.loadClass("squidjukebox.Jukebox").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-jukebox")));
         // The Block Painter starts, and its screens load against Minecraft's classes
         ((SquidMod) netLoader.loadClass("squidpaint.Paint").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-paint")));
-        check("the Block Painter's screens load", Class.forName("squidpaint.BlockPaintScreen", true, netLoader).getSimpleName() + " "
-                + Class.forName("squidpaint.BlockPickScreen", true, netLoader).getSimpleName(), "BlockPaintScreen BlockPickScreen");
+        check("the Block Painter's and Sound Swapper's screens load", Class.forName("squidpaint.BlockPaintScreen", true, netLoader).getSimpleName() + " "
+                + Class.forName("squidpaint.BlockPickScreen", true, netLoader).getSimpleName() + " "
+                + Class.forName("squidpaint.SoundSwapScreen", true, netLoader).getSimpleName(), "BlockPaintScreen BlockPickScreen SoundSwapScreen");
         // Mod icons: read from a project's resources (its squid.json "icon", or icon.png)
         Path iconMod = java.nio.file.Files.createDirectories(java.nio.file.Files.createTempDirectory("squid-icon").resolve("Shiny"));
         java.nio.file.Files.createDirectories(iconMod.resolve("resources"));
