@@ -229,6 +229,8 @@ public final class Main {
         // Breaking blocks, hitting mobs, picking things up and chat, for EasyMod's onBreak, onAttack, onPickup, onChat
         // and onCommand, hooked once here so mods made while playing (in the Mod Maker) can use them too
         squid.api.GameEvents.install();
+        // Each mod's resources/assets is a resource pack, and resources/data a data pack, while the mod is on
+        ModPacks.install();
         // Say on the title screen that Squid is on, and which mods it couldn't load
         Transformers.add("net.minecraft.client.gui.screens.TitleScreen", new Transformers.HookPatch(
                 "extractRenderState", null, false, Hooks.register("squid", call -> drawTitleNotice(new Hud(call.args()[0])))));

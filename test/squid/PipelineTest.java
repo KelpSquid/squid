@@ -1903,6 +1903,41 @@ public class PipelineTest {
         clientListener.getMethod("handleCustomPayload", clientbound).invoke(inGame, throughTheWire.apply(clientbound.getField("CONFIG_STREAM_CODEC").get(null), news));
         check("a mod's messages go through Minecraft's real packets to the server and to the game", realHeard.toString(), "[Tester:hi server, server:hi game]");
         Events.remove("net-real");
+        // A mod's resources folder works on its own: resources/assets is a resource pack and resources/data a data
+        // pack, always on, through Minecraft's real pack lists (made the way Minecraft makes them)
+        Path packMod = java.nio.file.Files.createTempDirectory("squid-pack-mod");
+        java.nio.file.Files.createDirectories(packMod.resolve("assets/packtest/lang"));
+        java.nio.file.Files.writeString(packMod.resolve("assets/packtest/lang/en_us.json"), "{\"packtest.hello\": \"Hello\"}");
+        java.nio.file.Files.createDirectories(packMod.resolve("data/packtest/recipe"));
+        java.nio.file.Files.writeString(packMod.resolve("data/packtest/recipe/thing.json"), "{}");
+        Main.updateMod(new ModInfo("pack-test", "Pack Test", "1.0", "", List.of(), List.of(), List.of(), "x", packMod));
+        Class<?> packRepository = Class.forName("net.minecraft.server.packs.repository.PackRepository", true, netLoader);
+        Class<?> packType = Class.forName("net.minecraft.server.packs.PackType", true, netLoader);
+        Object dataPacks = Class.forName("net.minecraft.server.packs.repository.ServerPacksSource", true, netLoader).getMethod("createVanillaTrustedRepository").invoke(null);
+        Class<?> validator = Class.forName("net.minecraft.world.level.validation.DirectoryValidator", true, netLoader);
+        Object anyPath = validator.getConstructor(java.nio.file.PathMatcher.class).newInstance((java.nio.file.PathMatcher) p -> true);
+        Object clientSource = Class.forName("net.minecraft.client.resources.ClientPackSource", true, netLoader).getConstructor(Path.class, validator)
+                .newInstance(java.nio.file.Files.createTempDirectory("squid-pack-assets"), anyPath);
+        Object packSources = java.lang.reflect.Array.newInstance(Class.forName("net.minecraft.server.packs.repository.RepositorySource", true, netLoader), 1);
+        java.lang.reflect.Array.set(packSources, 0, clientSource);
+        Object resourcePacks = packRepository.getConstructor(packSources.getClass()).newInstance(packSources);
+        List<String> packResults = new ArrayList<>();
+        for (Object[] repo : new Object[][] {{dataPacks, "SERVER_DATA", "recipe/thing.json"}, {resourcePacks, "CLIENT_RESOURCES", "lang/en_us.json"}}) {
+            packRepository.getMethod("reload").invoke(repo[0]);
+            Object pack = packRepository.getMethod("getPack", String.class).invoke(repo[0], "squid/pack-test");
+            boolean selected = ((java.util.Collection<?>) packRepository.getMethod("getSelectedIds").invoke(repo[0])).contains("squid/pack-test");
+            Object opened = ((java.util.stream.Stream<?>) pack.getClass().getMethod("open").invoke(pack)).findFirst().orElseThrow();
+            java.lang.reflect.Method getResource = Class.forName("net.minecraft.server.packs.PackResources", true, netLoader).getMethod("getResource", packType, identifier);
+            Object file = getResource.invoke(opened, Enum.valueOf(packType.asSubclass(Enum.class), (String) repo[1]), idOf.invoke(null, "packtest", repo[2]));
+            packResults.add(repo[1] + " " + selected + " " + (file != null));
+        }
+        check("a mod's assets are a resource pack and its data a data pack, always on", packResults.toString(), "[SERVER_DATA true true, CLIENT_RESOURCES true true]");
+        java.nio.file.Files.writeString(packMod.resolve("assets/packtest/lang/en_us.json"), "{\"packtest.hello\": \"Hi\"}");
+        Main.updateMod(new ModInfo("pack-test", "Pack Test", "1.1", "", List.of(), List.of(), List.of(), "x", packMod));
+        boolean changedOnce = ModPacks.assetsChanged();
+        check("a mod saved with new pictures or sounds gets Minecraft to load them again, once", changedOnce + " " + ModPacks.assetsChanged(), "true false");
+        Main.removeMod("pack-test");
+        ModPacks.assetsChanged(); // so a tick later on doesn't try to reload a game that isn't there
         // Squid Sounds' hooks go into Minecraft's sound classes, which must still load and pass Java's checks
         ((SquidMod) netLoader.loadClass("squidsounds.Sounds").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-sounds")));
         boolean soundsLoad = true;

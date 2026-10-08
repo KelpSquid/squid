@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import squid.Events;
 import squid.Lang;
+import squid.ModPacks;
 import squid.Screens;
 import squid.api.Squid;
 import squid.api.SquidMod;
@@ -32,6 +33,11 @@ public class ModsMenu implements SquidMod {
         // floating text) right here, so mods' shapes join them
         squid.atStart("net.minecraft.client.renderer.extract.LevelExtractor", "extractGizmos", "()V", call -> {
             if (Events.drawingWorld()) Events.drawWorld(WorldGizmos.PAINTER);
+        });
+        // A mod saved with new pictures or sounds (or added, or turned off): Minecraft loads its resources again, so
+        // they show without a restart (like pressing F3+T)
+        squid.onTick(() -> {
+            if (ModPacks.assetsChanged()) Minecraft.getInstance().reloadResourcePacks();
         });
         // Mods' own screens (Squid.screen). A lambda, so the screen class only loads when one opens
         Screens.opener = screen -> BuiltScreen.open(screen);

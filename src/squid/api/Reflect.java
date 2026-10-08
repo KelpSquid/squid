@@ -45,7 +45,7 @@ public final class Reflect {
     }
 
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
-    private static final Map<String, Class<?>> CLASSES = new ConcurrentHashMap<>();
+    private static final Map<ClassLoader, Map<String, Class<?>>> CLASSES = new ConcurrentHashMap<>();
 
     private static final ClassValue<Map<String, FieldAccess>> FIELDS = new ClassValue<>() {
         @Override
@@ -90,6 +90,17 @@ public final class Reflect {
     @SuppressWarnings("unchecked")
     public static <T> T getStatic(String className, String field) {
         FieldAccess access = field(type(className), field, true);
+        try {
+            return (T) (Object) access.getter().invokeExact((Object) null);
+        } catch (Throwable e) {
+            throw rethrow(e);
+        }
+    }
+
+    /** A static field's value, from a class you already have. */
+    @SuppressWarnings("unchecked")
+    public static <T> T getStatic(Class<?> type, String field) {
+        FieldAccess access = field(type, field, true);
         try {
             return (T) (Object) access.getter().invokeExact((Object) null);
         } catch (Throwable e) {
@@ -172,6 +183,18 @@ public final class Reflect {
     @SuppressWarnings("unchecked")
     public static <T> T callStatic(String className, String method, Object... args) {
         return (T) invoke(type(className), null, method, args == null ? new Object[] {null} : args, true);
+    }
+
+    /** Calls a static method of a class you already have. */
+    @SuppressWarnings("unchecked")
+    public static <T> T callStatic(Class<?> type, String method, Object... args) {
+        return (T) invoke(type, null, method, args == null ? new Object[] {null} : args, true);
+    }
+
+    /** Makes a new object of a class you already have. */
+    @SuppressWarnings("unchecked")
+    public static <T> T create(Class<?> type, Object... args) {
+        return (T) invoke(type, null, "<init>", args == null ? new Object[] {null} : args, true);
     }
 
     /** Makes a new object of a class, with the constructor that fits the arguments. */
@@ -276,12 +299,13 @@ public final class Reflect {
     /** A class by its full name, from the game (looked up once). */
     private static Class<?> type(String className) {
         if (className == null) throw new IllegalArgumentException(Lang.t("the class name is missing (null)"));
-        Class<?> known = CLASSES.get(className);
-        if (known != null) return known;
         ClassLoader loader = Main.gameLoader() != null ? Main.gameLoader() : Thread.currentThread().getContextClassLoader();
+        Map<String, Class<?>> known = CLASSES.computeIfAbsent(loader, l -> new ConcurrentHashMap<>());
+        Class<?> cached = known.get(className);
+        if (cached != null) return cached;
         try {
             Class<?> found = Class.forName(className, true, loader);
-            CLASSES.put(className, found);
+            known.put(className, found);
             return found;
         } catch (ClassNotFoundException | LinkageError e) {
             throw new IllegalArgumentException(Lang.t("there's no class called \"{0}\". Class names are written in full, like \"net.minecraft.client.Minecraft\"", className));
