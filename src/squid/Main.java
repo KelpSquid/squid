@@ -105,7 +105,7 @@ public final class Main {
         if (minecraftVersion == null) minecraftVersion = System.getProperty("squid.minecraftVersion"); // servers don't pass --version
         report = new Report(gameFolder);
         report.loading();
-        SquidClassLoader loader;
+        ClassLoader loader;
         try {
             Path modsFolder = gameFolder.resolve("mods");
             // .java mods can use Squid (on the normal classpath) and Minecraft
@@ -116,17 +116,28 @@ public final class Main {
             // Squid's own parts, like the Store, come with Squid in its builtin folder. They aren't counted as mods.
             List<ModInfo> builtIn = Mods.find(builtInFolder(), minecraftVersion).mods();
 
-            List<URL> urls = new ArrayList<>();
-            for (String entry : gameClasspath.split(File.pathSeparator)) urls.add(Path.of(entry).toUri().toURL());
-            for (ModInfo mod : builtIn) urls.add(mod.jar().toUri().toURL());
-            for (ModInfo mod : found.mods()) urls.add(mod.jar().toUri().toURL());
-            loader = new SquidClassLoader(urls.toArray(URL[]::new));
+            if (FastBoot.active()) {
+                // Fast boot: Kelp put Minecraft (already patched), the libraries and the mods on Java's own classpath
+                loader = Main.class.getClassLoader();
+            } else {
+                List<URL> urls = new ArrayList<>();
+                for (String entry : gameClasspath.split(File.pathSeparator)) urls.add(Path.of(entry).toUri().toURL());
+                for (ModInfo mod : builtIn) urls.add(mod.jar().toUri().toURL());
+                for (ModInfo mod : found.mods()) urls.add(mod.jar().toUri().toURL());
+                loader = new SquidClassLoader(urls.toArray(URL[]::new));
+            }
             Thread.currentThread().setContextClassLoader(loader);
             gameLoader = loader;
 
             List<Mods.Skipped> notStarted = new ArrayList<>(found.skipped());
             start(builtIn, loader, notStarted);
             mods = start(found.mods(), loader, notStarted);
+            if (FastBoot.active()) {
+                FastBoot.check(); // the pre-patched classes must match the hooks the mods just asked for
+                if (FastBoot.training()) FastBoot.train(loader);
+            } else if (!isServer()) {
+                FastBoot.prepare(gameFolder, gameClasspath, mainClass, builtIn, found.mods());
+            }
             Reloader.watch(modsFolder, sources, loader, minecraftVersion); // saving a mod's code reloads it while playing
             skipped = List.copyOf(notStarted);
             report.skipped(skipped);

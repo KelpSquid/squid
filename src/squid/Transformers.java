@@ -48,14 +48,49 @@ public final class Transformers {
         PATCHES.computeIfAbsent(className, k -> new ArrayList<>()).add(patch);
     }
 
-    /** Whether a class has already loaded, so new patches for it can't apply until the game restarts. */
+    /**
+     * Whether a class has already loaded, so new patches for it can't apply until the game restarts. On a fast boot
+     * every class came patched ahead of time, so once the game is running nothing can be patched anymore.
+     */
     public static boolean isLoaded(String className) {
-        return LOADED.contains(className);
+        return LOADED.contains(className) || (FastBoot.active() && Main.gameStarted());
     }
 
-    /** Applies every patch for this class. Classes nobody patched come back untouched. */
+    /** Every class some mod (or Squid) patches. */
+    static List<String> patchedClasses() {
+        List<String> names = new ArrayList<>(PATCHES.keySet());
+        names.sort(null);
+        return names;
+    }
+
+    /**
+     * A fingerprint of every patch, in order: which class, which method, start or end, and which hook number. Fast
+     * boot uses it to know its pre-patched classes still match what the mods asked for.
+     */
+    static String signature() {
+        StringBuilder b = new StringBuilder();
+        for (String className : patchedClasses()) {
+            for (Patch patch : PATCHES.get(className)) {
+                if (patch instanceof HookPatch h) {
+                    b.append("H ").append(className).append(' ').append(h.method()).append(' ').append(h.descriptor())
+                            .append(' ').append(h.atStart()).append(' ').append(h.hookId()).append('\n');
+                } else if (patch instanceof RawPatch r) {
+                    b.append("R ").append(className).append(' ').append(r.modId()).append('\n');
+                }
+            }
+        }
+        return FastBoot.sha256(b.toString());
+    }
+
+    /** Applies every patch for this class as it loads. Classes nobody patched come back untouched. */
     static byte[] transform(String className, byte[] bytes, ClassLoader loader) {
         LOADED.add(className);
+        FastBoot.classLoaded(className);
+        return patch(className, bytes, loader);
+    }
+
+    /** Applies every patch for a class, without counting it as loaded (fast boot patches classes ahead of time). */
+    static byte[] patch(String className, byte[] bytes, ClassLoader loader) {
         List<Patch> patches = PATCHES.get(className);
         if (patches == null) return bytes;
 
