@@ -58,6 +58,18 @@ public final class GameEvents {
             if (Game.saying || !Events.listening("chat")) return; // a mod talking doesn't count
             Events.fire("chat", Game.plain(call.args()[0]));
         });
+        // Joining a world or a server: Squid notes which, so Kelp's Continue button can go straight back to it
+        Events.hookAtStartup(packets, "handleLogin", false, call -> {
+            try {
+                String played = Game.lastPlayed();
+                if (played != null) {
+                    java.nio.file.Files.writeString(squid.Main.gameFolder().resolve("squid-last-played.txt"), played,
+                            java.nio.charset.StandardCharsets.UTF_8);
+                }
+            } catch (java.io.IOException | RuntimeException e) {
+                // Continue just won't know this time
+            }
+        });
         Events.hookAtStartup(packets, "sendChat", true, call -> {
             if (Events.command(String.valueOf(call.args()[0]))) call.cancel(); // it's a mod's: it isn't sent
         });

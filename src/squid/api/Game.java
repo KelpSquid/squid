@@ -323,6 +323,31 @@ public final class Game {
         }
     }
 
+    /**
+     * What's being played right now, as the lines Squid keeps in squid-last-played.txt for Kelp's Continue button:
+     * "world" and the world's folder name, or "server", its address and its name. Null for Realms (Kelp can't join
+     * those by itself) or when it can't tell.
+     */
+    static String lastPlayed() {
+        Object mc = minecraft();
+        if (mc == null) return null;
+        Object local = call(mc, "getSingleplayerServer");
+        if (local != null) {
+            try {
+                Object root = type("net.minecraft.world.level.storage.LevelResource").getField("ROOT").get(null);
+                java.nio.file.Path folder = ((java.nio.file.Path) call(local, "getWorldPath", root)).toAbsolutePath().normalize();
+                return folder.getFileName() == null ? null : "world\n" + folder.getFileName() + "\n";
+            } catch (ReflectiveOperationException e) {
+                return null;
+            }
+        }
+        Object server = call(mc, "getCurrentServer");
+        if (server == null || ((Enum<?>) call(server, "type")).name().equals("REALM")) return null;
+        String address = String.valueOf(field(server, "ip")).strip();
+        String name = String.valueOf(field(server, "name")).strip().replace('\n', ' ');
+        return address.isEmpty() ? null : "server\n" + address + "\n" + name + "\n";
+    }
+
     /** What kind of mob (or player, or thing) an entity is, like "zombie" or "player". */
     static String entityName(Object entity) {
         try {
