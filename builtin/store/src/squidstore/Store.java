@@ -5,7 +5,6 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import squid.Lang;
@@ -23,10 +22,12 @@ public class Store implements SquidMod {
 
     @Override
     public void init(Squid squid) {
-        squid.atEnd("net.minecraft.client.gui.screens.TitleScreen", "init", "()V", call -> addButton((TitleScreen) call.self()));
+        // The title screen is only named as a Screen here: Java loads a class it checks this code against, and
+        // TitleScreen mustn't load before this hook (and the other parts' hooks) are in
+        squid.atEnd("net.minecraft.client.gui.screens.TitleScreen", "init", "()V", call -> addButton((Screen) call.self()));
     }
 
-    private void addButton(TitleScreen title) {
+    private void addButton(Screen title) {
         AbstractWidget realms = null;
         for (GuiEventListener child : title.children()) {
             if (child instanceof AbstractWidget widget && widget.getMessage().getContents() instanceof TranslatableContents text

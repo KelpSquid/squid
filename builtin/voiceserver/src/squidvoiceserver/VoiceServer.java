@@ -1,6 +1,5 @@
 package squidvoiceserver;
 
-import net.minecraft.server.level.ServerPlayer;
 import squid.Main;
 import squid.api.Squid;
 import squid.api.SquidMod;
@@ -38,70 +37,34 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class VoiceServer implements SquidMod {
     static final int VERSION = 1;
-    private static final int MAX_PACKET = 200;
+    static final int MAX_PACKET = 200;
 
-    private volatile Config config;
-    private final Map<UUID, String> groups = new ConcurrentHashMap<>();
+    volatile Config config;
+    final Map<UUID, String> groups = new ConcurrentHashMap<>();
 
     record Config(boolean enabled, int mode, int distance, boolean groups) {
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void init(Squid squid) {
         config = loadConfig(Main.gameFolder().resolve("config").resolve("squid-voice.properties"));
-        Net.onServer("hello", (player, data) -> Net.toPlayer(player, "voice_config", configMessage()));
-        Net.onServer("voice", this::relay);
-        Net.onServer("voice_group", (player, data) -> {
-            String name = new String(data, StandardCharsets.UTF_8).strip();
-            if (name.length() > 24) name = name.substring(0, 24);
-            if (name.isEmpty() || !config.groups()) groups.remove(player.getUUID());
-            else groups.put(player.getUUID(), name.toLowerCase(java.util.Locale.ROOT));
-            Net.toPlayer(player, "voice_group", (groups.containsKey(player.getUUID()) ? name : "").getBytes(StandardCharsets.UTF_8));
-        });
+        // Minecraft's player classes aren't named here (the handlers take plain Objects, and the work is in
+        // VoiceRelay): naming them while Squid starts would load them, and LivingEntity with them, before other
+        // mods' hooks into those are in
+        java.util.function.BiConsumer hello = (Object player, Object data) -> VoiceRelay.hello(this, player);
+        java.util.function.BiConsumer voice = (Object player, Object data) -> VoiceRelay.relay(this, player, (byte[]) data);
+        java.util.function.BiConsumer group = (Object player, Object data) -> VoiceRelay.joinGroup(this, player, (byte[]) data);
+        Net.onServer("hello", hello);
+        Net.onServer("voice", voice);
+        Net.onServer("voice_group", group);
         squid.atStart("net.minecraft.server.players.PlayerList", "remove", "(Lnet/minecraft/server/level/ServerPlayer;)V",
-                call -> groups.remove(((ServerPlayer) call.args()[0]).getUUID()));
+                call -> VoiceRelay.left(this, call.args()[0]));
     }
 
-    private byte[] configMessage() {
+    byte[] configMessage() {
         Config c = config;
         return new byte[] {VERSION, (byte) (c.enabled() ? 1 : 0), (byte) c.mode(), (byte) (c.distance() >> 8), (byte) c.distance(), (byte) (c.groups() ? 1 : 0)};
-    }
-
-    /** A player talked: send it to everyone who should hear it. Runs on the network thread, so it stays quick. */
-    void relay(ServerPlayer speaker, byte[] data) {
-        Config c = config;
-        if (!c.enabled() || data.length < 3 || data.length > MAX_PACKET) return;
-        var server = speaker.level().getServer();
-        if (server == null) return;
-        String group = groups.get(speaker.getUUID());
-        double x = speaker.getX();
-        double y = speaker.getEyeY();
-        double z = speaker.getZ();
-        byte[] near = null;
-        byte[] far = null;
-        for (ServerPlayer listener : server.getPlayerList().getPlayers()) {
-            if (listener == speaker || !Net.hasSquid(listener)) continue;
-            boolean sameGroup = group != null && group.equals(groups.get(listener.getUUID()));
-            int kind = hears(c, speaker, listener, sameGroup);
-            if (kind < 0) continue;
-            if (kind == 0) {
-                if (near == null) near = message(speaker.getUUID(), 0, data, x, y, z);
-                Net.toPlayer(listener, "voice", near);
-            } else {
-                if (far == null) far = message(speaker.getUUID(), 1, data, x, y, z);
-                Net.toPlayer(listener, "voice", far);
-            }
-        }
-    }
-
-    /** -1: doesn't hear it; 0: hears it from where the speaker is; 1: hears it as if on a call (group or whole world). */
-    static int hears(Config c, ServerPlayer speaker, ServerPlayer listener, boolean sameGroup) {
-        if (sameGroup && c.groups()) return 1;
-        return switch (c.mode()) {
-            case 1 -> 1;
-            case 2 -> -1;
-            default -> listener.level() == speaker.level() && listener.distanceToSqr(speaker) <= (double) c.distance() * c.distance() ? 0 : -1;
-        };
     }
 
     static byte[] message(UUID speaker, int kind, byte[] data, double x, double y, double z) {

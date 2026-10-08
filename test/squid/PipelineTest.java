@@ -1511,18 +1511,6 @@ public class PipelineTest {
                 + currentLyric.invoke(null, sung, 15.0) + " " + currentLyric.invoke(null, sung, 999.0), "-1 1 1 3");
         // The Block Painter starts, and its screens load against Minecraft's classes
         ((SquidMod) netLoader.loadClass("squidpaint.Paint").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-paint")));
-        // Loading a built-in part's main class must not load Minecraft's title or pause screen: they'd load before
-        // other parts' hooks into them are in, and those hooks would be missing (the Squid button went missing so)
-        SquidClassLoader earlyLoader = new SquidClassLoader(netUrls.toArray(URL[]::new));
-        List<String> loadedEarly = new ArrayList<>();
-        for (String part : new String[] {"squidnet.Net", "squidvoice.Voice", "squidvoiceserver.VoiceServer", "squidsounds.Sounds",
-                "squidjukebox.Jukebox", "squidmods.ModsMenu", "squidpaint.Paint", "squidemotes.Emotes"}) {
-            Class.forName(part, true, earlyLoader);
-            for (String screen : new String[] {"net.minecraft.client.gui.screens.TitleScreen", "net.minecraft.client.gui.screens.PauseScreen"}) {
-                if (earlyLoader.hasLoaded(screen)) loadedEarly.add(part + " loads " + screen);
-            }
-        }
-        check("built-in parts don't load the title or pause screen before their hooks are in", loadedEarly.toString(), "[]");
         // Voice chat, Emotes and the Squid menu (with the Mod Maker) start too, like they do when the game opens
         List<String> partsStarted = new ArrayList<>();
         for (String[] part : new String[][] {{"squidvoice.Voice", "squid-voice"}, {"squidemotes.Emotes", "squid-emotes"}, {"squidmods.ModsMenu", "squid-mods"}}) {
@@ -1666,6 +1654,20 @@ public class PipelineTest {
             }
         }
         check("all " + languages + " languages have every text, marked BETA", languageProblems, List.of());
+
+        // Starting Squid's built-in parts, the way the game does, must not load any class something hooks: a class
+        // that loads before a hook into it is in never gets it (the Squid and Store buttons went missing that way, and
+        // so did your own skin and cape). This runs last, as it starts every part again.
+        List<ModInfo> builtInParts = Mods.find(Path.of("build", "builtin"), "26.3").mods();
+        List<URL> startUrls = new ArrayList<>(urls);
+        for (ModInfo part : builtInParts) startUrls.add(part.jar().toUri().toURL());
+        SquidClassLoader startLoader = new SquidClassLoader(startUrls.toArray(URL[]::new));
+        Main.start(builtInParts, startLoader, new ArrayList<>());
+        List<String> loadedBeforeHooked = new ArrayList<>();
+        for (String hooked : Transformers.patchedClasses()) {
+            if (hooked.startsWith("net.minecraft.") && startLoader.hasLoaded(hooked)) loadedBeforeHooked.add(hooked);
+        }
+        check("starting every built-in part loads nothing that's hooked (" + builtInParts.size() + " parts)", loadedBeforeHooked, List.of());
 
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);

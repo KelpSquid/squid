@@ -1,6 +1,5 @@
 package squidemotes;
 
-import net.minecraft.server.level.ServerPlayer;
 import squid.Main;
 import squid.api.Squid;
 import squid.api.SquidMod;
@@ -39,27 +38,15 @@ public class Emotes implements SquidMod {
     private final Map<UUID, Long> lastSent = new ConcurrentHashMap<>();
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void init(Squid squid) {
-        Net.onServer("emote", this::relay);
+        // Minecraft's player classes aren't named here (the handler takes plain Objects): naming them while Squid
+        // starts would load them, and LivingEntity with them, before other parts' hooks into those are in
+        java.util.function.BiConsumer relay = (Object from, Object data) -> EmoteRelay.relay(lastSent, from, (byte[]) data);
+        Net.onServer("emote", relay);
         squid.atStart("net.minecraft.server.players.PlayerList", "remove", "(Lnet/minecraft/server/level/ServerPlayer;)V",
-                call -> lastSent.remove(((ServerPlayer) call.args()[0]).getUUID()));
+                call -> EmoteRelay.forget(lastSent, call.args()[0]));
         if (!Main.isServer()) EmotesClient.init(squid);
-    }
-
-    /** A player picked an emote: everyone with Squid near them sees it (them too). Runs on the network thread. */
-    void relay(ServerPlayer from, byte[] data) {
-        if (data.length != 1 || data[0] < 0 || data[0] >= ALL.length) return;
-        // Someone hiding (watching as a spectator, or invisible) mustn't give away where they are
-        if (from.isSpectator() || from.isInvisible()) return;
-        if (!allowed(lastSent, from.getUUID(), System.currentTimeMillis())) return;
-        var server = from.level().getServer();
-        if (server == null) return;
-        byte[] message = message(from.getUUID(), data[0]);
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (player.level() == from.level() && player.distanceToSqr(from) <= RANGE * RANGE && Net.hasSquid(player)) {
-                Net.toPlayer(player, "emote", message);
-            }
-        }
     }
 
     /** Whether a player may send an emote now: one a second at most, so nobody can flood everyone's screen. */

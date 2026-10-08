@@ -20,7 +20,9 @@ import squid.api.SquidMod;
  * and watch it again from any angle, in slow motion or backwards, with its sounds. Nothing is saved to disk yet.
  */
 public class Replay implements SquidMod {
-    private final Recorder recorder = new Recorder();
+    // Made when first used, after the game has started: loading Recorder loads Minecraft's player classes, which
+    // must wait until every part's hooks into them are in (Squid Skins' are, after this part starts)
+    private Recorder recorder;
     private ModSettings settings;
     private KeyBinding openKey;
 
@@ -36,20 +38,20 @@ public class Replay implements SquidMod {
                     if (Playback.current() != null) return; // the replay putting blocks back isn't something that happened
                     ClientLevel level = (ClientLevel) call.self();
                     BlockPos pos = (BlockPos) call.args()[0];
-                    recorder.blockChanged(level, pos, level.getBlockState(pos), (BlockState) call.args()[1]);
+                    recorder().blockChanged(level, pos, level.getBlockState(pos), (BlockState) call.args()[1]);
                 });
         // Every sound, so replays aren't silent
         squid.atStart("net.minecraft.client.sounds.SoundManager", "play",
                 "(Lnet/minecraft/client/resources/sounds/SoundInstance;)Lnet/minecraft/client/sounds/SoundEngine$PlayResult;", call -> {
                     if (Playback.current() == null) {
-                        recorder.soundPlayed(Minecraft.getInstance(), (net.minecraft.client.resources.sounds.SoundInstance) call.args()[0]);
+                        recorder().soundPlayed(Minecraft.getInstance(), (net.minecraft.client.resources.sounds.SoundInstance) call.args()[0]);
                     }
                 });
         // Every particle, so smoke, sparks and splashes come back too
         squid.atStart("net.minecraft.client.particle.ParticleEngine", "createParticle", call -> {
             if (Playback.current() != null) return;
             Object[] a = call.args();
-            recorder.particleMade(Minecraft.getInstance(), a[0], (double) a[1], (double) a[2], (double) a[3], (double) a[4], (double) a[5], (double) a[6]);
+            recorder().particleMade(Minecraft.getInstance(), a[0], (double) a[1], (double) a[2], (double) a[3], (double) a[4], (double) a[5], (double) a[6]);
         });
         // While a replay plays, only its look-alikes are drawn
         squid.atStart("net.minecraft.client.renderer.entity.EntityRenderDispatcher", "shouldRender", call -> {
@@ -68,6 +70,11 @@ public class Replay implements SquidMod {
         squid.addMenuButton("Replay", true, menu -> open());
     }
 
+    private synchronized Recorder recorder() {
+        if (recorder == null) recorder = new Recorder();
+        return recorder;
+    }
+
     private boolean recording() {
         return settings.toggle("Record replays", true);
     }
@@ -80,21 +87,21 @@ public class Replay implements SquidMod {
         Minecraft minecraft = Minecraft.getInstance();
         while (openKey.pressed()) open();
         if (Playback.current() != null) return; // nothing new happens while you watch
-        if (recording()) recorder.tick(minecraft, keepTicks());
-        else recorder.clear();
+        if (recording()) recorder().tick(minecraft, keepTicks());
+        else recorder().clear();
     }
 
     /** Opens the replay editor on what's been recorded so far. */
     void open() {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || minecraft.player == null || Playback.current() != null) return;
-        if (recorder.timeline.size() < 20) {
+        if (recorder().timeline.size() < 20) {
             Game.chat(recording() ? Lang.t("Nothing to replay yet. Play a little first!")
                     : Lang.t("Replays are off. Turn them on in Squid > Mods > Squid Replay > Settings."), "YELLOW");
             minecraft.setScreenAndShow(null);
             return;
         }
-        Playback playback = Playback.start(minecraft, recorder.timeline.freeze());
+        Playback playback = Playback.start(minecraft, recorder().timeline.freeze());
         minecraft.setScreenAndShow(new ReplayScreen(playback));
     }
 }
