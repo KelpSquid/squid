@@ -8,6 +8,7 @@ import net.minecraft.server.packs.resources.Resource;
 import squid.api.Squid;
 import squid.api.SquidMod;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -125,6 +126,54 @@ public class Paint implements SquidMod {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    /**
+     * A picture shrunk into a texture's pixels: it fills the whole square (the middle of a long picture is used), with
+     * each pixel the average of the part of the picture it covers, so a photo turns into neat pixel art. An animated
+     * texture (a strip of square frames) gets the picture in every frame.
+     */
+    static int[] fit(BufferedImage picture, int w, int h) {
+        int frame = h > w && h % w == 0 ? w : h; // the height of one frame
+        int pw = picture.getWidth();
+        int ph = picture.getHeight();
+        // The middle part of the picture with the frame's shape
+        double scale = Math.min(pw / (double) w, ph / (double) frame);
+        double x0 = (pw - w * scale) / 2;
+        double y0 = (ph - frame * scale) / 2;
+        int[] out = new int[w * h];
+        for (int y = 0; y < frame; y++) {
+            for (int x = 0; x < w; x++) {
+                int ax = (int) Math.floor(x0 + x * scale);
+                int ay = (int) Math.floor(y0 + y * scale);
+                int bx = Math.max(ax + 1, (int) Math.floor(x0 + (x + 1) * scale));
+                int by = Math.max(ay + 1, (int) Math.floor(y0 + (y + 1) * scale));
+                // Colors are weighed by how see-through they are, so a clear edge doesn't darken the color
+                double a = 0, r = 0, g = 0, b = 0;
+                int n = 0;
+                for (int sy = ay; sy < Math.min(by, ph); sy++) {
+                    for (int sx = ax; sx < Math.min(bx, pw); sx++) {
+                        int argb = picture.getRGB(sx, sy);
+                        double alpha = (argb >>> 24) / 255.0;
+                        a += alpha;
+                        r += ((argb >> 16) & 0xFF) * alpha;
+                        g += ((argb >> 8) & 0xFF) * alpha;
+                        b += (argb & 0xFF) * alpha;
+                        n++;
+                    }
+                }
+                int pixel = 0;
+                if (n > 0 && a > 0) {
+                    int alpha = (int) Math.round(a / n * 255);
+                    // Minecraft's blocks are either solid or clear, so mostly-solid counts as solid
+                    alpha = alpha >= 128 ? 255 : 0;
+                    pixel = alpha << 24 | (int) Math.round(r / a) << 16 | (int) Math.round(g / a) << 8 | (int) Math.round(b / a);
+                    if (alpha == 0) pixel = 0;
+                }
+                for (int f = 0; f < h / frame; f++) out[(f * frame + y) * w + x] = pixel;
+            }
+        }
+        return out;
     }
 
     /** Every block texture there is, like minecraft:block/stone, by name. */

@@ -1344,6 +1344,34 @@ public class PipelineTest {
         check("the Block Painter's and Sound Swapper's screens load", Class.forName("squidpaint.BlockPaintScreen", true, netLoader).getSimpleName() + " "
                 + Class.forName("squidpaint.BlockPickScreen", true, netLoader).getSimpleName() + " "
                 + Class.forName("squidpaint.SoundSwapScreen", true, netLoader).getSimpleName(), "BlockPaintScreen BlockPickScreen SoundSwapScreen");
+        // Recording a sound: the quiet at both ends is cut off (keeping 50 ms), and it's made loud
+        java.lang.reflect.Method tidy = netLoader.loadClass("squidpaint.Recorder").getDeclaredMethod("tidy", short[].class, int.class);
+        tidy.setAccessible(true);
+        short[] recorded = new short[44100];
+        for (int i = 22050; i < 26460; i++) recorded[i] = (short) (Math.sin(i * 0.1) * 3000); // 0.1 s of tone after 0.5 s of quiet
+        for (int i = 0; i < recorded.length; i += 7) recorded[i] += 20; // a little hiss
+        short[] tidied = (short[]) tidy.invoke(null, recorded, 44100);
+        int loudestTidied = 0;
+        for (short v : tidied) loudestTidied = Math.max(loudestTidied, Math.abs(v));
+        check("a recording loses its quiet ends and gets loud", Math.abs(tidied.length - 4410 - 4410) <= 441 * 2 && loudestTidied > 28000
+                && tidied[0] == 0, true);
+        check("a recording of nothing is empty", ((short[]) tidy.invoke(null, new short[44100], 44100)).length, 0);
+        // A dropped picture becomes pixel art: a picture half red, half blue fills a 16 x 16 texture the same way
+        java.awt.image.BufferedImage picture = new java.awt.image.BufferedImage(200, 100, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 100; y++) for (int x = 0; x < 200; x++) picture.setRGB(x, y, x < 100 ? 0xFFFF0000 : 0xFF0000FF);
+        java.lang.reflect.Method fit = netLoader.loadClass("squidpaint.Paint").getDeclaredMethod("fit", java.awt.image.BufferedImage.class, int.class, int.class);
+        fit.setAccessible(true);
+        int[] art = (int[]) fit.invoke(null, picture, 16, 16);
+        check("a picture becomes pixel art (the middle of a wide picture)", Integer.toHexString(art[0]) + " " + Integer.toHexString(art[15]) + " " + Integer.toHexString(art[255]),
+                "ffff0000 ff0000ff ff0000ff");
+        int[] paintedFrames = (int[]) fit.invoke(null, picture, 16, 48);
+        check("an animated texture gets the picture in every frame", paintedFrames[0] == paintedFrames[16 * 16] && paintedFrames[15] == paintedFrames[32 * 16 + 15] && paintedFrames[0] != paintedFrames[15], true);
+        // The Fill bucket fills what touches, not what only touches at a corner
+        java.lang.reflect.Method fill = netLoader.loadClass("squidpaint.BlockPaintScreen").getDeclaredMethod("fill", int[].class, int.class, int.class, int.class, int.class);
+        fill.setAccessible(true);
+        int[] grid = {1, 1, 2, 1, 2, 2, 2, 1, 1}; // 3 x 3: the top left 1s are cut off from the bottom right one
+        fill.invoke(null, grid, 3, 3, 0, 9);
+        check("the Fill bucket fills the touching pixels", java.util.Arrays.toString(grid), "[9, 9, 2, 9, 2, 2, 2, 1, 1]");
         // Mod icons: read from a project's resources (its squid.json "icon", or icon.png)
         Path iconMod = java.nio.file.Files.createDirectories(java.nio.file.Files.createTempDirectory("squid-icon").resolve("Shiny"));
         java.nio.file.Files.createDirectories(iconMod.resolve("resources"));

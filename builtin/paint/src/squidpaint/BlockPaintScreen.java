@@ -22,7 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Paints one block's texture, pixel by pixel. Left click paints, right click picks up a color. The top row of colors
+ * Paints one block's texture, pixel by pixel. Left click paints (or fills, with the Fill tool), right click picks up
+ * a color, and a picture dropped onto the window turns into pixel art. The top row of colors
  * is the block's own (its most used colors), so a repaint still fits Minecraft's look; the rest is a rainbow.
  * Save puts it in the Squid Paint pack and reloads the game, so it shows in the world right away.
  */
@@ -41,6 +42,7 @@ final class BlockPaintScreen extends Screen {
     private final Deque<int[]> undo = new ArrayDeque<>();
     private int color = RAINBOW[0];
     private boolean painting;
+    private boolean filling; // the Fill bucket instead of the pen
     private String message;
     private int messageColor;
     private boolean canSave; // false when the texture couldn't be read, so Save can't wipe it out
@@ -116,9 +118,14 @@ final class BlockPaintScreen extends Screen {
     protected void init() {
         int x = panel();
         int y = top() + rowsOfColors() * 14 + 62;
+        // The pen or the Fill bucket; pressing it switches
+        addRenderableWidget(Button.builder(Component.literal(filling ? Lang.t("Fill") : Lang.t("Pen")), b -> {
+            filling = !filling;
+            rebuildWidgets();
+        }).bounds(x, y, 48, 20).build());
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Undo")), b -> {
             if (!undo.isEmpty()) System.arraycopy(undo.pop(), 0, pixels, 0, pixels.length);
-        }).bounds(x, y, 98, 20).build());
+        }).bounds(x + 50, y, 48, 20).build());
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Save")), b -> save()).bounds(x, y + 24, 98, 20).build())
                 .active = canSave;
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Reset")), b -> reset()).bounds(x, y + 48, 98, 20).build())
@@ -195,13 +202,61 @@ final class BlockPaintScreen extends Screen {
                 color = pixels[pixel];
                 return true;
             }
-            undo.push(pixels.clone());
-            if (undo.size() > 50) undo.removeLast();
+            remember();
+            if (filling) {
+                fill(pixels, w, h, pixel, color);
+                return true;
+            }
             painting = true;
             pixels[pixel] = color;
             return true;
         }
         return super.mouseClicked(event, doubleClick);
+    }
+
+    /** Keeps a copy for Undo. */
+    private void remember() {
+        undo.push(pixels.clone());
+        if (undo.size() > 50) undo.removeLast();
+    }
+
+    /** The Fill bucket: the pixel and every pixel of its color touching it (not across corners) turn this color. */
+    static void fill(int[] pixels, int w, int h, int start, int color) {
+        int old = pixels[start];
+        if (old == color) return;
+        Deque<Integer> todo = new ArrayDeque<>();
+        todo.push(start);
+        while (!todo.isEmpty()) {
+            int at = todo.pop();
+            if (pixels[at] != old) continue;
+            pixels[at] = color;
+            int x = at % w;
+            int y = at / w;
+            if (x > 0) todo.push(at - 1);
+            if (x < w - 1) todo.push(at + 1);
+            if (y > 0) todo.push(at - w);
+            if (y < h - 1) todo.push(at + w);
+        }
+    }
+
+    /** A picture dropped onto the window (PNG, JPG, GIF or BMP) is shrunk into the texture as pixel art. */
+    @Override
+    public void onFilesDrop(List<Path> files) {
+        if (files.isEmpty() || !canSave) return;
+        try {
+            BufferedImage picture = Files.size(files.getFirst()) > 32L << 20 ? null : ImageIO.read(files.getFirst().toFile());
+            if (picture == null || (long) picture.getWidth() * picture.getHeight() > 50_000_000L) {
+                say(Lang.t("That isn't a picture Squid can read (try a PNG or JPG)."), 0xFFFF5555);
+                return;
+            }
+            remember();
+            System.arraycopy(Paint.fit(picture, w, h), 0, pixels, 0, pixels.length);
+            palette = withBlockColors(pixels);
+            say(Lang.t("Here it is as pixel art. Touch it up, then Save."), 0xFF55FF55);
+            rebuildWidgets();
+        } catch (IOException | RuntimeException e) {
+            say(Lang.t("That isn't a picture Squid can read (try a PNG or JPG)."), 0xFFFF5555);
+        }
     }
 
     @Override
@@ -276,6 +331,7 @@ final class BlockPaintScreen extends Screen {
         }
         g.text(font, Lang.t("Left click: paint"), x0 + 52, previewY, 0xFF808080);
         g.text(font, Lang.t("Right click: pick"), x0 + 52, previewY + 11, 0xFF808080);
+        g.text(font, Lang.t("Drop a picture: pixel art"), x0 + 52, previewY + 22, 0xFF808080);
         if (message != null) g.text(font, font.plainSubstrByWidth(message, width - 20), left(), height - 12, messageColor);
     }
 

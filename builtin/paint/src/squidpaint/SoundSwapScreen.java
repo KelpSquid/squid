@@ -7,6 +7,8 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Util;
 import squid.Lang;
 import squid.audio.Audio;
@@ -15,17 +17,20 @@ import squid.audio.Sqda;
 import squid.audio.SqdaTool;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * The Sound Swapper: swap any Minecraft sound (a pig's oink, a creeper's hiss, the door creak) for your own. Pick the
  * sound, then drop a sound file onto the window (MP3, M4A, WAV, FLAC, Ogg or .sqda). It's squeezed into a .sqda,
  * made mono so the game can place it in the world, and saved in the Squid Paint pack under the sound's own name, so
- * Squid plays it in its place. Reset brings Minecraft's sound back.
+ * Squid plays it in its place. Or press Record and be the pig yourself. Hear it plays the sound as it is now, and
+ * Reset brings Minecraft's sound back.
  *
  * Only players with Squid hear swapped sounds (the file is a .sqda inside), which is why it lives in Squid's own pack.
  */
@@ -36,7 +41,9 @@ final class SoundSwapScreen extends Screen {
     private String filter = "";
     private int page;
     private Identifier picked;
-    private volatile boolean working; // a dropped file is being squeezed in the background
+    private volatile boolean working; // a sound is being squeezed in the background
+    private final Recorder recorder = new Recorder();
+    private boolean wasRecording;
     private String message;
     private int messageColor;
 
@@ -119,12 +126,81 @@ final class SoundSwapScreen extends Screen {
     }
 
     private void initPicked(int x) {
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Hear it")), b -> hear())
+                .bounds(width / 2 - 100, height / 2 + 20, 98, 20).build()).active = !working;
+        addRenderableWidget(Button.builder(Component.literal(recorder.recording() ? Lang.t("Stop") : Lang.t("Record")), b -> record())
+                .bounds(width / 2 + 2, height / 2 + 20, 98, 20).build()).active = !working || recorder.recording();
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Reset")), b -> reset())
-                .bounds(width / 2 - 100, height / 2 + 20, 98, 20).build()).active = swapped(picked);
+                .bounds(width / 2 - 100, height / 2 + 44, 98, 20).build()).active = !working && swapped(picked);
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Back")), b -> {
             picked = null;
             rebuildWidgets();
-        }).bounds(width / 2 + 2, height / 2 + 20, 98, 20).build());
+        }).bounds(width / 2 + 2, height / 2 + 44, 98, 20).build());
+    }
+
+    /** Plays the picked sound as it is now: yours if you've swapped it, else Minecraft's. */
+    private void hear() {
+        Identifier sound = picked;
+        float volume = minecraft.options.getFinalSoundSourceVolume(SoundSource.MASTER);
+        Util.backgroundExecutor().execute(() -> {
+            try {
+                byte[] data;
+                if (swapped(sound)) {
+                    data = Files.readAllBytes(file(sound));
+                } else {
+                    Optional<Resource> resource = minecraft.getResourceManager().getResource(sound);
+                    if (resource.isEmpty()) return;
+                    try (InputStream in = resource.get().open()) {
+                        data = in.readAllBytes();
+                    }
+                }
+                Preview.play(Audio.decode(data), volume);
+            } catch (IOException | RuntimeException e) {
+                String why = e.getMessage();
+                minecraft.execute(() -> say(Lang.t("Couldn't play it: {0}", why), 0xFFFF5555));
+            }
+        });
+    }
+
+    /**
+     * Records your own sound from the microphone (press again to stop), so you can be the pig. The quiet bits at
+     * the start and end are cut off, and it's swapped in like a dropped file.
+     */
+    private void record() {
+        if (recorder.recording()) {
+            recorder.stop();
+            rebuildWidgets();
+            return;
+        }
+        if (working) return;
+        Preview.stop();
+        Identifier sound = picked;
+        say(Lang.t("Recording... Make your sound, then press Stop."), 0xFFFF5555);
+        recorder.start(samples -> minecraft.execute(() -> {
+            if (samples.length == 0) {
+                say(Lang.t("Didn't hear anything. Is the microphone on?"), 0xFFFF5555);
+                rebuildWidgets();
+                return;
+            }
+            swapIn(sound, () -> new Pcm(samples, 1, Recorder.RATE), Lang.t("Recorded in Squid"));
+        }), problem -> minecraft.execute(() -> {
+            say(Lang.t("No microphone: {0}", problem), 0xFFFF5555);
+            rebuildWidgets();
+        }));
+        rebuildWidgets();
+    }
+
+    @Override
+    public void tick() {
+        // The 10 seconds ran out: the Stop button turns back into Record
+        if (picked != null && !recorder.recording() && wasRecording) rebuildWidgets();
+        wasRecording = recorder.recording();
+    }
+
+    @Override
+    public void removed() {
+        recorder.stop();
+        Preview.stop();
     }
 
     private List<Identifier> shown() {
@@ -139,32 +215,49 @@ final class SoundSwapScreen extends Screen {
      */
     @Override
     public void onFilesDrop(List<Path> files) {
-        if (picked == null || files.isEmpty() || working) return;
+        if (picked == null || files.isEmpty() || working || recorder.recording()) return;
         Path dropped = files.getFirst();
-        Identifier sound = picked;
+        swapIn(picked, () -> {
+            // A minute of the biggest sound file there is (a WAV) is about 20 MB, so anything far past that is
+            // too long; this is checked before reading it all
+            if (Files.size(dropped) > 64L << 20) throw new TooLong(Lang.t("That file is too big. Sounds can be a minute at most."));
+            return Audio.decode(Files.readAllBytes(dropped));
+        }, dropped.getFileName().toString());
+    }
+
+    /** Reading a sound, which might not work. */
+    private interface SoundReader {
+        Pcm get() throws IOException;
+    }
+
+    /** A sound too long to swap in, with the message saying so. */
+    private static final class TooLong extends RuntimeException {
+        TooLong(String message) {
+            super(message);
+        }
+    }
+
+    /** Squeezes a sound into the pack in place of this one, in the background, then reloads so it's heard. */
+    private void swapIn(Identifier sound, SoundReader read, String title) {
         working = true;
         say(Lang.t("Squeezing it in..."), 0xFFA0A0A0);
+        rebuildWidgets();
         Util.backgroundExecutor().execute(() -> {
             String problem = null;
             try {
-                // A minute of the biggest sound file there is (a WAV) is about 20 MB, so anything far past that is
-                // too long; this is checked before reading it all
-                if (Files.size(dropped) > 64L << 20) {
-                    problem = Lang.t("That file is too big. Sounds can be a minute at most.");
+                Pcm pcm = SqdaTool.toMono(read.get()); // Minecraft only places mono sounds in the world
+                if (pcm.seconds() > 60) {
+                    problem = Lang.t("That's {0} seconds long. Sounds can be a minute at most.", (int) pcm.seconds());
                 } else {
-                    Pcm pcm = Audio.decode(Files.readAllBytes(dropped));
-                    pcm = SqdaTool.toMono(pcm); // Minecraft only places mono sounds in the world
-                    if (pcm.seconds() > 60) {
-                        problem = Lang.t("That's {0} seconds long. Sounds can be a minute at most.", (int) pcm.seconds());
-                    } else {
-                        Sqda sqda = Sqda.fromSound(pcm, 6);
-                        sqda.info.put("title", dropped.getFileName().toString());
-                        Paint.pack();
-                        Path target = file(sound);
-                        Files.createDirectories(target.getParent());
-                        Files.write(target, sqda.write());
-                    }
+                    Sqda sqda = Sqda.fromSound(pcm, 6);
+                    sqda.info.put("title", title);
+                    Paint.pack();
+                    Path target = file(sound);
+                    Files.createDirectories(target.getParent());
+                    Files.write(target, sqda.write());
                 }
+            } catch (TooLong e) {
+                problem = e.getMessage();
             } catch (IOException | RuntimeException e) {
                 problem = Lang.t("Couldn't use that file: {0}", e.getMessage());
             }
@@ -173,6 +266,7 @@ final class SoundSwapScreen extends Screen {
                 working = false;
                 if (failed != null) {
                     say(failed, 0xFFFF5555);
+                    rebuildWidgets();
                     return;
                 }
                 say(Lang.t("Swapped! Reloading so you can hear it..."), 0xFF55FF55);
@@ -183,7 +277,7 @@ final class SoundSwapScreen extends Screen {
     }
 
     private void reset() {
-        if (working) return;
+        if (working || recorder.recording()) return;
         try {
             Files.deleteIfExists(file(picked));
             say(Lang.t("Minecraft's own sound is back."), 0xFF55FF55);
@@ -207,7 +301,17 @@ final class SoundSwapScreen extends Screen {
             g.centeredText(font, nice(picked), width / 2, height / 2 - 40, 0xFF55FFFF);
             g.centeredText(font, Lang.t("Drop a sound file here (MP3, M4A, WAV, FLAC, Ogg or .sqda) to swap it in."),
                     width / 2, height / 2 - 20, 0xFFA0A0A0);
-            g.centeredText(font, Lang.t("Only players with Squid hear swapped sounds."), width / 2, height / 2 - 6, 0xFF808080);
+            g.centeredText(font, Lang.t("Or press Record and make the sound yourself."), width / 2, height / 2 - 8, 0xFFA0A0A0);
+            g.centeredText(font, Lang.t("Only players with Squid hear swapped sounds."), width / 2, height / 2 + 4, 0xFF808080);
+            if (recorder.recording()) {
+                // How loud the mic is, and how long is left
+                int bar = Math.round(recorder.level() * 196);
+                int y = height / 2 + 70;
+                g.fill(width / 2 - 100, y, width / 2 + 100, y + 8, 0xFF000000);
+                g.fill(width / 2 - 98, y + 2, width / 2 - 98 + bar, y + 6, 0xFF55FF55);
+                int left = (int) Math.ceil(Recorder.MOST_SECONDS - recorder.seconds());
+                g.centeredText(font, Lang.t("{0} seconds left", Math.max(0, left)), width / 2, y + 12, 0xFFFF5555);
+            }
         } else {
             if (shown().isEmpty()) g.centeredText(font, Lang.t("No sounds with that name."), width / 2, height / 2, 0xFFA0A0A0);
             g.centeredText(font, Lang.t("Pick a sound to swap. A * means you've swapped it."), width / 2, height - 40, 0xFF808080);
