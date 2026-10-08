@@ -181,6 +181,8 @@ public class Build {
              Stream<Path> extraFiles = Files.list(extras)) {
             addToZip(zip, squidJar, top + "squid.jar");
             for (Path library : libraries) addToZip(zip, library, top + "lib/" + library.getFileName());
+            addToZip(zip, Path.of("licenses", "ASM-LICENSE.txt"), top + "lib/ASM-LICENSE.txt"); // ASM's license has to come with it
+            addToZip(zip, Path.of("LICENSE"), top + "LICENSE.txt");
             for (Path part : builtInJars) {
                 String info = Files.readString(Path.of("builtin", part.getFileName().toString().replace(".jar", ""), "squid.json"));
                 String side = field(info, "side");

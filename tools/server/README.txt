@@ -39,6 +39,8 @@ Squid, and the server never saves any of it.
 Folders
 -------
 squid.jar   Squid itself (runs the server)
-lib         two small libraries Squid needs (ASM, for changing Minecraft's code)
+lib         two small libraries Squid needs (ASM, for changing Minecraft's code),
+            with ASM's license
 builtin     Squid's own server parts, like the voice relay
 mods        server mods made for Squid go here
+LICENSE.txt Squid's license (MIT)
