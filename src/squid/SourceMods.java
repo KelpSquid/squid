@@ -136,6 +136,18 @@ final class SourceMods {
         return build(mod.id(), sources, folder.resolve("resources"));
     }
 
+    /** The most a squid.json can be. Real ones are a few hundred bytes; a made-up one could unpack to gigabytes. */
+    static final int MAX_JSON = 1 << 20;
+
+    /** A squid.json inside a zip, read no further than MAX_JSON, so a made-up mod file can't fill the memory. */
+    static byte[] squidJson(ZipFile zip, ZipEntry entry) throws IOException {
+        try (InputStream in = zip.getInputStream(entry)) {
+            byte[] bytes = in.readNBytes(MAX_JSON + 1);
+            if (bytes.length > MAX_JSON) throw new IOException(Lang.t("its squid.json is far too big."));
+            return bytes;
+        }
+    }
+
     /** The most a .squid file can unpack to. Real mods are a few hundred KB; this stops a "zip bomb" filling the disk. */
     static final long MAX_UNPACKED = 256L * 1024 * 1024;
 

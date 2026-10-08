@@ -871,6 +871,12 @@ public class PipelineTest {
         check("a folder named in another alphabet asks for an id", failure(() -> Mods.describe(alphabet)),
                 "IOException: 日本語: squid.json needs a \"id\"");
         deleteTree(alphabet);
+        // A squid.json that unpacks to more than any real one (a made-up file could unpack to gigabytes) is refused
+        // before it's all read, so it can't take the game's memory as it starts
+        Path bomb = java.nio.file.Files.createTempDirectory("squid-json-bomb").resolve("Bomb.squid");
+        jar(bomb, "squid.json", "{\"name\": \"Bomb\"" + " ".repeat(2 << 20) + "}");
+        check("a squid.json far too big is refused without reading it all", failure(() -> Mods.describe(bomb)) + " | "
+                + squidmods.ModFiles.list(bomb.getParent()).size(), "IOException: its squid.json is far too big. | 1");
 
         // A reloaded mod takes over its old hooks in classes that can't be patched again
         ModInfo hooker = new ModInfo("hooker", "Hooker", "1.0", "", List.of(), List.of(), List.of(), "x", live);

@@ -133,7 +133,8 @@ public final class Installer {
             if (entry == null && jar.getFileName().toString().contains(".squid")) entry = nestedSquidJson(zip);
             if (entry == null) return null;
             try (InputStream in = zip.getInputStream(entry)) {
-                byte[] bytes = in.readAllBytes();
+                byte[] bytes = in.readNBytes((1 << 20) + 1);
+                if (bytes.length > 1 << 20) return null; // a made-up file could unpack to gigabytes
                 int bom = bytes.length >= 3 && (bytes[0] & 0xFF) == 0xEF && (bytes[1] & 0xFF) == 0xBB && (bytes[2] & 0xFF) == 0xBF ? 3 : 0;
                 Map<String, Object> json = squid.Json.object(squid.Json.parse(new String(bytes, bom, bytes.length - bom, java.nio.charset.StandardCharsets.UTF_8)));
                 return json != null && json.get(key) instanceof String value ? value : null;

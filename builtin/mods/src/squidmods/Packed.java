@@ -36,6 +36,18 @@ final class Packed {
         return null;
     }
 
+    /**
+     * A file inside a mod's zip, read no further than `most` bytes: a made-up file could unpack to gigabytes, and the
+     * screen would run out of memory reading it.
+     */
+    static byte[] small(java.io.InputStream in, int most) throws java.io.IOException {
+        try (in) {
+            byte[] bytes = in.readNBytes(most + 1);
+            if (bytes.length > most) throw new java.io.IOException("too big");
+            return bytes;
+        }
+    }
+
     /** Text from a mod's file: UTF-8 (with or without a BOM), or else Windows' own encoding. */
     static String text(byte[] bytes) {
         int start = bytes.length >= 3 && (bytes[0] & 0xFF) == 0xEF && (bytes[1] & 0xFF) == 0xBB && (bytes[2] & 0xFF) == 0xBF ? 3 : 0;

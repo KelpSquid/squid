@@ -7,7 +7,6 @@ import net.minecraft.resources.Identifier;
 import squid.Json;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -104,12 +103,10 @@ final class ModIcons {
                 String root = packed ? Packed.root(zip) : "";
                 ZipEntry json = root == null ? null : packed ? Packed.entry(zip, root + "squid.json") : zip.getEntry("squid.json");
                 if (json == null) return null;
-                String icon = icon(parse(Packed.text(zip.getInputStream(json).readAllBytes())));
+                String icon = icon(parse(Packed.text(Packed.small(zip.getInputStream(json), 1 << 20))));
                 ZipEntry entry = packed ? Packed.entry(zip, root + "resources/" + icon) : zip.getEntry(icon);
                 if (entry == null || entry.getSize() > 1 << 20) return null;
-                try (InputStream in = zip.getInputStream(entry)) {
-                    return in.readAllBytes();
-                }
+                return Packed.small(zip.getInputStream(entry), 1 << 20); // the size a zip claims can be made up
             }
         } catch (IOException | RuntimeException e) {
             return null;

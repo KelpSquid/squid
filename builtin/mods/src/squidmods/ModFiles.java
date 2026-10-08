@@ -90,7 +90,7 @@ public final class ModFiles {
             String root = fromCode ? Packed.root(zip) : "";
             ZipEntry entry = root == null ? null : fromCode ? Packed.entry(zip, root + "squid.json") : zip.getEntry("squid.json");
             if (entry == null) return new ModFile(file, base, base, "", "", enabled, false, false);
-            Object parsed = Json.parse(Packed.text(zip.getInputStream(entry).readAllBytes()));
+            Object parsed = Json.parse(Packed.text(Packed.small(zip.getInputStream(entry), 1 << 20)));
             Map<String, Object> json = parsed instanceof Map<?, ?> ? Json.object(parsed) : Map.of();
             String className = base.replaceAll("[^A-Za-z0-9_]", "");
             return new ModFile(file, text(json, "id", idFrom(className)), text(json, "name", spaced(className)), text(json, "version", ""),

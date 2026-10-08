@@ -325,7 +325,7 @@ final class Mods {
         try (ZipFile zip = new ZipFile(jar.toFile())) {
             ZipEntry entry = zip.getEntry("squid.json");
             if (entry == null) return null;
-            String text = SourceMods.text(zip.getInputStream(entry).readAllBytes());
+            String text = SourceMods.text(SourceMods.squidJson(zip, entry));
             return info(parse(text, jar.getFileName().toString()), jar, null, null, null);
         } catch (java.util.zip.ZipException e) {
             throw new IOException(Lang.t("it's damaged, so Squid can't open it. Download it again."));
@@ -363,7 +363,7 @@ final class Mods {
         try (ZipFile zip = new ZipFile(file.toFile())) {
             String root = SourceMods.packedRoot(zip);
             if (root == null) throw new IOException(Lang.t("it has no squid.json inside. Pack it again from Kelp."));
-            json = parse(SourceMods.text(zip.getInputStream(SourceMods.entry(zip, root + "squid.json")).readAllBytes()), null);
+            json = parse(SourceMods.text(SourceMods.squidJson(zip, SourceMods.entry(zip, root + "squid.json"))), null);
         } catch (java.util.zip.ZipException e) {
             throw new IOException(Lang.t("it's damaged, so Squid can't open it. Download or pack it again."));
         }
