@@ -269,6 +269,7 @@ public class PipelineTest {
                 "        onCommand(\"dance\", () -> particles(\"note\", 10));",
                 "        onCommand(\"shout\", words -> title(words));",
                 "        onChat(text -> { if (text.contains(\"hello\")) say(\"Hi back!\"); });",
+                "        onBreak(block -> { if (block.contains(\"diamond\")) remember(\"diamonds\", remembered(\"diamonds\", 0) + 1); });",
                 "        every(1, () -> {",
                 "            if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");",
                 "            showText(holding() + \" / \" + lookingAt() + \" / \" + biome() + \" / \" + (isNight() ? \"night\" : \"day\"));",
@@ -286,6 +287,7 @@ public class PipelineTest {
                 .init(new Squid(allCommands));
         check("chat commands and onChat hook into Minecraft's chat classes", Class.forName("net.minecraft.client.multiplayer.ClientPacketListener", false, chatLoader).getClassLoader() == chatLoader
                 && Class.forName("net.minecraft.client.gui.components.ChatComponent", false, chatLoader).getClassLoader() == chatLoader, true);
+        check("onBreak hooks into breaking blocks", Class.forName("net.minecraft.client.multiplayer.MultiPlayerGameMode", false, chatLoader).getClassLoader() == chatLoader, true);
 
 
         // Projects: a folder with many files and resources, and the same thing packed into one .squid file
@@ -804,6 +806,11 @@ public class PipelineTest {
         check("numbers stay between their limits", settings.number("Zoom", 4, 1, 10), 10);
         check("settings are saved in the instance's config folder", java.nio.file.Files.exists(modsGame.resolve("config/squid/settings-test.properties")), true);
         check("the Mods screen knows which mods have settings", squid.api.ModSettings.has("settings-test") + " " + squid.api.ModSettings.has("nothing"), "true false");
+        // remember() keeps a number for next time, without it showing up as a setting
+        check("a number not remembered yet is the starting one", settings.remembered("diamonds", 0), 0);
+        settings.remember("diamonds", 12);
+        check("a remembered number comes back, and isn't a setting", settings.remembered("diamonds", 0) + " " + settings.list().size()
+                + " " + java.nio.file.Files.readString(modsGame.resolve("config/squid/settings-test.properties")).contains("remember.diamonds=12"), "12 3 true");
         Main.setGameFolder(Path.of("."));
 
         // Panoramas: captured ones are kept with their six pictures, and the one in use and its spin are remembered

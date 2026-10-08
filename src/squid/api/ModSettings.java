@@ -93,6 +93,21 @@ public final class ModSettings {
         return all.contains(value) ? value : defaultValue;
     }
 
+    /** A number the mod kept with {@link #remember} (like how many diamonds you've ever mined), or startingValue. */
+    public synchronized int remembered(String name, int startingValue) {
+        try {
+            return Integer.parseInt(value("remember." + name, String.valueOf(startingValue)));
+        } catch (NumberFormatException e) {
+            return startingValue;
+        }
+    }
+
+    /** Keeps a number for next time. The file is only written when the number changes. */
+    public synchronized void remember(String name, int value) {
+        if (String.valueOf(value).equals(value("remember." + name, null))) return;
+        set("remember." + name, value);
+    }
+
     /** The current value of a setting, as text (for the settings screen). */
     public synchronized String get(String name) {
         Setting setting = settings.get(name);

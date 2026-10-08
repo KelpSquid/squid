@@ -297,16 +297,23 @@ public final class Game {
             Object hit = field(minecraft(), "hitResult");
             if (hit == null) return "";
             String kind = ((Enum<?>) call(hit, "getType")).name();
-            if (kind.equals("BLOCK")) {
-                Object state = call(world(), "getBlockState", call(hit, "getBlockPos"));
-                Object registry = type("net.minecraft.core.registries.BuiltInRegistries").getField("BLOCK").get(null);
-                return path(call(registry, "getKey", call(state, "getBlock")));
-            }
+            if (kind.equals("BLOCK")) return blockAt(call(hit, "getBlockPos"));
             if (kind.equals("ENTITY")) {
                 Class<?> entityType = type("net.minecraft.world.entity.EntityType");
                 return path(entityType.getMethod("getKey", entityType).invoke(null, call(call(hit, "getEntity"), "getType")));
             }
             return "";
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** The name of the block at a spot in the world (a BlockPos), like "stone" or "diamond_ore". */
+    static String blockAt(Object pos) {
+        try {
+            Object state = call(world(), "getBlockState", pos);
+            Object registry = type("net.minecraft.core.registries.BuiltInRegistries").getField("BLOCK").get(null);
+            return path(call(registry, "getKey", call(state, "getBlock")));
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException(e);
         }

@@ -197,6 +197,27 @@ public abstract class EasyMod implements SquidMod {
         });
     }
 
+    /**
+     * Runs when you break a block, with the block's name: onBreak(block -> { if (block.equals("diamond_ore"))
+     * say("Diamonds!"); }). Names are like "stone", "oak_log" and "deepslate_diamond_ore".
+     */
+    protected void onBreak(java.util.function.Consumer<String> action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onBreak only works inside start()"));
+        String[] block = {""};
+        Action run = new Action("onBreak", () -> action.accept(block[0]));
+        // The block's name is read just before it's broken (after, it's air)
+        squid.atStart("net.minecraft.client.multiplayer.MultiPlayerGameMode", "destroyBlock", call -> {
+            try {
+                block[0] = Game.blockAt(call.args()[0]);
+            } catch (RuntimeException e) {
+                block[0] = "";
+            }
+        });
+        squid.atEnd("net.minecraft.client.multiplayer.MultiPlayerGameMode", "destroyBlock", call -> {
+            if (Boolean.TRUE.equals(call.returnValue()) && !block[0].isEmpty()) run.run();
+        });
+    }
+
     /** Runs 20 times a second while you're in a world. */
     protected void onTick(Runnable action) {
         ticks.add(new Action("onTick", action));
@@ -372,6 +393,18 @@ public abstract class EasyMod implements SquidMod {
     /** A setting with a few choices, like setting("Corner", "Top left", "Top left", "Top right"). */
     protected String setting(String name, String defaultValue, String... choices) {
         return squid.settings().choice(name, defaultValue, choices);
+    }
+
+    /**
+     * Keeps a number for next time you play, like remember("diamonds", diamonds). Get it back with remembered().
+     */
+    protected void remember(String name, int value) {
+        squid.settings().remember(name, value);
+    }
+
+    /** A number kept with remember(), or startingValue the first time: int diamonds = remembered("diamonds", 0); */
+    protected int remembered(String name, int startingValue) {
+        return squid.settings().remembered(name, startingValue);
     }
 
     /** For bigger mods: everything Squid can do, like hooks and drawing on the screen. */
