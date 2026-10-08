@@ -348,6 +348,36 @@ public final class Game {
         return address.isEmpty() ? null : "server\n" + address + "\n" + name + "\n";
     }
 
+    /** Each kind of entity's short name ("creeper"), worked out once per kind, for kindOf. */
+    private static final java.util.Map<Object, String> KIND_NAMES = java.util.Collections.synchronizedMap(new java.util.IdentityHashMap<>());
+    private static final ClassValue<Method> GET_TYPE = new ClassValue<>() {
+        @Override
+        protected Method computeValue(Class<?> type) {
+            try {
+                return type.getMethod("getType");
+            } catch (NoSuchMethodException e) {
+                return null;
+            }
+        }
+    };
+
+    /** What kind of entity this is ("creeper"), quickly enough to ask for every mob every frame. Null if unknown. */
+    static String kindOf(Object entity) {
+        try {
+            Method getType = GET_TYPE.get(entity.getClass());
+            if (getType == null) return null;
+            Object type = getType.invoke(entity);
+            String name = KIND_NAMES.get(type);
+            if (name == null) {
+                name = entityName(entity);
+                KIND_NAMES.put(type, name);
+            }
+            return name;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return null;
+        }
+    }
+
     /** What kind of mob (or player, or thing) an entity is, like "zombie" or "player". */
     static String entityName(Object entity) {
         try {

@@ -41,6 +41,7 @@ public final class ModMaker {
             new String[] {"onDeath", "onDeath(() -> title(\"Oops!\", \"Try again\"));"},
             new String[] {"onCommand", "onCommand(\"dance\", () -> particles(\"note\", 10));"},
             new String[] {"onChat", "onChat(text -> { if (text.contains(\"hi\")) say(\"Hello!\"); });"},
+            new String[] {"glow", "glow(\"creeper\");"},
             new String[] {"keepShowing", "keepShowing(() -> \"Health: \" + health());"},
             new String[] {"playSound", "playSound(\"entity.experience_orb.pickup\");"},
             new String[] {"particles", "particles(\"flame\", 10);"},

@@ -273,6 +273,7 @@ public class PipelineTest {
                 "        onAttack(mob -> { if (mob.equals(\"zombie\")) particles(\"crit\", 5); });",
                 "        onKey(\"G\", () -> after(1.5, () -> title(\"Boom!\")));",
                 "        onPickup(item -> { if (item.equals(\"diamond\")) say(\"Shiny!\"); });",
+                "        onKey(\"K\", () -> { glow(\"creeper\"); after(10, () -> stopGlowing(\"creeper\")); });",
                 "        keepShowing(() -> \"Diamonds: \" + remembered(\"diamonds\", 0));",
                 "        every(1, () -> {",
                 "            if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");",
@@ -313,10 +314,12 @@ public class PipelineTest {
         boolean said = Events.command("hello !jig");
         check("shared events reach every mod, and both mods' !jig run", eventsHeard + " " + danced + " " + said,
                 "[a:zombie, b:zombie, a!all night, b!all night] true false");
+        Events.glow("event-test-a", "creeper", true);
+        check("a mod can outline a kind of mob", Events.anyGlowing() + " " + Events.glowing("creeper") + " " + Events.glowing("pig"), "true true false");
         Events.remove("event-test-a");
         Events.remove("event-test-b");
         Events.fire("attack", "skeleton");
-        check("a mod that's turned off stops hearing them", eventsHeard.size() + " " + Events.command("!jig"), "4 false");
+        check("a mod that's turned off stops hearing them, and its outlines go", eventsHeard.size() + " " + Events.command("!jig") + " " + Events.glowing("creeper"), "4 false false");
 
 
         // Projects: a folder with many files and resources, and the same thing packed into one .squid file
@@ -844,7 +847,7 @@ public class PipelineTest {
         allSnippets.append("    }\n}\n");
         Path snippetsFile = java.nio.file.Files.createTempDirectory("squid-snippets").resolve("AllSnippets.java");
         java.nio.file.Files.writeString(snippetsFile, allSnippets);
-        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 26");
+        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 27");
 
         Main.setGameFolder(modsGame);
         squid.api.ModSettings settings = squid.api.ModSettings.of("settings-test");

@@ -53,6 +53,12 @@ public final class GameEvents {
             }
             if (picked != null) Events.fire("pickup", picked);
         });
+        // Mobs a mod outlines (glow("creeper")): Minecraft asks this for every mob, every frame, so it's kept quick
+        Events.hookAtStartup("net.minecraft.client.Minecraft", "shouldEntityAppearGlowing", false, call -> {
+            if (Boolean.TRUE.equals(call.returnValue()) || !Events.anyGlowing()) return;
+            String kind = Game.kindOf(call.args()[0]);
+            if (kind != null && Events.glowing(kind)) call.setReturnValue(true);
+        });
         // Every message the chat box shows ends up here, just as it's shown: players', the server's, /say...
         Events.hookAtStartup("net.minecraft.client.gui.components.ChatComponent", "addMessage", false, call -> {
             if (Game.saying || !Events.listening("chat")) return; // a mod talking doesn't count

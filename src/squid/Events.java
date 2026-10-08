@@ -52,6 +52,28 @@ public final class Events {
         if (listeners != null) run(listeners, value);
     }
 
+    /** The kinds of mobs each mod wants outlined through walls (like "creeper"), by mod id. */
+    private static final java.util.Map<String, java.util.Set<String>> GLOWING = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** A mod starts (or stops) outlining a kind of mob, like "creeper", so it shows through walls. */
+    public static void glow(String modId, String mob, boolean on) {
+        java.util.Set<String> kinds = GLOWING.computeIfAbsent(modId, id -> java.util.concurrent.ConcurrentHashMap.newKeySet());
+        if (on) kinds.add(mob);
+        else kinds.remove(mob);
+    }
+
+    /** Whether any mod outlines anything right now (most of the time nothing does, and this is all that's checked). */
+    public static boolean anyGlowing() {
+        for (java.util.Set<String> kinds : GLOWING.values()) if (!kinds.isEmpty()) return true;
+        return false;
+    }
+
+    /** Whether some mod outlines this kind of mob. */
+    public static boolean glowing(String mob) {
+        for (java.util.Set<String> kinds : GLOWING.values()) if (kinds.contains(mob)) return true;
+        return false;
+    }
+
     /** A mod's chat command: typing "!name" (and maybe more words) in the chat runs it instead of sending it. */
     public static void onCommand(String modId, String name, Consumer<String> run) {
         String command = "!" + name.toLowerCase(java.util.Locale.ROOT).replaceFirst("^!", "");
@@ -104,6 +126,7 @@ public final class Events {
         CUES.removeIf(l -> l.modId().equals(modId));
         for (List<Listener<Object>> listeners : GAME.values()) listeners.removeIf(l -> l.modId().equals(modId));
         COMMANDS.removeIf(c -> c.listener().modId().equals(modId));
+        GLOWING.remove(modId);
     }
 
     /** Squid hooks Minecraft's tick and HUD here once, before any mod starts. */

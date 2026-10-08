@@ -51,6 +51,7 @@ public class RainbowSheep extends EasyMod {
 | `onAttack(mob -> { ... })` | Runs when you hit a mob, with what it is (`"zombie"`, `"player"`) |
 | `onPickup(item -> { ... })` | Runs when you pick up an item, with its name (`"diamond"`, `"apple"`) |
 | `keepShowing(() -> "Diamonds: " + diamonds)` | Text that stays in the top-left corner, always up to date |
+| `glow("creeper")`, `stopGlowing("creeper")` | Outlines every mob of a kind, so you see them through walls (only you) |
 | `remember("diamonds", 5)`, `remembered("diamonds", 0)` | Keeps a number for next time you play, and gets it back (or the starting number) |
 | `onBeat(() -> { ... })` | Runs on every beat of the music: Jukebox songs (Squid finds their beat) and `.sqda` beats |
 | `musicLevel()`, `nowPlaying()` | How loud the music is (0 to 1), and what's playing |

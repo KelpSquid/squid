@@ -1,5 +1,6 @@
 package squid.api;
 
+import squid.Events;
 import squid.Lang;
 import squid.Main;
 import squid.Mistakes;
@@ -257,6 +258,19 @@ public abstract class EasyMod implements SquidMod {
             hud.box(2, y - 2, hud.textWidth(shown[0]) + 4, 12, 0x80000000);
             hud.text(shown[0], 4, y, 0xFFFFFFFF);
         });
+    }
+
+    /**
+     * Outlines every mob of a kind, like glow("creeper"), so you can see them through walls. stopGlowing("creeper")
+     * turns it off again. Only you see the outlines.
+     */
+    protected void glow(String mob) {
+        Events.glow(squid.mod().id(), mob.toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replaceFirst("^minecraft:", ""), true);
+    }
+
+    /** Stops outlining a kind of mob (see glow). */
+    protected void stopGlowing(String mob) {
+        Events.glow(squid.mod().id(), mob.toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replaceFirst("^minecraft:", ""), false);
     }
 
     /** Runs 20 times a second while you're in a world. */
