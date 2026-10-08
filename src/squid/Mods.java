@@ -110,7 +110,7 @@ final class Mods {
             candidates.add(new Candidate(file, mod));
         }
 
-        // One copy of each mod: the newest version, or the first one if they're the same
+        // One copy of each mod: the newest version (see below for a tie)
         Map<String, Candidate> byId = new LinkedHashMap<>();
         for (Candidate c : candidates) {
             Candidate other = byId.get(c.mod().id());
@@ -118,7 +118,9 @@ final class Mods {
                 byId.put(c.mod().id(), c);
                 continue;
             }
-            boolean newer = compareVersions(c.mod().version(), other.mod().version()) > 0;
+            // The newest version; if they're the same, your own code (a project or .java) over a packed copy
+            int versions = compareVersions(c.mod().version(), other.mod().version());
+            boolean newer = versions > 0 || versions == 0 && source(c.file()) && !source(other.file());
             Candidate kept = newer ? c : other;
             Candidate extra = newer ? other : c;
             skip(skipped, extra.mod(), Lang.t("it's another copy of {0}. You can delete {1}.",
@@ -180,6 +182,11 @@ final class Mods {
         }
         if (sources != null) sources.cleanUp(); // old builds of mods that changed or are gone
         return new Found(inStartOrder(new ArrayList<>(ready.values())), List.copyOf(skipped));
+    }
+
+    /** Whether a mod is someone's own code: a project folder or a .java file, not a packed .squid or .jar. */
+    private static boolean source(Path file) {
+        return Files.isDirectory(file) || file.getFileName().toString().endsWith(".java");
     }
 
     /** A problem's message for the player. Errors that aren't Squid's own, like a file name Windows can't use, get one too. */
