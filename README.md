@@ -42,6 +42,7 @@ public class RainbowSheep extends EasyMod {
 | `onJoin(() -> { ... })` | Runs when you join a world |
 | `onKey("H", () -> { ... })` | Runs when you press a key (players can change it in Controls) |
 | `every(10, () -> { ... })` | Runs every 10 seconds |
+| `after(3, () -> { ... })` | Runs once, 3 seconds from now (works inside other commands too, for countdowns) |
 | `onTick(() -> { ... })` | Runs 20 times a second |
 | `onHurt(() -> { ... })`, `onDeath(() -> { ... })` | Runs when you get hurt, or die |
 | `onCommand("dance", () -> { ... })` | Your own chat command: typing `!dance` runs it (and isn't sent). `onCommand("shout", words -> ...)` gets what's typed after it |

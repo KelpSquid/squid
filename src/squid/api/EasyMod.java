@@ -36,6 +36,7 @@ public abstract class EasyMod implements SquidMod {
     private double lastHealth = -1; // health last tick, to notice getting hurt and dying
     private int ticksInWorld; // since joining: your real health arrives from the server a moment after you join
     private final List<Timer> timers = new ArrayList<>();
+    private final List<Later> laters = new ArrayList<>();
     private final List<KeyAction> keys = new ArrayList<>();
     private final List<String[]> waitingMessages = new ArrayList<>(); // text and color, said before joining a world
     private Object world; // the world the player was in last tick, to notice joining and leaving
@@ -47,7 +48,10 @@ public abstract class EasyMod implements SquidMod {
     private record KeyAction(KeyBinding key, Action action) {
     }
 
-    /** Something the mod asked to run later. If it keeps going wrong, it's switched off so the game stays fine. */
+    /** Something to run once, at a tick in the world (see after()). */
+    private record Later(long dueTick, Action action) {
+    }
+
     /** The frame keepShowing() lines are being drawn on, and how many lines are on it so far (from every mod). */
     private static Object cornerFrame;
     private static int cornerLines;
@@ -55,6 +59,7 @@ public abstract class EasyMod implements SquidMod {
     /** Chat commands like "!dance", and the mod that has each one. */
     private static final java.util.Map<String, String> COMMANDS = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /** Something the mod asked to run later. If it keeps going wrong, it's switched off so the game stays fine. */
     private final class Action {
         private final String what;
         private final Runnable run;
@@ -269,6 +274,15 @@ public abstract class EasyMod implements SquidMod {
     protected void every(double seconds, Runnable action) {
         int everyTicks = Math.max(1, (int) Math.round(seconds * 20));
         timers.add(new Timer(everyTicks, new Action("every(" + seconds + ")", action)));
+    }
+
+    /**
+     * Runs once, so many seconds from now (counting time in a world, not paused): after(3, () -> say("Boom!")).
+     * Works anywhere, like inside onKey, so a key can start a countdown.
+     */
+    protected void after(double seconds, Runnable action) {
+        long ticks = Math.max(1, Math.round(seconds * 20));
+        laters.add(new Later(worldTicks + ticks, new Action("after(" + seconds + ")", action)));
     }
 
     // ---- Things to do ----
@@ -491,6 +505,12 @@ public abstract class EasyMod implements SquidMod {
         ticks.forEach(Action::run);
         for (Timer timer : timers) {
             if (worldTicks % timer.everyTicks() == 0) timer.action().run();
+        }
+        if (!laters.isEmpty()) {
+            // Taken out first, so an after() inside one (a countdown) is kept for later instead of changing the list
+            List<Later> due = new ArrayList<>();
+            laters.removeIf(later -> later.dueTick() <= worldTicks && due.add(later));
+            for (Later later : due) later.action().run();
         }
     }
 
