@@ -45,8 +45,11 @@ import java.util.regex.Pattern;
  */
 public class Sounds implements SquidMod {
     private static final String[] OTHER_KINDS = {".sqda", ".wav", ".mp3", ".flac", ".m4a"};
-    /** A trigger plays one of a file's own variants as "name.squidvariant3": the same file, variant 3. */
-    static final Pattern VARIANT = Pattern.compile("^(.*)\\.squidvariant(\\d+)(\\.ogg)?$");
+    /**
+     * A trigger plays one of a file's own variants as "name.squidvariant3": the same file, variant 3. At most 5 digits
+     * (a file has at most 65535 variants), so a made-up name can't fail inside the hook as a number too big to read.
+     */
+    static final Pattern VARIANT = Pattern.compile("^(.*)\\.squidvariant(\\d{1,5})(\\.ogg)?$");
 
     private final Set<Identifier> plainOgg = ConcurrentHashMap.newKeySet(); // checked already: Minecraft's own
     /** Each sound file's bytes, read from the resource packs once instead of on every play. Empty: Minecraft's own. */

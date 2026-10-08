@@ -1563,6 +1563,11 @@ public class PipelineTest {
         check("a damaged .sqda in a pack doesn't fail inside Squid Sounds' hooks, and a good one still plays",
                 brokenFirst + " " + brokenAgain + " " + (readPackSqda.invoke(soundsPart, parseId.invoke(null, "minecraft:sounds/good.ogg"), sqdaBytes) != null),
                 "null null true");
+        java.lang.reflect.Field variantName = soundsPart.getClass().getDeclaredField("VARIANT");
+        variantName.setAccessible(true);
+        java.util.regex.Pattern variantPattern = (java.util.regex.Pattern) variantName.get(null);
+        check("a variant asked for by number can't be a number too big to read", variantPattern.matcher("music/x.squidvariant3.ogg").matches() + " "
+                + variantPattern.matcher("music/x.squidvariant99999999999.ogg").matches(), "true false");
         // The Jukebox's hook goes into Minecraft's music manager (so the game's music waits while a song plays)
         ((SquidMod) netLoader.loadClass("squidjukebox.Jukebox").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-jukebox")));
         // The voice changer: Chipmunk is higher and Giant deeper (counted by how often the sound crosses zero), at the
