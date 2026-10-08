@@ -56,11 +56,11 @@ public class SquidCount implements SquidMod {
             if (!packet.shouldReset()) earned((ClientAdvancements) call.self(), packet);
         });
 
-        // The total, top-left of the title screen
+        // The total, top-left of the title screen, just right of the Squid button (which is 4 to 64 across, 4 to 24 down)
         squid.atEnd("net.minecraft.client.gui.screens.TitleScreen", "extractRenderState", call -> {
             Minecraft minecraft = Minecraft.getInstance();
             CountFile.Player player = count.player(minecraft.getUser().getProfileId().toString().replace("-", ""));
-            new Hud(call.args()[0]).text(Lang.t("Squid Count: {0}", player.points), 2, 2, 0xFFFFAA00);
+            new Hud(call.args()[0]).text(Lang.t("Squid Count: {0}", player.points), 70, 10, 0xFFFFAA00);
         });
     }
 

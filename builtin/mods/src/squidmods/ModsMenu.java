@@ -27,12 +27,34 @@ public class ModsMenu implements SquidMod {
     }
 
     private static boolean newsChecked;
+    /** The Squid button on each title or pause screen, to check it's still there. */
+    private static final java.util.Map<Screen, Button> BUTTONS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
+    private static boolean toldMissing;
+
+    private static void tick() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft == null) return;
+        // The Squid button has to be on the title screen and the pause menu. If it isn't (something set the screen
+        // up again without it), it's put back, and the log says so once, to find out why
+        Screen screen = minecraft.gui.screen();
+        if (screen instanceof net.minecraft.client.gui.screens.TitleScreen || screen instanceof net.minecraft.client.gui.screens.PauseScreen) {
+            Button button = BUTTONS.get(screen);
+            if (button == null || !screen.children().contains(button)) {
+                if (!toldMissing) {
+                    toldMissing = true;
+                    System.out.println("[Squid] The Squid button wasn't on " + screen.getClass().getSimpleName()
+                            + (button == null ? " (it was never added)" : " (it was taken off)") + ", so it was put back.");
+                }
+                addButton(screen);
+            }
+        }
+        news(minecraft);
+    }
 
     /** The first time the title screen shows after an update: what's new, once. */
-    private static void tick() {
+    private static void news(Minecraft minecraft) {
         if (newsChecked) return;
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null || !(minecraft.gui.screen() instanceof net.minecraft.client.gui.screens.TitleScreen title)) return;
+        if (!(minecraft.gui.screen() instanceof net.minecraft.client.gui.screens.TitleScreen title)) return;
         newsChecked = true;
         if (WhatsNew.seen(WhatsNew.file())) return;
         WhatsNew.markSeen(WhatsNew.file());
@@ -49,6 +71,7 @@ public class ModsMenu implements SquidMod {
                 addWidget.setAccessible(true);
             }
             addWidget.invoke(screen, mods);
+            BUTTONS.put(screen, mods);
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException(Lang.t("Couldn't add the Mods button"), e);
         }
