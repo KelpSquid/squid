@@ -301,6 +301,28 @@ public final class Game {
         return "";
     }
 
+    /**
+     * The item this player just picked up and how many, like {"diamond", 3}, from Minecraft's "item taken" message; null if it's
+     * someone else picking something up, an experience orb, or the message is still on its way in (Minecraft first
+     * sees it on the network thread, then hands it to the game's own thread, where it counts).
+     */
+    static Object[] pickedUp(Object packet) {
+        Object mc = minecraft();
+        Object player = player();
+        Object level = world();
+        if (mc == null || player == null || level == null || !(boolean) call(mc, "isSameThread")) return null;
+        if ((int) call(packet, "getPlayerId") != (int) call(player, "getId")) return null;
+        Object entity = call(level, "getEntity", call(packet, "getItemId"));
+        try {
+            if (entity == null || !type("net.minecraft.world.entity.item.ItemEntity").isInstance(entity)) return null;
+            Object item = call(call(entity, "getItem"), "getItem");
+            Object registry = type("net.minecraft.core.registries.BuiltInRegistries").getField("ITEM").get(null);
+            return new Object[] {path(call(registry, "getKey", item)), (Integer) call(packet, "getAmount")};
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     /** What kind of mob (or player, or thing) an entity is, like "zombie" or "player". */
     static String entityName(Object entity) {
         try {

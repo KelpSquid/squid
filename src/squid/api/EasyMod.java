@@ -56,9 +56,6 @@ public abstract class EasyMod implements SquidMod {
     private static Object cornerFrame;
     private static int cornerLines;
 
-    /** Chat commands like "!dance", and the mod that has each one. */
-    private static final java.util.Map<String, String> COMMANDS = new java.util.concurrent.ConcurrentHashMap<>();
-
     /** Something the mod asked to run later. If it keeps going wrong, it's switched off so the game stays fine. */
     private final class Action {
         private final String what;
@@ -171,20 +168,10 @@ public abstract class EasyMod implements SquidMod {
      */
     protected void onCommand(String name, java.util.function.Consumer<String> action) {
         if (!starting) throw new IllegalStateException(Lang.t("onCommand only works inside start()"));
-        String command = "!" + name.toLowerCase(java.util.Locale.ROOT).replaceFirst("^!", "");
-        // The first mod to claim a command gets it (the message stops there), so a second one is told why it's quiet
-        String owner = COMMANDS.putIfAbsent(command, squid.mod().id());
-        if (owner != null && !owner.equals(squid.mod().id())) {
-            problem(Lang.t("{0} is already a command in {1}, so this one won't run. Pick another name.", command, owner));
-        }
         String[] words = {""}; // what was typed after the command, handed to the action
         Action run = new Action("onCommand(\"" + name + "\")", () -> action.accept(words[0]));
-        squid.atStart("net.minecraft.client.multiplayer.ClientPacketListener", "sendChat", call -> {
-            String typed = String.valueOf(call.args()[0]).strip();
-            String first = typed.split("\\s+", 2)[0].toLowerCase(java.util.Locale.ROOT);
-            if (!first.equals(command)) return;
-            call.cancel(); // it's yours: it doesn't go to the server
-            words[0] = typed.length() > first.length() ? typed.substring(first.length()).strip() : "";
+        squid.onChatCommand(name, typed -> {
+            words[0] = typed;
             run.run();
         });
     }
@@ -198,10 +185,8 @@ public abstract class EasyMod implements SquidMod {
         if (!starting) throw new IllegalStateException(Lang.t("onChat only works inside start()"));
         String[] text = {""};
         Action run = new Action("onChat", () -> action.accept(text[0]));
-        // Every message the chat box shows ends up here, just as it's shown: players', the server's, /say...
-        squid.atEnd("net.minecraft.client.gui.components.ChatComponent", "addMessage", call -> {
-            if (Game.saying) return; // a mod talking
-            text[0] = Game.plain(call.args()[0]);
+        squid.onChat(message -> {
+            text[0] = message;
             run.run();
         });
     }
@@ -214,16 +199,29 @@ public abstract class EasyMod implements SquidMod {
         if (!starting) throw new IllegalStateException(Lang.t("onBreak only works inside start()"));
         String[] block = {""};
         Action run = new Action("onBreak", () -> action.accept(block[0]));
-        // The block's name is read just before it's broken (after, it's air)
-        squid.atStart("net.minecraft.client.multiplayer.MultiPlayerGameMode", "destroyBlock", call -> {
-            try {
-                block[0] = Game.blockAt(call.args()[0]);
-            } catch (RuntimeException e) {
-                block[0] = "";
-            }
+        squid.onBreak(name -> {
+            block[0] = name;
+            run.run();
         });
-        squid.atEnd("net.minecraft.client.multiplayer.MultiPlayerGameMode", "destroyBlock", call -> {
-            if (Boolean.TRUE.equals(call.returnValue()) && !block[0].isEmpty()) run.run();
+    }
+
+    /** Runs when you pick up an item, with its name: onPickup(item -> { if (item.equals("diamond")) say("Shiny!"); }). */
+    protected void onPickup(java.util.function.Consumer<String> action) {
+        onPickup((item, amount) -> action.accept(item));
+    }
+
+    /**
+     * Runs when you pick up items, with the item's name and how many: onPickup((item, amount) -> { if
+     * (item.equals("diamond")) diamonds = diamonds + amount; }).
+     */
+    protected void onPickup(java.util.function.BiConsumer<String, Integer> action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onPickup only works inside start()"));
+        Object[] picked = {"", 0};
+        Action run = new Action("onPickup", () -> action.accept((String) picked[0], (Integer) picked[1]));
+        squid.onPickup((item, amount) -> {
+            picked[0] = item;
+            picked[1] = amount;
+            run.run();
         });
     }
 
@@ -232,12 +230,8 @@ public abstract class EasyMod implements SquidMod {
         if (!starting) throw new IllegalStateException(Lang.t("onAttack only works inside start()"));
         String[] mob = {""};
         Action run = new Action("onAttack", () -> action.accept(mob[0]));
-        squid.atStart("net.minecraft.client.multiplayer.MultiPlayerGameMode", "attack", call -> {
-            try {
-                mob[0] = Game.entityName(call.args()[1]);
-            } catch (RuntimeException e) {
-                return;
-            }
+        squid.onAttack(name -> {
+            mob[0] = name;
             run.run();
         });
     }

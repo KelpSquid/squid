@@ -112,6 +112,40 @@ public final class Squid {
         squid.Events.onSoundCue(mod.id(), cue);
     }
 
+    /** Runs when the player breaks a block, with its name, like "stone" or "diamond_ore". */
+    public void onBreak(Consumer<String> block) {
+        squid.Events.on("break", mod.id(), value -> block.accept((String) value));
+    }
+
+    /** Runs when the player hits a mob (or another player), with what it is, like "zombie". */
+    public void onAttack(Consumer<String> mob) {
+        squid.Events.on("attack", mod.id(), value -> mob.accept((String) value));
+    }
+
+    /** Runs when the player picks up items, with the item's name (like "diamond") and how many. */
+    public void onPickup(java.util.function.BiConsumer<String, Integer> item) {
+        squid.Events.on("pickup", mod.id(), value -> {
+            Object[] picked = (Object[]) value;
+            item.accept((String) picked[0], (Integer) picked[1]);
+        });
+    }
+
+    /**
+     * Runs for every chat message the player sees, as plain text: "<Steve> hi", "Alex joined the game". Messages mods
+     * show with {@link Game#chat} aren't included, so a mod can answer without hearing itself.
+     */
+    public void onChat(Consumer<String> message) {
+        squid.Events.on("chat", mod.id(), value -> message.accept((String) value));
+    }
+
+    /**
+     * A chat command: typing "!name" in the chat runs it (with the words typed after it) and the message isn't sent.
+     * If two mods have the same command, both run.
+     */
+    public void onChatCommand(String name, Consumer<String> words) {
+        squid.Events.onCommand(mod.id(), name, words);
+    }
+
     /** Runs 20 times a second, all the time the game is open (in menus too). */
     public void onTick(Runnable tick) {
         squid.Events.onTick(mod.id(), tick);

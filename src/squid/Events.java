@@ -24,6 +24,61 @@ public final class Events {
     private static final List<Listener<Void>> TICKS = new CopyOnWriteArrayList<>();
     private static final List<Listener<Hud>> HUDS = new CopyOnWriteArrayList<>();
     private static final List<Listener<SoundCue>> CUES = new CopyOnWriteArrayList<>();
+    private static final java.util.Map<String, List<Listener<Object>>> GAME = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final List<Command> COMMANDS = new CopyOnWriteArrayList<>();
+
+    /** A mod's chat command, like "!dance". */
+    private record Command(String name, Listener<String> listener) {
+    }
+
+    /**
+     * A mod listens for something happening in the game: "break" (a block's name), "attack" (a mob's name), "pickup"
+     * (an item's name and how many, as an Object[]) or "chat" (a message's text). Squid hooks each of these once at
+     * startup (see squid.api.GameEvents), so mods made or reloaded while playing hear them too.
+     */
+    public static void on(String event, String modId, Consumer<Object> run) {
+        GAME.computeIfAbsent(event, e -> new CopyOnWriteArrayList<>()).add(new Listener<>(modId, run, new AtomicInteger()));
+    }
+
+    /** Whether any mod listens for this event, so Squid only works out what happened when someone wants to know. */
+    public static boolean listening(String event) {
+        List<Listener<Object>> listeners = GAME.get(event);
+        return listeners != null && !listeners.isEmpty();
+    }
+
+    /** Hands something that happened to every mod listening for it. */
+    public static void fire(String event, Object value) {
+        List<Listener<Object>> listeners = GAME.get(event);
+        if (listeners != null) run(listeners, value);
+    }
+
+    /** A mod's chat command: typing "!name" (and maybe more words) in the chat runs it instead of sending it. */
+    public static void onCommand(String modId, String name, Consumer<String> run) {
+        String command = "!" + name.toLowerCase(java.util.Locale.ROOT).replaceFirst("^!", "");
+        COMMANDS.add(new Command(command, new Listener<>(modId, run, new AtomicInteger())));
+    }
+
+    /**
+     * Runs every mod's command for what was typed, like "!shout hello" (each gets the words after it, "hello").
+     * True if there was one, so the message isn't sent to the server.
+     */
+    public static boolean command(String typed) {
+        String text = typed.strip();
+        String first = text.split("\\s+", 2)[0].toLowerCase(java.util.Locale.ROOT);
+        List<Listener<String>> found = new java.util.ArrayList<>();
+        for (Command command : COMMANDS) if (command.name().equals(first)) found.add(command.listener());
+        if (found.isEmpty()) return false;
+        run(found, text.length() > first.length() ? text.substring(first.length()).strip() : "");
+        return true;
+    }
+
+    /**
+     * Squid's own hook into one of Minecraft's methods, for the events above. It only works while Squid starts up,
+     * before Minecraft's classes load.
+     */
+    public static void hookAtStartup(String className, String method, boolean atStart, squid.api.Hook hook) {
+        Transformers.add(className, new Transformers.HookPatch(method, null, atStart, Hooks.register("squid", hook)));
+    }
 
     public static void onTick(String modId, Runnable tick) {
         TICKS.add(new Listener<>(modId, nothing -> tick.run(), new AtomicInteger()));
@@ -47,6 +102,8 @@ public final class Events {
         TICKS.removeIf(l -> l.modId().equals(modId));
         HUDS.removeIf(l -> l.modId().equals(modId));
         CUES.removeIf(l -> l.modId().equals(modId));
+        for (List<Listener<Object>> listeners : GAME.values()) listeners.removeIf(l -> l.modId().equals(modId));
+        COMMANDS.removeIf(c -> c.listener().modId().equals(modId));
     }
 
     /** Squid hooks Minecraft's tick and HUD here once, before any mod starts. */

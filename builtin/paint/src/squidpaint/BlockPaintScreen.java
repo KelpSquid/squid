@@ -6,6 +6,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Util;
 import squid.Lang;
 
 import javax.imageio.ImageIO;
@@ -44,6 +45,7 @@ final class BlockPaintScreen extends Screen {
     private int color = RAINBOW[0];
     private boolean painting;
     private boolean filling; // the Fill bucket instead of the pen
+    private volatile boolean reading; // a dropped picture is being read in the background
     private String message;
     private int messageColor;
     private boolean canSave; // false when the texture couldn't be read, so Save can't wipe it out
@@ -241,24 +243,41 @@ final class BlockPaintScreen extends Screen {
         }
     }
 
-    /** A picture dropped onto the window (PNG, JPG, GIF or BMP) is shrunk into the texture as pixel art. */
+    /**
+     * A picture dropped onto the window (PNG, JPG, GIF or BMP) is shrunk into the texture as pixel art. It's read in
+     * the background (a big phone photo takes a moment), and only as big as it needs to be.
+     */
     @Override
     public void onFilesDrop(List<Path> files) {
-        if (files.isEmpty() || !canSave) return;
-        try {
-            BufferedImage picture = Files.size(files.getFirst()) > 32L << 20 ? null : ImageIO.read(files.getFirst().toFile());
-            if (picture == null || (long) picture.getWidth() * picture.getHeight() > 50_000_000L) {
-                say(Lang.t("That isn't a picture Squid can read (try a PNG or JPG)."), 0xFFFF5555);
-                return;
+        if (files.isEmpty() || !canSave || reading) return;
+        Path dropped = files.getFirst();
+        int tw = w;
+        int th = h;
+        int frames = frame;
+        reading = true;
+        say(Lang.t("Turning it into pixel art..."), 0xFFA0A0A0);
+        Util.backgroundExecutor().execute(() -> {
+            int[] art = null;
+            try {
+                BufferedImage picture = Paint.readPicture(dropped);
+                if (picture != null) art = Paint.fit(picture, tw, th, frames);
+            } catch (IOException | RuntimeException | OutOfMemoryError e) {
+                // said below
             }
-            remember();
-            System.arraycopy(Paint.fit(picture, w, h, frame), 0, pixels, 0, pixels.length);
-            palette = withBlockColors(pixels);
-            say(Lang.t("Here it is as pixel art. Touch it up, then Save."), 0xFF55FF55);
-            rebuildWidgets();
-        } catch (IOException | RuntimeException e) {
-            say(Lang.t("That isn't a picture Squid can read (try a PNG or JPG)."), 0xFFFF5555);
-        }
+            int[] done = art;
+            minecraft.execute(() -> {
+                reading = false;
+                if (done == null || done.length != pixels.length) {
+                    say(Lang.t("That isn't a picture Squid can read (try a PNG or JPG)."), 0xFFFF5555);
+                    return;
+                }
+                remember();
+                System.arraycopy(done, 0, pixels, 0, pixels.length);
+                palette = withBlockColors(pixels);
+                say(Lang.t("Here it is as pixel art. Touch it up, then Save."), 0xFF55FF55);
+                rebuildWidgets();
+            });
+        });
     }
 
     @Override
@@ -333,8 +352,14 @@ final class BlockPaintScreen extends Screen {
         }
         g.text(font, Lang.t("Left click: paint"), x0 + 52, previewY, 0xFF808080);
         g.text(font, Lang.t("Right click: pick"), x0 + 52, previewY + 11, 0xFF808080);
-        g.text(font, Lang.t("Drop a picture: pixel art"), x0 + 52, previewY + 22, 0xFF808080);
-        if (message != null) g.text(font, font.plainSubstrByWidth(message, width - 20), left(), height - 12, messageColor);
+        g.text(font, font.plainSubstrByWidth(Lang.t("Drop a picture: pixel art"), Math.max(0, width - x0 - 56)), x0 + 52, previewY + 22, 0xFF808080);
+        // Under the texture, left of the buttons (two lines if it's long)
+        if (message != null) {
+            int room = Math.max(40, x0 - left() - 6);
+            String first = font.plainSubstrByWidth(message, room);
+            g.text(font, first, left(), height - 23, messageColor);
+            g.text(font, font.plainSubstrByWidth(message.substring(first.length()).strip(), room), left(), height - 12, messageColor);
+        }
     }
 
     @Override

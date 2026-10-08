@@ -272,6 +272,7 @@ public class PipelineTest {
                 "        onBreak(block -> { if (block.contains(\"diamond\")) remember(\"diamonds\", remembered(\"diamonds\", 0) + 1); });",
                 "        onAttack(mob -> { if (mob.equals(\"zombie\")) particles(\"crit\", 5); });",
                 "        onKey(\"G\", () -> after(1.5, () -> title(\"Boom!\")));",
+                "        onPickup(item -> { if (item.equals(\"diamond\")) say(\"Shiny!\"); });",
                 "        keepShowing(() -> \"Diamonds: \" + remembered(\"diamonds\", 0));",
                 "        every(1, () -> {",
                 "            if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");",
@@ -283,7 +284,8 @@ public class PipelineTest {
                 "}", ""));
         ModInfo allCommands = sources.compile(everything);
         check("every EasyMod command compiles in a mod", allCommands.id(), "all-commands");
-        // ...and starts, with its chat hooks going into Minecraft's chat classes, which must still load
+        // ...and starts, with Squid's shared hooks (chat, commands, breaking...) in Minecraft's classes, which must still load
+        squid.api.GameEvents.install();
         SquidClassLoader chatLoader = new SquidClassLoader(urls.toArray(URL[]::new));
         Main.setGameLoader(chatLoader);
         ((SquidMod) new ModClassLoader(allCommands.jar(), chatLoader).loadClass("AllCommands").getDeclaredConstructor().newInstance())
@@ -291,6 +293,21 @@ public class PipelineTest {
         check("chat commands and onChat hook into Minecraft's chat classes", Class.forName("net.minecraft.client.multiplayer.ClientPacketListener", false, chatLoader).getClassLoader() == chatLoader
                 && Class.forName("net.minecraft.client.gui.components.ChatComponent", false, chatLoader).getClassLoader() == chatLoader, true);
         check("onBreak hooks into breaking blocks", Class.forName("net.minecraft.client.multiplayer.MultiPlayerGameMode", false, chatLoader).getClassLoader() == chatLoader, true);
+        // Shared events reach every mod listening, and every mod with a command runs, even two with the same one
+        List<String> eventsHeard = new ArrayList<>();
+        Events.on("attack", "event-test-a", mob -> eventsHeard.add("a:" + mob));
+        Events.on("attack", "event-test-b", mob -> eventsHeard.add("b:" + mob));
+        Events.onCommand("event-test-a", "Jig", words -> eventsHeard.add("a!" + words));
+        Events.onCommand("event-test-b", "!jig", words -> eventsHeard.add("b!" + words));
+        Events.fire("attack", "zombie");
+        boolean danced = Events.command("  !JIG  all night ");
+        boolean said = Events.command("hello !jig");
+        check("shared events reach every mod, and both mods' !jig run", eventsHeard + " " + danced + " " + said,
+                "[a:zombie, b:zombie, a!all night, b!all night] true false");
+        Events.remove("event-test-a");
+        Events.remove("event-test-b");
+        Events.fire("attack", "skeleton");
+        check("a mod that's turned off stops hearing them", eventsHeard.size() + " " + Events.command("!jig"), "4 false");
 
 
         // Projects: a folder with many files and resources, and the same thing packed into one .squid file
@@ -808,13 +825,17 @@ public class PipelineTest {
         check("making one that's there opens it instead", squidmods.ModMaker.create(makerMods, "hello maker") + " " + squidmods.ModMaker.read(makerMade),
                 makerMade + " // mine\n    public class HelloMaker {}");
         check("the Mod Maker lists easy mods", squidmods.ModMaker.easyMods(makerMods).size(), 1);
+        Path oddMaker = java.nio.file.Files.createTempDirectory("squid-mod-maker-odd");
+        check("names Java uses get My in front, and quotes and backslashes in a name can't break the code",
+                squidmods.ModMaker.className("Easy Mod") + " " + (sources.compile(squidmods.ModMaker.create(oddMaker, "Oops \\u0022 \"hi\" \\")).id() != null),
+                "MyEasyMod true");
         // Every line in the Mod Maker's Commands list works, all together in one mod
         StringBuilder allSnippets = new StringBuilder("public class AllSnippets extends EasyMod {\n    void start() {\n");
         for (String[] snippet : squidmods.ModMaker.SNIPPETS) allSnippets.append("        ").append(snippet[1]).append('\n');
         allSnippets.append("    }\n}\n");
         Path snippetsFile = java.nio.file.Files.createTempDirectory("squid-snippets").resolve("AllSnippets.java");
         java.nio.file.Files.writeString(snippetsFile, allSnippets);
-        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 24");
+        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 25");
 
         Main.setGameFolder(modsGame);
         squid.api.ModSettings settings = squid.api.ModSettings.of("settings-test");

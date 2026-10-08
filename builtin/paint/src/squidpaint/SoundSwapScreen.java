@@ -43,6 +43,8 @@ final class SoundSwapScreen extends Screen {
     private Identifier picked;
     private volatile boolean working; // a sound is being squeezed in the background
     private final Recorder recorder = new Recorder();
+    private int recordingId; // which recording is wanted; one that was cancelled has an older number
+    private boolean recordingBusy; // recording, or the recording is on its way back
     private boolean wasRecording;
     private String effect = "None";
     private String message;
@@ -130,10 +132,11 @@ final class SoundSwapScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Hear it")), b -> hear())
                 .bounds(width / 2 - 100, height / 2 + 20, 98, 20).build()).active = !working;
         addRenderableWidget(Button.builder(Component.literal(recorder.recording() ? Lang.t("Stop") : Lang.t("Record")), b -> record())
-                .bounds(width / 2 + 2, height / 2 + 20, 98, 20).build()).active = !working || recorder.recording();
+                .bounds(width / 2 + 2, height / 2 + 20, 98, 20).build()).active = recorder.recording() || (!working && !recordingBusy);
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Reset")), b -> reset())
                 .bounds(width / 2 - 100, height / 2 + 44, 98, 20).build()).active = !working && swapped(picked);
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Back")), b -> {
+            cancelRecording();
             picked = null;
             rebuildWidgets();
         }).bounds(width / 2 + 2, height / 2 + 44, 98, 20).build());
@@ -178,11 +181,15 @@ final class SoundSwapScreen extends Screen {
             rebuildWidgets();
             return;
         }
-        if (working) return;
+        if (working || recordingBusy) return;
         Preview.stop();
         Identifier sound = picked;
+        int id = ++recordingId;
+        recordingBusy = true; // until the sound is handed back, so a quick second press can't start another
         say(Lang.t("Recording... Make your sound, then press Stop."), 0xFFFF5555);
         recorder.start(samples -> minecraft.execute(() -> {
+            if (id != recordingId) return; // you left the sound (or the screen) while recording: it's thrown away
+            recordingBusy = false;
             if (samples.length == 0) {
                 say(Lang.t("Didn't hear anything. Is the microphone on?"), 0xFFFF5555);
                 rebuildWidgets();
@@ -190,6 +197,8 @@ final class SoundSwapScreen extends Screen {
             }
             swapIn(sound, () -> new Pcm(samples, 1, Recorder.RATE), Lang.t("Recorded in Squid"));
         }), problem -> minecraft.execute(() -> {
+            if (id != recordingId) return;
+            recordingBusy = false;
             say(Lang.t("No microphone: {0}", problem), 0xFFFF5555);
             rebuildWidgets();
         }));
@@ -203,9 +212,16 @@ final class SoundSwapScreen extends Screen {
         wasRecording = recorder.recording();
     }
 
+    /** Stops recording and throws the sound away (leaving the sound or the screen while recording). */
+    private void cancelRecording() {
+        recordingId++;
+        recordingBusy = false;
+        recorder.stop();
+    }
+
     @Override
     public void removed() {
-        recorder.stop();
+        cancelRecording();
         Preview.stop();
     }
 
@@ -284,6 +300,9 @@ final class SoundSwapScreen extends Screen {
                 problem = e.getMessage();
             } catch (IOException | RuntimeException e) {
                 problem = Lang.t("Couldn't use that file: {0}", e.getMessage());
+            } catch (OutOfMemoryError e) {
+                problem = song ? Lang.t("That file is too big. Songs can be 8 minutes at most.")
+                        : Lang.t("That file is too big. Sounds can be a minute at most.");
             }
             String failed = problem;
             minecraft.execute(() -> {
@@ -343,12 +362,15 @@ final class SoundSwapScreen extends Screen {
             if (shown().isEmpty()) g.centeredText(font, Lang.t("No sounds with that name."), width / 2, height / 2, 0xFFA0A0A0);
             g.centeredText(font, Lang.t("Pick a sound to swap. A * means you've swapped it."), width / 2, height - 40, 0xFF808080);
         }
-        if (message != null) g.centeredText(font, font.plainSubstrByWidth(message, width - 20), width / 2, height - 64, messageColor);
+        // Above the sound's name when one is picked, so it never sits on the buttons below it
+        int messageY = picked != null ? height / 2 - 68 : height - 64;
+        if (message != null) g.centeredText(font, font.plainSubstrByWidth(message, width - 20), width / 2, messageY, messageColor);
     }
 
     @Override
     public void onClose() {
         if (picked != null) {
+            cancelRecording();
             picked = null;
             rebuildWidgets();
             return;

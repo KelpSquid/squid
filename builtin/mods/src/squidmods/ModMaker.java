@@ -14,6 +14,11 @@ import java.util.stream.Stream;
  * {@link CodeScreen}.
  */
 public final class ModMaker {
+    /** Class names a mod can't have, because Java or Squid already means something else by them. */
+    private static final java.util.Set<String> TAKEN = java.util.Set.of("EasyMod", "Squid", "SquidMod", "Game", "Hud",
+            "KeyBinding", "ModInfo", "ModSettings", "Object", "String", "Math", "System", "Integer", "Double", "Boolean",
+            "Thread", "Runnable", "Record", "Enum", "Class", "Exception", "Error");
+
     private ModMaker() {
     }
 
@@ -31,6 +36,7 @@ public final class ModMaker {
             new String[] {"after", "after(3, () -> say(\"Boom!\"));"},
             new String[] {"onBreak", "onBreak(block -> say(\"You broke \" + block));"},
             new String[] {"onAttack", "onAttack(mob -> particles(\"crit\", 5));"},
+            new String[] {"onPickup", "onPickup(item -> { if (item.equals(\"diamond\")) say(\"Shiny!\"); });"},
             new String[] {"onHurt", "onHurt(() -> playSound(\"entity.villager.no\"));"},
             new String[] {"onDeath", "onDeath(() -> title(\"Oops!\", \"Try again\"));"},
             new String[] {"onCommand", "onCommand(\"dance\", () -> particles(\"note\", 10));"},
@@ -73,12 +79,16 @@ public final class ModMaker {
         }
         if (out.isEmpty() || Character.isDigit(out.charAt(0))) out.insert(0, "My");
         if (out.toString().equals("My")) out.append("Mod");
+        // A name Java or Squid already uses for something else (class EasyMod extends EasyMod can't work)
+        if (TAKEN.contains(out.toString())) out.insert(0, "My");
         return out.toString();
     }
 
     /** A new easy mod's code: it says hello when you join a world, with ideas for what to add. */
     public static String template(String name, String className) {
-        String shown = name.strip().isEmpty() ? className : name.strip().replace("\"", "'");
+        // Shown in a comment and in "...", so no quotes, and no backslashes (Java reads a backslash-u even in comments)
+        String shown = name.strip().replace("\"", "'").replace("\\", "");
+        if (shown.isEmpty()) shown = className;
         return """
                 import squid.api.*;
 

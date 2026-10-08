@@ -112,6 +112,7 @@ final class Reloader {
 
     /** Builds a changed mod again and, if that works, swaps it in on the game's own thread. */
     void rebuild(Path path) {
+        LiveReload.building(path);
         String name = path.getFileName().toString();
         ModInfo info;
         try {
@@ -166,7 +167,7 @@ final class Reloader {
             Main.updateMod(info);
             tell(path, true, wasRunning ? Lang.t("Reloaded {0}!", info.name()) : Lang.t("Started {0}!", info.name()), "GREEN");
             if (!restart.isEmpty()) {
-                tell(path, true, Lang.t("Part of {0} needs a restart to work: it changes {1}, which is already loaded.", info.name(),
+                tell(path, false, Lang.t("Part of {0} needs a restart to work: it changes {1}, which is already loaded.", info.name(),
                         String.join(", ", restart)), "YELLOW");
             }
         } catch (Throwable problem) {

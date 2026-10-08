@@ -177,6 +177,30 @@ public class Paint implements SquidMod {
     }
 
     /**
+     * Reads a picture file (PNG, JPG, GIF or BMP), at most about 2048 pixels across: a huge photo is read at a
+     * fraction of its size, which is plenty for a texture of 64 pixels and doesn't use up the game's memory. Null if
+     * it isn't a picture.
+     */
+    static BufferedImage readPicture(Path file) throws IOException {
+        try (javax.imageio.stream.ImageInputStream in = javax.imageio.ImageIO.createImageInputStream(file.toFile())) {
+            if (in == null) return null;
+            java.util.Iterator<javax.imageio.ImageReader> readers = javax.imageio.ImageIO.getImageReaders(in);
+            if (!readers.hasNext()) return null;
+            javax.imageio.ImageReader reader = readers.next();
+            try {
+                reader.setInput(in, true, true);
+                int longest = Math.max(reader.getWidth(0), reader.getHeight(0));
+                javax.imageio.ImageReadParam param = reader.getDefaultReadParam();
+                int step = Math.max(1, (longest + 2047) / 2048);
+                param.setSourceSubsampling(step, step, 0, 0);
+                return reader.read(0, param);
+            } finally {
+                reader.dispose();
+            }
+        }
+    }
+
+    /**
      * How tall one frame of an animated texture is (from its .mcmeta), or 0 if it isn't animated. Frames are square
      * unless the .mcmeta says otherwise.
      */

@@ -22,6 +22,7 @@ final class ModMakerScreen extends Screen {
     private String typed = "";
     private int page;
     private String problem;
+    private List<Path> mods = List.of();
 
     ModMakerScreen(Screen parent) {
         super(Component.literal(Lang.t("Mod Maker")));
@@ -43,7 +44,7 @@ final class ModMakerScreen extends Screen {
         addRenderableWidget(name);
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Make it")), b -> make()).bounds(x + 232, 30, 68, 20).build());
 
-        List<Path> mods = ModMaker.easyMods(modsFolder());
+        mods = ModMaker.easyMods(modsFolder()); // looked at once here, not every frame
         int columns = 2;
         int rows = Math.max(1, (height - 120) / 22);
         int perPage = columns * rows;
@@ -60,11 +61,11 @@ final class ModMakerScreen extends Screen {
             addRenderableWidget(Button.builder(Component.literal("<"), b -> {
                 page = (page + pages - 1) % pages;
                 rebuildWidgets();
-            }).bounds(x, height - 52, 20, 20).build());
+            }).bounds(width / 2 - 124, height - 28, 20, 20).build());
             addRenderableWidget(Button.builder(Component.literal(">"), b -> {
                 page = (page + 1) % pages;
                 rebuildWidgets();
-            }).bounds(x + 280, height - 52, 20, 20).build());
+            }).bounds(width / 2 + 104, height - 28, 20, 20).build());
         }
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
     }
@@ -87,7 +88,7 @@ final class ModMakerScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
         g.centeredText(font, Lang.t("Mod Maker"), width / 2, 12, 0xFFFFFFFF);
-        if (ModMaker.easyMods(modsFolder()).isEmpty()) {
+        if (mods.isEmpty()) {
             g.centeredText(font, Lang.t("No easy mods yet. Type a name and press Make it!"), width / 2, height / 2, 0xFFA0A0A0);
         }
         String note = problem != null ? problem : Lang.t("Pick a mod to change it. Saving runs it right away.");

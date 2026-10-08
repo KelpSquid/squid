@@ -119,10 +119,17 @@ public final class ModSettings {
         load();
         values.setProperty(name, String.valueOf(value));
         try {
+            // Written next to it first, then swapped in, so a crash halfway never leaves a half-written file
             Path file = file();
             Files.createDirectories(file.getParent());
-            try (Writer out = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+            Path next = file.resolveSibling(file.getFileName() + ".new");
+            try (Writer out = Files.newBufferedWriter(next, StandardCharsets.UTF_8)) {
                 values.store(out, modId + " settings, changed in-game");
+            }
+            try {
+                Files.move(next, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                Files.move(next, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException e) {
             System.out.println("[Squid] Couldn't save " + modId + "'s settings: " + e.getMessage());

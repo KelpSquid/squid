@@ -214,6 +214,9 @@ public final class Main {
         KeyBindings.registerHooks();
         // Run every mod's onTick and onHud from one hook each, so mods reloaded while playing can use them too
         Events.registerHooks();
+        // Breaking blocks, hitting mobs, picking things up and chat, for EasyMod's onBreak, onAttack, onPickup, onChat
+        // and onCommand, hooked once here so mods made while playing (in the Mod Maker) can use them too
+        squid.api.GameEvents.install();
         // Say on the title screen that Squid is on, and which mods it couldn't load
         Transformers.add("net.minecraft.client.gui.screens.TitleScreen", new Transformers.HookPatch(
                 "extractRenderState", null, false, Hooks.register("squid", call -> drawTitleNotice(new Hud(call.args()[0])))));
