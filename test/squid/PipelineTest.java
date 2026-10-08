@@ -293,6 +293,15 @@ public class PipelineTest {
         check("chat commands and onChat hook into Minecraft's chat classes", Class.forName("net.minecraft.client.multiplayer.ClientPacketListener", false, chatLoader).getClassLoader() == chatLoader
                 && Class.forName("net.minecraft.client.gui.components.ChatComponent", false, chatLoader).getClassLoader() == chatLoader, true);
         check("onBreak hooks into breaking blocks", Class.forName("net.minecraft.client.multiplayer.MultiPlayerGameMode", false, chatLoader).getClassLoader() == chatLoader, true);
+        // The Store's easy mods (Coords, Where I Died) start like any mod
+        List<String> storeStarted = new ArrayList<>();
+        for (String storeMod : new String[] {"coords", "whereidied"}) {
+            Path storeJar = Path.of("build", storeMod + ".jar");
+            ModInfo storeInfo = Mods.describe(storeJar);
+            ((SquidMod) new ModClassLoader(storeJar, chatLoader).loadClass(storeInfo.main()).getDeclaredConstructor().newInstance()).init(new Squid(storeInfo));
+            storeStarted.add(storeInfo.id());
+        }
+        check("the Store's easy mods start", storeStarted.toString(), "[coords, whereidied]");
         // Shared events reach every mod listening, and every mod with a command runs, even two with the same one
         List<String> eventsHeard = new ArrayList<>();
         Events.on("attack", "event-test-a", mob -> eventsHeard.add("a:" + mob));

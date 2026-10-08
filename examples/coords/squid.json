@@ -1,0 +1,10 @@
+{
+    "id": "coords",
+    "name": "Coords",
+    "version": "1.0.0",
+    "description": "Your X, Y and Z and the biome you're in, always in the corner of the screen.",
+    "authors": ["Samuel"],
+    "minecraft": "26.3.x",
+    "icon": "icon.png",
+    "main": "coords.Coords"
+}
