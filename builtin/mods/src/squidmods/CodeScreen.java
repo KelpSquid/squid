@@ -118,6 +118,32 @@ final class CodeScreen extends Screen {
         for (Button pager : pageButtons) pager.visible = showCommands && pages > 1;
     }
 
+    /** The editor's own text field, which knows where the cursor is (the editor doesn't say). */
+    private static final java.lang.reflect.Field TEXT_FIELD = textField();
+
+    private static java.lang.reflect.Field textField() {
+        try {
+            java.lang.reflect.Field field = MultiLineEditBox.class.getDeclaredField("textField");
+            field.setAccessible(true);
+            return field;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return null; // then the line number just isn't shown
+        }
+    }
+
+    /** The line the cursor is on, counting from 1, or 0 if it can't tell. */
+    private int cursorLine() {
+        try {
+            if (TEXT_FIELD == null || editor == null) return 0;
+            int cursor = Math.min(code.length(), ((net.minecraft.client.gui.components.MultilineTextField) TEXT_FIELD.get(editor)).cursor());
+            int line = 1;
+            for (int i = 0; i < cursor; i++) if (code.charAt(i) == '\n') line++;
+            return line;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return 0;
+        }
+    }
+
     /** Types a line of code in where the cursor is, as if it was typed on the keyboard. */
     private void type(String line) {
         setFocused(editor);
@@ -162,11 +188,14 @@ final class CodeScreen extends Screen {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
         String name = file.getFileName().toString() + (code.equals(saved) ? "" : " *");
         g.text(font, name, 8, 8, 0xFFFFFFFF);
+        // Which line the cursor is on, since a mistake is told by its line number
+        int line = cursorLine();
+        if (line > 0) g.text(font, Lang.t("Line {0}", line), 8 + font.width(name) + 10, 8, 0xFF808080);
         if (showCommands) {
             g.text(font, font.plainSubstrByWidth(Lang.t("Click in start(), then pick:"), PANEL), width - 8 - PANEL, 22, 0xFFA0A0A0);
         }
         String hint = Lang.t("Ctrl+S saves. Saving runs it right away.");
-        if (font.width(name) + font.width(hint) + 32 < width) g.text(font, hint, width - 8 - font.width(hint), 8, 0xFF808080);
+        if (font.width(name) + 60 + font.width(hint) + 32 < width) g.text(font, hint, width - 8 - font.width(hint), 8, 0xFF808080);
         String status;
         int color;
         LiveReload.Result result = LiveReload.last(file);
