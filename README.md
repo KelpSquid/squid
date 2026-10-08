@@ -145,6 +145,8 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
 - **Store:** mods, resource packs and capes, all approved first. A **Store** button sits next to Realms.
 - **Mods:** every mod with an on/off switch, and its settings. Saving a mod you're writing reloads it while the
   game runs (live reload).
+- **Mod Maker:** Squid > Mod Maker: make an easy mod from a name, or change one, right in the game. Save (or Ctrl+S)
+  runs it a second later, and the editor says "Reloaded!" or which line has a mistake.
 - **Skins and capes:** Options > Skin Customization > Squid Skin & Cape: wear your own skin and cape, a Store cape,
   or a Mojang cape (shown from Mojang's own servers, with a tag if you don't own it), with animated effects.
 - **Squid Count:** points for every advancement, like gamerscore.

@@ -27,6 +27,7 @@ final class SquidMenuScreen extends Screen {
     protected void init() {
         List<Button> buttons = new ArrayList<>();
         buttons.add(Button.builder(Component.literal(Lang.t("Mods")), b -> minecraft.setScreenAndShow(new ModListScreen(this))).build());
+        buttons.add(Button.builder(Component.literal(Lang.t("Mod Maker")), b -> minecraft.setScreenAndShow(new ModMakerScreen(this))).build());
         for (MenuButtons.Entry entry : MenuButtons.all()) {
             if (entry.inWorldOnly() && minecraft.level == null) continue;
             buttons.add(Button.builder(Component.literal(Lang.t(entry.label())), b -> {

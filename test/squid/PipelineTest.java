@@ -747,6 +747,7 @@ public class PipelineTest {
         ReloadProbe.value = 0;
         Events.runTicks();
         check("saving it swaps the new version in, and the old one stops", ReloadProbe.value, 2);
+        check("the Mod Maker hears that it reloaded", squid.LiveReload.last(ticker).worked() + " " + squid.LiveReload.last(ticker).message().startsWith("Reloaded"), "true true");
 
         java.nio.file.Files.writeString(ticker, "public class Ticker implements SquidMod {\n    public void init(Squid s) {\n        s.onTick(() -> squid.ReloadProbe.value = 3)\n    }\n}\n");
         java.nio.file.Files.setLastModifiedTime(ticker, java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() + 10000));
@@ -754,6 +755,7 @@ public class PipelineTest {
         ReloadProbe.value = 0;
         Events.runTicks();
         check("a mistake keeps the old version running", ReloadProbe.value, 2);
+        check("the Mod Maker hears about the mistake and its line", !squid.LiveReload.last(ticker).worked() + " " + squid.LiveReload.last(ticker).message().contains("line 3"), "true true");
 
         java.nio.file.Files.writeString(live.resolve("Newcomer.java"), "public class Newcomer implements SquidMod {\n    public void init(Squid s) {\n        s.onTick(() -> squid.ReloadProbe.hookCalls++);\n    }\n}\n");
         reloader.check();
@@ -794,6 +796,17 @@ public class PipelineTest {
         squidmods.ModFiles.ModFile xray = listed.get(3);
         squidmods.ModFiles.toggle(xray);
         check("a mod can be turned on from the Mods screen", java.nio.file.Files.exists(modsFolder.resolve("xray.jar")), true);
+
+        // The Mod Maker: a new easy mod from a name, ready to run as it is, and never over one that's there
+        check("the Mod Maker turns names into class names", squidmods.ModMaker.className("rocket boots!") + " " + squidmods.ModMaker.className("3 cool")
+                + " " + squidmods.ModMaker.className("!!"), "RocketBoots My3Cool MyMod");
+        Path makerMods = java.nio.file.Files.createTempDirectory("squid-mod-maker");
+        Path makerMade = squidmods.ModMaker.create(makerMods, "Hello Maker");
+        check("a mod made in the Mod Maker compiles as it is", sources.compile(makerMade).id(), "hello-maker");
+        java.nio.file.Files.writeString(makerMade, "// mine\r\n\tpublic class HelloMaker {}");
+        check("making one that's there opens it instead", squidmods.ModMaker.create(makerMods, "hello maker") + " " + squidmods.ModMaker.read(makerMade),
+                makerMade + " // mine\n    public class HelloMaker {}");
+        check("the Mod Maker lists easy mods", squidmods.ModMaker.easyMods(makerMods).size(), 1);
 
         Main.setGameFolder(modsGame);
         squid.api.ModSettings settings = squid.api.ModSettings.of("settings-test");

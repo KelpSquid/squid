@@ -118,13 +118,13 @@ final class Reloader {
             ModInfo described = Mods.describe(path);
             String taken = Mods.reservedReason(described);
             if (taken != null) {
-                tell(Lang.t("Squid didn't load {0}: {1}", name, taken), "YELLOW");
+                tell(path, false, Lang.t("Squid didn't load {0}: {1}", name, taken), "YELLOW");
                 return;
             }
             // Another file that's already running this mod: two copies can't run at once
             for (Map.Entry<Path, String> other : sources.built.entrySet()) {
                 if (other.getValue().equals(described.id()) && !other.getKey().equals(path) && Files.exists(other.getKey())) {
-                    tell(Lang.t("Squid didn't load {0}: it's another copy of {1}. You can delete {2}.", name,
+                    tell(path, false, Lang.t("Squid didn't load {0}: it's another copy of {1}. You can delete {2}.", name,
                             other.getKey().getFileName(), name), "YELLOW");
                     return;
                 }
@@ -132,22 +132,25 @@ final class Reloader {
             info = sources.build(path, described);
         } catch (IOException | RuntimeException mistake) {
             // Even an odd problem (not just a mistake in the code) only says so once, and never stops live reload
-            tell(Lang.t("{0} has a mistake, so its old version keeps running: {1}", name, Mods.reason(mistake)), "RED");
+            tell(path, false, Lang.t("{0} has a mistake, so its old version keeps running: {1}", name, Mods.reason(mistake)), "RED");
             return;
         }
         if (!info.worksOn(minecraftVersion)) {
-            tell(Lang.t("{0} was made for Minecraft {1}, so Squid didn't load it.", info.name(), String.join(", ", info.minecraft())), "YELLOW");
+            tell(path, false, Lang.t("{0} was made for Minecraft {1}, so Squid didn't load it.", info.name(), String.join(", ", info.minecraft())), "YELLOW");
             return;
         }
         // Nothing that matters changed (the same build as the one running), so it keeps running as it is
         boolean same = Main.mods().stream().anyMatch(m -> m.id().equals(info.id()) && m.jar().equals(info.jar()));
-        if (same) return;
+        if (same) {
+            LiveReload.record(path, true, Lang.t("{0} is running this version already.", info.name()));
+            return;
+        }
         ModInfo ready = info;
-        onGameThread(() -> swapIn(ready));
+        onGameThread(() -> swapIn(ready, path));
     }
 
     /** Starts the new version of a mod in place of its old one (or for the first time, for a new mod). */
-    void swapIn(ModInfo info) {
+    void swapIn(ModInfo info, Path path) {
         boolean wasRunning = Main.mods().stream().anyMatch(m -> m.id().equals(info.id()));
         Slots.beginReload(info.id());
         Class<?> main = null;
@@ -161,9 +164,9 @@ final class Reloader {
             KeyBindings.addToRunningGame(game); // keys it added are usable straight away
             Set<String> restart = Slots.endReload(info.id());
             Main.updateMod(info);
-            tell(wasRunning ? Lang.t("Reloaded {0}!", info.name()) : Lang.t("Started {0}!", info.name()), "GREEN");
+            tell(path, true, wasRunning ? Lang.t("Reloaded {0}!", info.name()) : Lang.t("Started {0}!", info.name()), "GREEN");
             if (!restart.isEmpty()) {
-                tell(Lang.t("Part of {0} needs a restart to work: it changes {1}, which is already loaded.", info.name(),
+                tell(path, true, Lang.t("Part of {0} needs a restart to work: it changes {1}, which is already loaded.", info.name(),
                         String.join(", ", restart)), "YELLOW");
             }
         } catch (Throwable problem) {
@@ -171,7 +174,7 @@ final class Reloader {
             Events.remove(info.id());
             Slots.endReload(info.id());
             Main.removeMod(info.id()); // it isn't running now, so saving the old code again starts it again
-            tell(Lang.t("{0} broke while reloading: {1}", info.name(), Mistakes.explain(problem, main)), "RED");
+            tell(path, false, Lang.t("{0} broke while reloading: {1}", info.name(), Mistakes.explain(problem, main)), "RED");
             problem.printStackTrace(System.out);
         }
     }
@@ -202,6 +205,12 @@ final class Reloader {
             // no game running (like in tests)
         }
         task.run();
+    }
+
+    /** A chat message about a mod's file, kept for the Mod Maker too. */
+    private static void tell(Path path, boolean worked, String message, String color) {
+        LiveReload.record(path, worked, message);
+        tell(message, color);
     }
 
     /** A chat message for the player (or the log, before they're in a world). */
