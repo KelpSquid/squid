@@ -1254,7 +1254,7 @@ public class PipelineTest {
         // Squid Net: Squid's messages ride in Minecraft's own custom payload packets, both ways, through the real
         // packet code. Minecraft throws away channels it doesn't know; Squid keeps its own.
         List<URL> netUrls = new ArrayList<>(urls);
-        for (String part : new String[] {"net", "voice", "voiceserver", "sounds", "jukebox", "mods"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
+        for (String part : new String[] {"net", "voice", "voiceserver", "sounds", "jukebox", "mods", "paint"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
         SquidClassLoader netLoader = new SquidClassLoader(netUrls.toArray(URL[]::new));
         Squid netSquid = new Squid(mod("squid-net"));
         ((SquidMod) netLoader.loadClass("squidnet.Net").getDeclaredConstructor().newInstance()).init(netSquid);
@@ -1329,6 +1329,10 @@ public class PipelineTest {
         check("Minecraft's sound classes load with Squid Sounds' .sqda hooks", soundsLoad, true);
         // The Jukebox's hook goes into Minecraft's music manager (so the game's music waits while a song plays)
         ((SquidMod) netLoader.loadClass("squidjukebox.Jukebox").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-jukebox")));
+        // The Block Painter starts, and its screens load against Minecraft's classes
+        ((SquidMod) netLoader.loadClass("squidpaint.Paint").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-paint")));
+        check("the Block Painter's screens load", Class.forName("squidpaint.BlockPaintScreen", true, netLoader).getSimpleName() + " "
+                + Class.forName("squidpaint.BlockPickScreen", true, netLoader).getSimpleName(), "BlockPaintScreen BlockPickScreen");
         // Mod icons: read from a project's resources (its squid.json "icon", or icon.png)
         Path iconMod = java.nio.file.Files.createDirectories(java.nio.file.Files.createTempDirectory("squid-icon").resolve("Shiny"));
         java.nio.file.Files.createDirectories(iconMod.resolve("resources"));

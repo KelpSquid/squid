@@ -1,0 +1,274 @@
+package squidpaint;
+
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import squid.Lang;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Paints one block's texture, pixel by pixel. Left click paints, right click picks up a color. The top row of colors
+ * is the block's own (its most used colors), so a repaint still fits Minecraft's look; the rest is a rainbow.
+ * Save puts it in the Squid Paint pack and reloads the game, so it shows in the world right away.
+ */
+final class BlockPaintScreen extends Screen {
+    private static final int[] RAINBOW = {
+            0xFF000000, 0xFF3F3F3F, 0xFF7F7F7F, 0xFFC0C0C0, 0xFFFFFFFF, 0xFF6B3A1E, 0xFFA0662B,
+            0xFFB02E26, 0xFFF9801D, 0xFFFED83D, 0xFF80C71F, 0xFF5E7C16, 0xFF169C9C, 0xFF3AB3DA,
+            0xFF3C44AA, 0xFF8932B8, 0xFFC74EBD, 0xFFF38BAA, 0xFFE0AC69, 0xFF4A6B2A, 0x00000000};
+
+    private final BlockPickScreen parent;
+    private final Identifier texture;
+    private int w;
+    private int h;
+    private int[] pixels;
+    private int[] palette = RAINBOW;
+    private final Deque<int[]> undo = new ArrayDeque<>();
+    private int color = RAINBOW[0];
+    private boolean painting;
+    private String message;
+    private int messageColor;
+
+    BlockPaintScreen(BlockPickScreen parent, Identifier texture) {
+        super(Component.literal(Lang.t("Block Painter")));
+        this.parent = parent;
+        this.texture = texture;
+        load(Paint.current(texture));
+    }
+
+    /** Reads a texture's pixels. Big ones (over 64) and animated strips are refused, so the painter stays simple. */
+    private void load(byte[] png) {
+        BufferedImage image = null;
+        try {
+            if (png != null) image = ImageIO.read(new ByteArrayInputStream(png));
+        } catch (IOException ignored) {
+            // shown as a problem below
+        }
+        if (image == null || image.getWidth() > 64 || image.getHeight() > 64) {
+            w = 16;
+            h = 16;
+            pixels = new int[w * h];
+            say(image == null ? Lang.t("Couldn't read this texture, so you're starting blank.")
+                    : Lang.t("This texture is too big to paint here (the most is 64 x 64)."), 0xFFFF5555);
+        } else {
+            w = image.getWidth();
+            h = image.getHeight();
+            pixels = image.getRGB(0, 0, w, h, null, 0, w);
+        }
+        palette = withBlockColors(pixels);
+        color = palette[0];
+    }
+
+    /** The block's 7 most used colors first, then the rainbow. */
+    private static int[] withBlockColors(int[] pixels) {
+        Map<Integer, Integer> counts = new HashMap<>();
+        for (int p : pixels) if ((p >>> 24) > 0) counts.merge(p, 1, Integer::sum);
+        List<Integer> common = new ArrayList<>(counts.keySet());
+        common.sort((a, b) -> counts.get(b) - counts.get(a));
+        int[] out = new int[7 + RAINBOW.length];
+        for (int i = 0; i < 7; i++) out[i] = i < common.size() ? common.get(i) : RAINBOW[i];
+        System.arraycopy(RAINBOW, 0, out, 7, RAINBOW.length);
+        return out;
+    }
+
+    private void say(String text, int color) {
+        message = text;
+        messageColor = color;
+    }
+
+    private int scale() {
+        return Math.max(2, Math.min((height - 70) / h, (width - 140) / w));
+    }
+
+    private int left() {
+        return 10;
+    }
+
+    private int top() {
+        return 24;
+    }
+
+    private int panel() {
+        return left() + w * scale() + 12;
+    }
+
+    @Override
+    protected void init() {
+        int x = panel();
+        int y = top() + rowsOfColors() * 14 + 62;
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Undo")), b -> {
+            if (!undo.isEmpty()) System.arraycopy(undo.pop(), 0, pixels, 0, pixels.length);
+        }).bounds(x, y, 98, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Save")), b -> save()).bounds(x, y + 24, 98, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Reset")), b -> reset()).bounds(x, y + 48, 98, 20).build())
+                .active = Paint.painted(texture);
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Back")), b -> onClose()).bounds(x, y + 72, 98, 20).build());
+    }
+
+    private int rowsOfColors() {
+        return (palette.length + 6) / 7;
+    }
+
+    private void save() {
+        BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        image.setRGB(0, 0, w, h, pixels, 0, w);
+        try {
+            Path file = Paint.file(texture);
+            Files.createDirectories(file.getParent());
+            ImageIO.write(image, "png", file.toFile());
+            say(Lang.t("Saved! Reloading so it shows in the world..."), 0xFF55FF55);
+            Paint.apply();
+        } catch (IOException e) {
+            say(Lang.t("Couldn't save: {0}", e.getMessage()), 0xFFFF5555);
+        }
+    }
+
+    /** Back to Minecraft's own texture: the painting is removed from the pack. */
+    private void reset() {
+        try {
+            Files.deleteIfExists(Paint.file(texture));
+            load(Paint.original(texture));
+            undo.clear();
+            say(Lang.t("Back to Minecraft's own texture."), 0xFF55FF55);
+            Paint.apply();
+            rebuildWidgets();
+        } catch (IOException e) {
+            say(Lang.t("Couldn't reset it: {0}", e.getMessage()), 0xFFFF5555);
+        }
+    }
+
+    /** The pixel under the mouse, or -1. */
+    private int pixelAt(double mx, double my) {
+        int px = (int) Math.floor((mx - left()) / scale());
+        int py = (int) Math.floor((my - top()) / scale());
+        return px >= 0 && py >= 0 && px < w && py < h ? py * w + px : -1;
+    }
+
+    /** The color swatch under the mouse, or -1. */
+    private int swatchAt(double mx, double my) {
+        int x0 = panel();
+        for (int i = 0; i < palette.length; i++) {
+            int x = x0 + (i % 7) * 14;
+            int y = top() + 12 + (i / 7) * 14;
+            if (mx >= x && mx < x + 12 && my >= y && my < y + 12) return i;
+        }
+        return -1;
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        int swatch = swatchAt(event.x(), event.y());
+        if (swatch >= 0) {
+            color = palette[swatch];
+            return true;
+        }
+        int pixel = pixelAt(event.x(), event.y());
+        if (pixel >= 0) {
+            if (event.button() == 1) { // right click: pick up this color
+                color = pixels[pixel];
+                return true;
+            }
+            undo.push(pixels.clone());
+            if (undo.size() > 50) undo.removeLast();
+            painting = true;
+            pixels[pixel] = color;
+            return true;
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (painting) {
+            int pixel = pixelAt(event.x(), event.y());
+            if (pixel >= 0) pixels[pixel] = color;
+            return true;
+        }
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        painting = false;
+        return super.mouseReleased(event);
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(g, mouseX, mouseY, partialTick);
+        g.text(font, BlockPickScreen.nice(texture), left(), 8, 0xFFFFFFFF);
+        int s = scale();
+        // The texture, big. See-through pixels show a checkerboard.
+        g.fill(left() - 1, top() - 1, left() + w * s + 1, top() + h * s + 1, 0xFF000000);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int argb = pixels[y * w + x];
+                int px = left() + x * s;
+                int py = top() + y * s;
+                if ((argb >>> 24) < 255) g.fill(px, py, px + s, py + s, ((x + y) & 1) == 0 ? 0xFF2A2A2A : 0xFF3A3A3A);
+                if ((argb >>> 24) > 0) g.fill(px, py, px + s, py + s, argb);
+            }
+        }
+        int hover = pixelAt(mouseX, mouseY);
+        if (hover >= 0) {
+            int px = left() + (hover % w) * s;
+            int py = top() + (hover / w) * s;
+            g.fill(px, py, px + s, py + 1, 0xFFFFFFFF);
+            g.fill(px, py + s - 1, px + s, py + s, 0xFFFFFFFF);
+        }
+        // A small copy at real size, tiled 3 x 3, to see how it looks as blocks next to each other
+        int x0 = panel();
+        int previewY = top() + rowsOfColors() * 14 + 16;
+        for (int ty = 0; ty < 3; ty++) {
+            for (int tx = 0; tx < 3; tx++) {
+                for (int y = 0; y < Math.min(h, 16); y++) {
+                    for (int x = 0; x < Math.min(w, 16); x++) {
+                        int argb = pixels[(y * h / Math.min(h, 16)) * w + x * w / Math.min(w, 16)];
+                        if ((argb >>> 24) == 0) continue;
+                        int px = x0 + tx * 16 + x;
+                        int py = previewY + ty * 16 + y - 2;
+                        if (py + 1 > previewY + 46) continue;
+                        g.fill(px, py, px + 1, py + 1, argb);
+                    }
+                }
+            }
+        }
+        // The colors: the block's own on top, then the rainbow, with the chosen one outlined
+        g.text(font, Lang.t("Colors"), x0, top(), 0xFFA0A0A0);
+        for (int i = 0; i < palette.length; i++) {
+            int x = x0 + (i % 7) * 14;
+            int y = top() + 12 + (i / 7) * 14;
+            if (palette[i] == color) g.fill(x - 2, y - 2, x + 14, y + 14, 0xFFFFFFFF);
+            g.fill(x, y, x + 12, y + 12, 0xFF000000);
+            if ((palette[i] >>> 24) == 0) {
+                g.fill(x + 1, y + 1, x + 6, y + 6, 0xFF3A3A3A);
+                g.fill(x + 6, y + 6, x + 11, y + 11, 0xFF3A3A3A);
+            } else {
+                g.fill(x + 1, y + 1, x + 11, y + 11, palette[i]);
+            }
+        }
+        g.text(font, Lang.t("Left click: paint"), x0 + 52, previewY, 0xFF808080);
+        g.text(font, Lang.t("Right click: pick"), x0 + 52, previewY + 11, 0xFF808080);
+        if (message != null) g.text(font, font.plainSubstrByWidth(message, width - 20), left(), height - 12, messageColor);
+    }
+
+    @Override
+    public void onClose() {
+        minecraft.setScreenAndShow(parent);
+    }
+}

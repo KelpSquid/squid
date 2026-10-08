@@ -1,0 +1,8 @@
+{
+    "id": "squid-paint",
+    "name": "Squid Block Painter",
+    "version": "1.0.0",
+    "description": "Repaint any block's texture, pixel by pixel, from Squid > Block Painter. Squid makes the resource pack for you.",
+    "authors": ["Samuel"],
+    "main": "squidpaint.Paint"
+}

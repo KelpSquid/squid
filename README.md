@@ -155,6 +155,9 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
   Kelp's folder, or drop them onto Squid > Jukebox. Play, pause, skip, shuffle and repeat; Minecraft's own music
   waits while a song plays, a Now Playing card shows the title and artist from the file's tags, and it follows the
   Music volume slider. Mods can move with it through `SquidAudio.level()`.
+- **Block Painter:** Squid > Block Painter: pick any block, repaint its texture pixel by pixel (with the block's own
+  colors at hand and a 3 x 3 preview), and Save. Squid keeps your paintings in a "Squid Paint" resource pack it makes
+  and switches on for you, so the world changes right away; Reset brings Minecraft's own texture back.
 - **120 languages:** Squid's own texts follow Minecraft's language setting (BETA, not checked yet).
 
 ## How it works
