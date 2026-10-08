@@ -152,7 +152,7 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
   game runs (live reload).
 - **Mod Maker:** Squid > Mod Maker: make an easy mod from a name, or change one, right in the game. Save (or Ctrl+S)
   runs it a second later, and the editor says "Reloaded!" or which line has a mistake. A new mod can start from any
-  of the 13 starter mods (Rocket Boots, Creeper Radar...). Its Commands list types in
+  of the 14 starter mods (Rocket Boots, Creeper Radar, Night Watch...). Its Commands list types in
   any command with an example, so you can make a mod without knowing them by heart.
 - **Voice chat:** on servers with Squid, talk to players near you or in your group (push to talk, or always on),
   with a voice changer: Robot, Chipmunk, Giant or Echo.

@@ -222,6 +222,28 @@ public final class ModStarters {
                         }
                     }
                     """),
+            new Starter("Night Watch", "Warns you when night falls, and counts the nights you survive.", """
+                    // %1$s: warns you when night falls, and counts every night you make it through.
+                    // Try a different warning sound: "entity.wolf.howl", "block.note_block.bell".
+
+                    public class %2$s extends EasyMod {
+                        int nights;
+
+                        void start() {
+                            nights = remembered("nights", 0);
+                            keepShowing(() -> "Nights survived: " + nights);
+                            onNight(() -> {
+                                title("Night is falling", "Find shelter!");
+                                playSound("block.bell.use");
+                            });
+                            onDay(() -> {
+                                nights = nights + 1;
+                                remember("nights", nights);
+                                title("You made it!", "Night " + nights + " survived");
+                            });
+                        }
+                    }
+                    """),
             new Starter("Dance Party", "Notes and hearts jump to the beat of your music.", """
                     // %1$s: play a song in Squid > Jukebox, and notes and hearts jump to its beat!
                     // Try other particles: "flame", "happy_villager", "end_rod". Or make the effect bigger when it's loud.
