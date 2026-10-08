@@ -87,13 +87,24 @@ final class Reloader {
         return found;
     }
 
+    /**
+     * A project folder's fingerprint only looks at what Squid builds from (squid.json, src and resources), so an
+     * editor saving its own files there (like IntelliJ's .idea folder) doesn't restart the mod.
+     */
     private static String fingerprint(Path path) {
+        if (!Files.isDirectory(path)) return fingerprintOf(path, path);
+        return fingerprintOf(path, path.resolve("squid.json")) + fingerprintOf(path, path.resolve("src"))
+                + fingerprintOf(path, path.resolve("resources"));
+    }
+
+    private static String fingerprintOf(Path base, Path path) {
+        if (!Files.exists(path)) return "";
         StringBuilder print = new StringBuilder();
         try (Stream<Path> walk = Files.walk(path)) {
             for (Path p : walk.filter(Files::isRegularFile).sorted().toList()) {
-                print.append(path.relativize(p)).append(Files.size(p)).append(Files.getLastModifiedTime(p).toMillis()).append(';');
+                print.append(base.relativize(p)).append(Files.size(p)).append(Files.getLastModifiedTime(p).toMillis()).append(';');
             }
-        } catch (IOException e) {
+        } catch (IOException | java.io.UncheckedIOException e) {
             return "unreadable";
         }
         return print.toString();
@@ -104,17 +115,33 @@ final class Reloader {
         String name = path.getFileName().toString();
         ModInfo info;
         try {
-            if (Files.isDirectory(path)) info = sources.compileProject(path, Mods.readProject(path));
-            else if (name.endsWith(".squid")) info = sources.compilePacked(path, Mods.readPacked(path));
-            else info = sources.compile(path);
-        } catch (IOException mistake) {
-            tell(Lang.t("{0} has a mistake, so its old version keeps running: {1}", name, mistake.getMessage()), "RED");
+            ModInfo described = Mods.describe(path);
+            String taken = Mods.reservedReason(described);
+            if (taken != null) {
+                tell(Lang.t("Squid didn't load {0}: {1}", name, taken), "YELLOW");
+                return;
+            }
+            // Another file that's already running this mod: two copies can't run at once
+            for (Map.Entry<Path, String> other : sources.built.entrySet()) {
+                if (other.getValue().equals(described.id()) && !other.getKey().equals(path) && Files.exists(other.getKey())) {
+                    tell(Lang.t("Squid didn't load {0}: it's another copy of {1}. You can delete {2}.", name,
+                            other.getKey().getFileName(), name), "YELLOW");
+                    return;
+                }
+            }
+            info = sources.build(path, described);
+        } catch (IOException | RuntimeException mistake) {
+            // Even an odd problem (not just a mistake in the code) only says so once, and never stops live reload
+            tell(Lang.t("{0} has a mistake, so its old version keeps running: {1}", name, Mods.reason(mistake)), "RED");
             return;
         }
         if (!info.worksOn(minecraftVersion)) {
             tell(Lang.t("{0} was made for Minecraft {1}, so Squid didn't load it.", info.name(), String.join(", ", info.minecraft())), "YELLOW");
             return;
         }
+        // Nothing that matters changed (the same build as the one running), so it keeps running as it is
+        boolean same = Main.mods().stream().anyMatch(m -> m.id().equals(info.id()) && m.jar().equals(info.jar()));
+        if (same) return;
         ModInfo ready = info;
         onGameThread(() -> swapIn(ready));
     }
@@ -152,6 +179,8 @@ final class Reloader {
     void unload(Path path) {
         String id = sources.built.remove(path);
         if (id == null) return;
+        // Renamed (X.squid became X-v2.squid) or updated under a new name: the new file runs this mod now
+        if (sources.built.containsValue(id)) return;
         Hooks.turnOff(id);
         Events.remove(id);
         String name = Main.mods().stream().filter(m -> m.id().equals(id)).map(ModInfo::name).findFirst().orElse(id);

@@ -317,6 +317,80 @@ public class PipelineTest {
         }
         check("a .squid file can't put files outside its folder", escaped, "it has a file that tries to leave its folder, so Squid won't open it.");
 
+        // Mod files that used to stop the whole game: each one only skips itself now
+        Path odd = java.nio.file.Files.createTempDirectory("squid-odd-test");
+        String hi = "public class %s extends EasyMod {\n    void start() {\n    }\n}\n";
+        String[][] oddProjects = {
+                {"OneAuthor", "{\"authors\": \"Sam\", \"depends\": \"\", \"minecraft\": 26.3, \"version\": 2}"},
+                {"JustAList", "[]"},
+                {"Nothing", "null"},
+                {"NeedsItself", "{\"depends\": [\"needs-itself\"]}"},
+                {"LoopA", "{\"depends\": [\"loop-b\"]}"},
+                {"LoopB", "{\"depends\": [\"loop-a\"]}"},
+                {"AfterLoop", "{\"depends\": [\"loop-a\"]}"},
+                {"Spaced", "{}"},
+                {"Squid", "{}"},
+                {"WithBom", "﻿{\"name\": \"With Bom\", \"author\": \"x\"}"},
+                {"OldVersion", "{\"id\": \"twin\", \"version\": \"1.0\", \"main\": \"OldVersion\"}"},
+                {"NewVersion", "{\"id\": \"twin\", \"version\": \"1.10\", \"main\": \"NewVersion\"}"},
+                {"FutureMinecraft", "{\"minecraft\": \">=26.2\"}"},
+        };
+        for (String[] p : oddProjects) {
+            Path oddFolder = odd.resolve(p[0]);
+            java.nio.file.Files.createDirectories(oddFolder.resolve("src"));
+            java.nio.file.Files.writeString(oddFolder.resolve("squid.json"), p[1]);
+            java.nio.file.Files.writeString(oddFolder.resolve("src/" + p[0] + ".java"), hi.formatted(p[0]));
+        }
+        java.nio.file.Files.writeString(odd.resolve("Spaced/src/My Helper.java"), "class MyHelper {\n}\n");
+        // Windows-1252 text (é saved by an old editor), not UTF-8
+        java.nio.file.Files.write(odd.resolve("Accent.java"), ("public class Accent extends EasyMod {\n    void start() {\n        say(\"café\");\n    }\n}\n")
+                .getBytes(java.nio.charset.Charset.forName("windows-1252")));
+        // Zipped by hand: the whole folder inside, with Windows' \ between folders
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(odd.resolve("HandMade.squid")))) {
+            zip.putNextEntry(new java.util.zip.ZipEntry("HandMade\\squid.json"));
+            zip.write("{\"name\": \"Hand Made\"}".getBytes());
+            zip.putNextEntry(new java.util.zip.ZipEntry("HandMade\\src\\HandMade.java"));
+            zip.write(hi.formatted("HandMade").getBytes());
+            zip.closeEntry();
+        }
+        SourceMods oddSources = new SourceMods(odd.resolve(".squid-cache"), System.getProperty("java.class.path") + File.pathSeparator + a[0]);
+        Mods.Found oddFound = Mods.find(odd, "26.3", oddSources);
+        check("odd but fine squid.json values and files still load", oddFound.mods().stream()
+                .map(m -> m.id() + " " + m.version() + " " + m.authors()).sorted().toList().toString(),
+                "[accent 1.0 [], future-minecraft 1.0 [], hand-made 1.0 [], needs-itself 1.0 [], one-author 2 [Sam], spaced 1.0 [], twin 1.10 [], with-bom 1.0 []]");
+        java.util.Map<String, String> oddSkipped = new java.util.TreeMap<>();
+        for (Mods.Skipped s : oddFound.skipped()) oddSkipped.put(s.name(), s.reason());
+        check("a squid.json that isn't { } only skips that mod", oddSkipped.get("JustAList") + " | " + oddSkipped.get("Nothing"),
+                "its squid.json is broken: it has to start with { and end with } | its squid.json is broken: it has to start with { and end with }");
+        check("mods that need each other in a loop are skipped, and so is a mod that needs them",
+                oddSkipped.get("Loop A") + " | " + oddSkipped.get("After Loop"),
+                "These mods need each other in a loop, so none of them can start first: loop-a -> loop-b -> loop-a | it needs Loop A, which was skipped too.");
+        check("a mod can't take Squid's own id", oddSkipped.get("Squid"), "its id \"squid\" belongs to Squid itself. Give the mod another name.");
+        check("of two copies, the newer version wins", oddSkipped.get("Old Version"), "it's another copy of NewVersion. You can delete OldVersion.");
+        check("squid.json keys that look like typos get a \"did you mean\"", Mods.unknownKeys(Json.object(Json.parse("{\"author\": 1, \"Name\": 2, \"color\": 3}"))).toString(),
+                "[squid.json has \"author\". Did you mean \"authors\"?, squid.json has \"Name\". Did you mean \"name\"?, squid.json has \"color\", which Squid doesn't use.]");
+        check("\">=26.2\" works on 26.3 and 26.10 but not 26.1", new ModInfo("x", "x", "1", "", List.of(), List.of(), List.of(">=26.2"), "x", odd).worksOn("26.3")
+                + " " + new ModInfo("x", "x", "1", "", List.of(), List.of(), List.of(">=26.2"), "x", odd).worksOn("26.10")
+                + " " + new ModInfo("x", "x", "1", "", List.of(), List.of(), List.of(">=26.2"), "x", odd).worksOn("26.1"), "true true false");
+        long oddBuilds;
+        try (java.util.stream.Stream<Path> cached = java.nio.file.Files.list(odd.resolve(".squid-cache"))) {
+            oddBuilds = cached.filter(p -> p.getFileName().toString().startsWith("twin-")).count();
+        }
+        check("only the winning copy is built", oddBuilds, 1L);
+        // A change makes a new build; the old one stays while the game runs, and goes at the next start
+        java.nio.file.Files.writeString(odd.resolve("Accent.java"), hi.formatted("Accent") + "\n");
+        oddSources.compile(odd.resolve("Accent.java"));
+        long accentBuilds;
+        try (java.util.stream.Stream<Path> cached = java.nio.file.Files.list(odd.resolve(".squid-cache"))) {
+            accentBuilds = cached.filter(p -> p.getFileName().toString().matches("accent-[0-9a-f]{12}")).count();
+        }
+        Mods.find(odd, "26.3", new SourceMods(odd.resolve(".squid-cache"), System.getProperty("java.class.path") + File.pathSeparator + a[0]));
+        long accentAfter;
+        try (java.util.stream.Stream<Path> cached = java.nio.file.Files.list(odd.resolve(".squid-cache"))) {
+            accentAfter = cached.filter(p -> p.getFileName().toString().matches("accent-[0-9a-f]{12}")).count();
+        }
+        check("old builds stay while running, and are cleaned up at the next start", accentBuilds + " " + accentAfter, "2 1");
+
         // The Store: its list, safe file names, installing with a fingerprint check, and its Minecraft parts loading
         String storeList = "{\"items\": ["
                 + "{\"id\": \"xray\", \"type\": \"mod\", \"name\": \"X-Ray\", \"author\": \"Samuel\", \"minecraft\": \"26.3.x\", \"devPicked\": true,"
