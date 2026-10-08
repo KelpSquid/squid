@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Nyomd meg a
 onLevelUp only works inside start() => az onLevelUp csak a start() belsejében működik
 Night Watch => Éjjeliőr
 Warns you when night falls, and counts the nights you survive. => Szól, amikor leszáll az éj, és számolja a túlélt éjszakákat.
+onNight only works inside start() => az onNight csak a start() belsejében működik
+onDay only works inside start() => az onDay csak a start() belsejében működik

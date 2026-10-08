@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Bấm K: m�
 onLevelUp only works inside start() => onLevelUp chỉ dùng được bên trong start()
 Night Watch => Gác Đêm
 Warns you when night falls, and counts the nights you survive. => Báo cho bạn khi màn đêm buông xuống, và đếm số đêm bạn sống sót.
+onNight only works inside start() => onNight chỉ dùng được bên trong start()
+onDay only works inside start() => onDay chỉ dùng được bên trong start()

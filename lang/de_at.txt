@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Druck K: je
 onLevelUp only works inside start() => onLevelUp geht nur in start()
 Night Watch => Nochtwach
 Warns you when night falls, and counts the nights you survive. => Warnt di, wenn's Nocht wird, und zöht de Nächt, de'st überlebst.
+onNight only works inside start() => onNight geht nur in start()
+onDay only works inside start() => onDay geht nur in start()

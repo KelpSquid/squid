@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Brúigh K: 
 onLevelUp only works inside start() => ní oibríonn onLevelUp ach taobh istigh de start()
 Night Watch => Faire na hOíche
 Warns you when night falls, and counts the nights you survive. => Tugann sé rabhadh duit nuair a thiteann an oíche, agus áiríonn sé na hoícheanta a mhaireann tú.
+onNight only works inside start() => ní oibríonn onNight ach taobh istigh de start()
+onDay only works inside start() => ní oibríonn onDay ach taobh istigh de start()

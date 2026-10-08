@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Pịa K: cr
 onLevelUp only works inside start() => onLevelUp na-arụ ọrụ naanị n'ime start()
 Night Watch => Onye Nche Abalị
 Warns you when night falls, and counts the nights you survive. => Na-adọ gị aka ná ntị mgbe abalị dara, ma na-agụ abalị ole ị lanarịrị.
+onNight only works inside start() => onNight na-arụ ọrụ naanị n'ime start()
+onDay only works inside start() => onDay na-arụ ọrụ naanị n'ime start()

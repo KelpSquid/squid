@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => اضغط K:
 onLevelUp only works inside start() => onLevelUp يعمل فقط داخل start()
 Night Watch => حارس الليل
 Warns you when night falls, and counts the nights you survive. => ينبّهك عندما يحلّ الليل، ويعدّ الليالي التي تنجو فيها.
+onNight only works inside start() => onNight يعمل فقط داخل start()
+onDay only works inside start() => onDay يعمل فقط داخل start()

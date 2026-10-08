@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Druk K: elk
 onLevelUp only works inside start() => onLevelUp werk net binne start()
 Night Watch => Nagwag
 Warns you when night falls, and counts the nights you survive. => Waarsku jou wanneer die nag val, en tel die nagte wat jy oorleef.
+onNight only works inside start() => onNight werk net binne start()
+onDay only works inside start() => onDay werk net binne start()

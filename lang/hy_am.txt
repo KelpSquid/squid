@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Սեղմի�
 onLevelUp only works inside start() => onLevelUp-ը աշխատում է միայն start()-ի ներսում
 Night Watch => Գիշերային պահակ
 Warns you when night falls, and counts the nights you survive. => Զգուշացնում է, երբ գիշեր է իջնում, և հաշվում է քո վերապրած գիշերները։
+onNight only works inside start() => onNight-ը աշխատում է միայն start()-ի ներսում
+onDay only works inside start() => onDay-ը աշխատում է միայն start()-ի ներսում

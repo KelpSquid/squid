@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => ກົດ K
 onLevelUp only works inside start() => onLevelUp ໃຊ້ໄດ້ແຕ່ໃນ start()
 Night Watch => ຍາມກາງຄືນ
 Warns you when night falls, and counts the nights you survive. => ເຕືອນເຈົ້າເມື່ອຄ່ຳມາ ແລະ ນັບຄືນທີ່ເຈົ້າລອດມາໄດ້
+onNight only works inside start() => onNight ໃຊ້ໄດ້ແຕ່ໃນ start()
+onDay only works inside start() => onDay ໃຊ້ໄດ້ແຕ່ໃນ start()

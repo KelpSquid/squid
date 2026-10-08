@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Tekan K: se
 onLevelUp only works inside start() => onLevelUp hanja bisa dipakai di dalam start()
 Night Watch => Pendjaga Malam
 Warns you when night falls, and counts the nights you survive. => Memperingatkan kamoe saat malam tiba, dan menghitoeng malam jang berhasil kamoe lewati.
+onNight only works inside start() => onNight hanja bisa dipakai di dalam start()
+onDay only works inside start() => onDay hanja bisa dipakai di dalam start()

@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => تکن K: �
 onLevelUp only works inside start() => onLevelUp هاڽ برفوڠسي د دالم start()
 Night Watch => ڤڠاول مالم
 Warns you when night falls, and counts the nights you survive. => ممبري امرن اڤابيلا مالم تيبا، دان مڠيرا مالم يڠ اندا هاروڠي.
+onNight only works inside start() => onNight هاڽ برفوڠسي د دالم start()
+onDay only works inside start() => onDay هاڽ برفوڠسي د دالم start()

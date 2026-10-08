@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => 按 K：近
 onLevelUp only works inside start() => onLevelUp 唯於 start() 中可用
 Night Watch => 夜巡
 Warns you when night falls, and counts the nights you survive. => 夜降則警汝。汝所生還之夜，皆計之。
+onNight only works inside start() => onNight 唯於 start() 中可用
+onDay only works inside start() => onDay 唯於 start() 中可用

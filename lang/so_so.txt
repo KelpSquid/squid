@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Riix K: cre
 onLevelUp only works inside start() => onLevelUp wuxuu ku shaqeeyaa oo keliya gudaha start()
 Night Watch => Ilaalada Habeenka
 Warns you when night falls, and counts the nights you survive. => Wuu ku digaa marka habeenku dhaco, wuxuuna tiriyaa habeennada aad ka badbaaddo.
+onNight only works inside start() => onNight wuxuu ku shaqeeyaa oo keliya gudaha start()
+onDay only works inside start() => onDay wuxuu ku shaqeeyaa oo keliya gudaha start()

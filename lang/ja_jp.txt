@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => K を押す
 onLevelUp only works inside start() => onLevelUp は start() の中でしか使えません
 Night Watch => 夜の見張り番
 Warns you when night falls, and counts the nights you survive. => 夜になったら知らせて、生き延びた夜を数えてくれる。
+onNight only works inside start() => onNight は start() の中でしか使えません
+onDay only works inside start() => onDay は start() の中でしか使えません

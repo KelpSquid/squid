@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Tẹ K: gbo
 onLevelUp only works inside start() => onLevelUp ń ṣiṣẹ́ nínú start() nìkan
 Night Watch => Olùṣọ́ Òru
 Warns you when night falls, and counts the nights you survive. => Ó ń kìlọ̀ fún ọ nígbà tí òru bá dé, ó sì ń ka àwọn òru tí o là já.
+onNight only works inside start() => onNight ń ṣiṣẹ́ nínú start() nìkan
+onDay only works inside start() => onDay ń ṣiṣẹ́ nínú start() nìkan

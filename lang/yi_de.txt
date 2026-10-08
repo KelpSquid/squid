@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => דריק K:
 onLevelUp only works inside start() => onLevelUp אַרבעט נאָר אין start()
 Night Watch => נאַכטוואַך
 Warns you when night falls, and counts the nights you survive. => וואָרנט דיך ווען די נאַכט פֿאַלט, און ציילט די נעכט וואָס דו איבערלעבסט.
+onNight only works inside start() => onNight אַרבעט נאָר אין start()
+onDay only works inside start() => onDay אַרבעט נאָר אין start()

@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Paina K: jo
 onLevelUp only works inside start() => onLevelUp toimii vain start()-metodin sisällä
 Night Watch => Yövahti
 Warns you when night falls, and counts the nights you survive. => Varoittaa, kun yö laskeutuu, ja laskee yöt, joista selviät.
+onNight only works inside start() => onNight toimii vain start()-metodin sisällä
+onDay only works inside start() => onDay toimii vain start()-metodin sisällä

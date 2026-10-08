@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Прити�
 onLevelUp only works inside start() => onLevelUp ради само унутар start()
 Night Watch => Ноћна стража
 Warns you when night falls, and counts the nights you survive. => Упозори те кад падне ноћ и броји ноћи које преживиш.
+onNight only works inside start() => onNight ради само унутар start()
+onDay only works inside start() => onDay ради само унутар start()

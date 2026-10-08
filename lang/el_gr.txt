@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Πάτα K:
 onLevelUp only works inside start() => το onLevelUp δουλεύει μόνο μέσα στο start()
 Night Watch => Νυχτερινή φρουρά
 Warns you when night falls, and counts the nights you survive. => Σε προειδοποιεί όταν πέφτει η νύχτα και μετράει τις νύχτες που επιβιώνεις.
+onNight only works inside start() => το onNight δουλεύει μόνο μέσα στο start()
+onDay only works inside start() => το onDay δουλεύει μόνο μέσα στο start()

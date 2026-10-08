@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Brùth K: d
 onLevelUp only works inside start() => chan obraich onLevelUp ach am broinn start()
 Night Watch => Freiceadan na h-Oidhche
 Warns you when night falls, and counts the nights you survive. => Bheir e rabhadh dhut nuair a thig an oidhche, agus cunntaidh e na h-oidhcheannan a mhaireas tu.
+onNight only works inside start() => chan obraich onNight ach am broinn start()
+onDay only works inside start() => chan obraich onDay ach am broinn start()

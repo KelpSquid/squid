@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => K दबा
 onLevelUp only works inside start() => onLevelUp सिर्फ़ start() के अंदर काम करता है
 Night Watch => रात का पहरा
 Warns you when night falls, and counts the nights you survive. => रात ढलने पर आपको चेतावनी देता है, और गिनता है कि आप कितनी रातें बच गए।
+onNight only works inside start() => onNight सिर्फ़ start() के अंदर काम करता है
+onDay only works inside start() => onDay सिर्फ़ start() के अंदर काम करता है

@@ -46,7 +46,7 @@ public class RainbowSheep extends EasyMod {
 | `onTick(() -> { ... })` | Runs 20 times a second |
 | `onHurt(() -> { ... })`, `onDeath(() -> { ... })` | Runs when you get hurt, or die |
 | `onLevelUp(level -> { ... })` | Runs when your experience level goes up, with the new level |
-| `onNight(() -> { ... })`, `onDay(() -> { ... })` | Runs when night falls, or the day starts again |
+| `onNight(() -> { ... })`, `onDay(() -> { ... })` | Runs when night falls, or the day starts again (by the clock, in the Overworld) |
 | `onCommand("dance", () -> { ... })` | Your own chat command: typing `!dance` runs it (and isn't sent). `onCommand("shout", words -> ...)` gets what's typed after it |
 | `onChat(text -> { ... })` | Runs for every chat message you see (`"<Steve> hi"`, `"Alex joined the game"`), not mods' own |
 | `onBreak(block -> { ... })` | Runs when you break a block, with its name (`"stone"`, `"diamond_ore"`) |

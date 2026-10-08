@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Naciśni K:
 onLevelUp only works inside start() => onLevelUp pracuje tolki ŭnutry start()
 Night Watch => Načnaja varta
 Warns you when night falls, and counts the nights you survive. => Papiaredžvaje, kali nadychodzić noč, i ličyć nočy, jakija ty pieražyŭ.
+onNight only works inside start() => onNight pracuje tolki ŭnutry start()
+onDay only works inside start() => onDay pracuje tolki ŭnutry start()

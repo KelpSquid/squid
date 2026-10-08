@@ -43,6 +43,9 @@ public abstract class EasyMod implements SquidMod {
     private final List<Action> days = new ArrayList<>();
     private int lastLevel = -1;     // the experience level last tick (-1: not known yet)
     private int lastNight = -1;     // 1 night, 0 day, -1 not known yet
+    private int nightCandidate = -1; // what the clock says now, waiting to have held for a few seconds
+    private int nightHeld;          // how many ticks it has
+    private Object lastPlayer;      // a new player object (after respawning) starts its level from scratch
     private final List<KeyAction> keys = new ArrayList<>();
     private final List<String[]> waitingMessages = new ArrayList<>(); // text and color, said before joining a world
     private Object world; // the world the player was in last tick, to notice joining and leaving
@@ -294,13 +297,15 @@ public abstract class EasyMod implements SquidMod {
         });
     }
 
-    /** Runs when night starts (or a storm makes it dark). */
+    /** Runs when night falls (by the clock: a daytime storm doesn't count). Only in the Overworld. */
     protected void onNight(Runnable action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onNight only works inside start()"));
         nights.add(new Action("onNight", action));
     }
 
     /** Runs when the day starts again. */
     protected void onDay(Runnable action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onDay only works inside start()"));
         days.add(new Action("onDay", action));
     }
 
@@ -532,6 +537,7 @@ public abstract class EasyMod implements SquidMod {
             ticksInWorld = 0;
             lastLevel = -1; // a new world: what it starts with isn't a change
             lastNight = -1;
+            nightCandidate = -1;
             if (now != null) {
                 for (String[] message : waitingMessages) Game.chat(message[0], message[1]);
                 waitingMessages.clear();
@@ -560,16 +566,29 @@ public abstract class EasyMod implements SquidMod {
         worldTicks++;
         // Levelling up and night falling, noticed from how they were last tick (after the first two seconds,
         // while the server says the real values)
+        Object player = Game.player();
+        if (player != lastPlayer) { // respawned: the new player's level arrives from the server a moment later
+            lastPlayer = player;
+            lastLevel = -1;
+        }
         if (!levelUps.isEmpty() && ticksInWorld > 40) {
             int level = Game.xpLevel();
             if (lastLevel >= 0 && level > lastLevel) for (java.util.function.IntConsumer up : levelUps) up.accept(level);
             lastLevel = level;
         }
         if ((!nights.isEmpty() || !days.isEmpty()) && ticksInWorld > 40) {
-            int night = Game.dark() ? 1 : 0;
-            if (lastNight == 0 && night == 1) nights.forEach(Action::run);
-            if (lastNight == 1 && night == 0) days.forEach(Action::run);
-            lastNight = night;
+            Boolean clock = Game.nightTime();
+            int night = clock == null ? -1 : clock ? 1 : 0;
+            // It has to stay that way for 5 seconds first, so a server setting the time back a little doesn't
+            // make it night, day and night again
+            if (night != nightCandidate) {
+                nightCandidate = night;
+                nightHeld = 0;
+            } else if (nightHeld < 100 && ++nightHeld == 100 && night >= 0) {
+                if (lastNight == 0 && night == 1) nights.forEach(Action::run);
+                if (lastNight == 1 && night == 0) days.forEach(Action::run);
+                lastNight = night;
+            }
         }
         ticks.forEach(Action::run);
         for (Timer timer : timers) {

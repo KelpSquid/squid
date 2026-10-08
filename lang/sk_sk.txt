@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Stlač K: k
 onLevelUp only works inside start() => onLevelUp funguje len vnútri start()
 Night Watch => Nočná hliadka
 Warns you when night falls, and counts the nights you survive. => Varuje ťa, keď padne noc, a počíta noci, ktoré prežiješ.
+onNight only works inside start() => onNight funguje len vnútri start()
+onDay only works inside start() => onDay funguje len vnútri start()

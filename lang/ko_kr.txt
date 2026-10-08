@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => K를 누르
 onLevelUp only works inside start() => onLevelUp는 start() 안에서만 쓸 수 있어요
 Night Watch => 밤 파수꾼
 Warns you when night falls, and counts the nights you survive. => 밤이 되면 알려 주고, 살아남은 밤을 세어 줘요.
+onNight only works inside start() => onNight는 start() 안에서만 쓸 수 있어요
+onDay only works inside start() => onDay는 start() 안에서만 쓸 수 있어요

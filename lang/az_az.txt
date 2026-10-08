@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => K bas: yax�
 onLevelUp only works inside start() => onLevelUp yalnız start() içində işləyir
 Night Watch => Gecə keşikçisi
 Warns you when night falls, and counts the nights you survive. => Gecə düşəndə səni xəbərdar edir və sağ çıxdığın gecələri sayır.
+onNight only works inside start() => onNight yalnız start() içində işləyir
+onDay only works inside start() => onDay yalnız start() içində işləyir

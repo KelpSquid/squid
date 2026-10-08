@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Press K: ev
 onLevelUp only works inside start() => onLevelUp only works inside start()
 Night Watch => Night Ward
 Warns you when night falls, and counts the nights you survive. => Warns you when night falls, and tells the nights you outlive.
+onNight only works inside start() => onNight only works inside start()
+onDay only works inside start() => onDay only works inside start()

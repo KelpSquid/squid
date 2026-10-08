@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Нажми 
 onLevelUp only works inside start() => onLevelUp работаетъ только внутри start()
 Night Watch => Ночной дозоръ
 Warns you when night falls, and counts the nights you survive. => Предупреждаетъ, когда наступаетъ ночь, и считаетъ ночи, которыя ты пережилъ.
+onNight only works inside start() => onNight работаетъ только внутри start()
+onDay only works inside start() => onDay работаетъ только внутри start()

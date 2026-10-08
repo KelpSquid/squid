@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Trykk K: kv
 onLevelUp only works inside start() => onLevelUp verkar berre inni start()
 Night Watch => Nattevakt
 Warns you when night falls, and counts the nights you survive. => Varslar deg når natta kjem, og tel nettene du overlever.
+onNight only works inside start() => onNight verkar berre inni start()
+onDay only works inside start() => onDay verkar berre inni start()

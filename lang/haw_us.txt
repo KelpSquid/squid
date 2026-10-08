@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => E kaomi iā
 onLevelUp only works inside start() => hana wale ʻo onLevelUp i loko o start()
 Night Watch => Kiaʻi Pō
 Warns you when night falls, and counts the nights you survive. => Hōʻike iā ʻoe ke hiki mai ka pō, a helu i nā pō āu e ola ai.
+onNight only works inside start() => hana wale ʻo onNight i loko o start()
+onDay only works inside start() => hana wale ʻo onDay i loko o start()

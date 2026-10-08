@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => K அழு
 onLevelUp only works inside start() => onLevelUp start()-க்குள் மட்டுமே வேலை செய்யும்
 Night Watch => இரவுக் காவல்
 Warns you when night falls, and counts the nights you survive. => இரவு வரும்போது எச்சரிக்கும், நீங்கள் தப்பிப்பிழைத்த இரவுகளை எண்ணும்.
+onNight only works inside start() => onNight start()-க்குள் மட்டுமே வேலை செய்யும்
+onDay only works inside start() => onDay start()-க்குள் மட்டுமே வேலை செய்யும்

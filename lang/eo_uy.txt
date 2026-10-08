@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Premu K: ĉ
 onLevelUp only works inside start() => onLevelUp funkcias nur ene de start()
 Night Watch => Noktogardisto
 Warns you when night falls, and counts the nights you survive. => Avertas vin kiam noktiĝas, kaj nombras la noktojn, kiujn vi travivas.
+onNight only works inside start() => onNight funkcias nur ene de start()
+onDay only works inside start() => onDay funkcias nur ene de start()

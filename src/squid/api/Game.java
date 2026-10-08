@@ -430,6 +430,16 @@ public final class Game {
         return key == null ? "" : path(call(key, "identifier"));
     }
 
+    /**
+     * Whether it's night by the clock (from dusk to dawn, ticks 13000 to 23000 of the day), not just dark from a
+     * storm. Null where days don't happen (the Nether and the End).
+     */
+    static Boolean nightTime() {
+        if (!dimension().equals("overworld")) return null;
+        long time = Math.floorMod((long) call(world(), "getOverworldClockTime"), 24000L);
+        return time >= 13000 && time < 23000;
+    }
+
     /** The player's experience level (the green number above the hotbar). */
     static int xpLevel() {
         return (int) field(player(), "experienceLevel");

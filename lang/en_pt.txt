@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Press K: ev
 onLevelUp only works inside start() => onLevelUp only works inside start()
 Night Watch => Night Lookout
 Warns you when night falls, and counts the nights you survive. => Warns ye when night falls, an' tallies the nights ye live to see.
+onNight only works inside start() => onNight only works inside start()
+onDay only works inside start() => onDay only works inside start()

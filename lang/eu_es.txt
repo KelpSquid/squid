@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Sakatu K: i
 onLevelUp only works inside start() => onLevelUp start() barruan bakarrik dabil
 Night Watch => Gaueko zaintza
 Warns you when night falls, and counts the nights you survive. => Gaua iristen denean abisatzen dizu, eta bizirik igarotzen dituzun gauak zenbatzen ditu.
+onNight only works inside start() => onNight start() barruan bakarrik dabil
+onDay only works inside start() => onDay start() barruan bakarrik dabil

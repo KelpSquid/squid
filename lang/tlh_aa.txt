@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => K yI'uy: Ho
 onLevelUp only works inside start() => start() qoDDaq neH Qap onLevelUp
 Night Watch => ram 'avwI'
 Warns you when night falls, and counts the nights you survive. => ram pawDI', DughuHmoH. ram DataHbogh togh je.
+onNight only works inside start() => start() qoDDaq neH Qap onNight
+onDay only works inside start() => start() qoDDaq neH Qap onDay

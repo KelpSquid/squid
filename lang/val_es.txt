@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Prem K: tot
 onLevelUp only works inside start() => onLevelUp només funciona dins de start()
 Night Watch => Guàrdia Nocturna
 Warns you when night falls, and counts the nights you survive. => T'avisa quan cau la nit i compta les nits que sobrevius.
+onNight only works inside start() => onNight només funciona dins de start()
+onDay only works inside start() => onDay només funciona dins de start()

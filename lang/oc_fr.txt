@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Quicha K: c
 onLevelUp only works inside start() => onLevelUp fonciona pas que dins start()
 Night Watch => Gàrdia de nuèch
 Warns you when night falls, and counts the nights you survive. => T'avisa quand tomba la nuèch, e compta las nuèches que sobrevives.
+onNight only works inside start() => onNight fonciona pas que dins start()
+onDay only works inside start() => onDay fonciona pas que dins start()

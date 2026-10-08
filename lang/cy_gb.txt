@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Pwysa K: ma
 onLevelUp only works inside start() => dim ond y tu mewn i start() mae onLevelUp yn gweithio
 Night Watch => Gwyliwr y Nos
 Warns you when night falls, and counts the nights you survive. => Yn dy rybuddio pan fydd y nos yn disgyn, ac yn cyfrif y nosweithiau rwyt ti'n eu goroesi.
+onNight only works inside start() => dim ond y tu mewn i start() mae onNight yn gweithio
+onDay only works inside start() => dim ond y tu mewn i start() mae onDay yn gweithio

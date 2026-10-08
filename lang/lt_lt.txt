@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Spausk K: k
 onLevelUp only works inside start() => onLevelUp veikia tik start() viduje
 Night Watch => Naktinė sargyba
 Warns you when night falls, and counts the nights you survive. => Įspėja, kai užeina naktis, ir skaičiuoja naktis, kurias išgyveni.
+onNight only works inside start() => onNight veikia tik start() viduje
+onDay only works inside start() => onDay veikia tik start() viduje

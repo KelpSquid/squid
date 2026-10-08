@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => K ni bos: y
 onLevelUp only works inside start() => onLevelUp faqat start() ichida ishlaydi
 Night Watch => Tungi qorovul
 Warns you when night falls, and counts the nights you survive. => Tun tushganda seni ogohlantiradi va omon qolgan tunlaringni sanaydi.
+onNight only works inside start() => onNight faqat start() ichida ishlaydi
+onDay only works inside start() => onDay faqat start() ichida ishlaydi

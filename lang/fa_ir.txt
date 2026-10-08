@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => K را بز
 onLevelUp only works inside start() => onLevelUp فقط داخل start() کار می‌کند
 Night Watch => نگهبان شب
 Warns you when night falls, and counts the nights you survive. => وقتی شب می‌رسد خبرتان می‌کند و شب‌هایی را که زنده می‌مانید می‌شمارد.
+onNight only works inside start() => onNight فقط داخل start() کار می‌کند
+onDay only works inside start() => onDay فقط داخل start() کار می‌کند

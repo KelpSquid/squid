@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Pindutin an
 onLevelUp only works inside start() => sa loob lang ng start() gumagana ang onLevelUp
 Night Watch => Bantay sa Gabi
 Warns you when night falls, and counts the nights you survive. => Binabalaan ka kapag gumabi na, at binibilang ang mga gabing nalampasan mo.
+onNight only works inside start() => sa loob lang ng start() gumagana ang onNight
+onDay only works inside start() => sa loob lang ng start() gumagana ang onDay

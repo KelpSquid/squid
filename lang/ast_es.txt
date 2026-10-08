@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Primi K: to
 onLevelUp only works inside start() => onLevelUp namás funciona dientro de start()
 Night Watch => Guardia de nueche
 Warns you when night falls, and counts the nights you survive. => Avísate cuando cai la nueche, y cuenta les nueches que sobrevives.
+onNight only works inside start() => onNight namás funciona dientro de start()
+onDay only works inside start() => onDay namás funciona dientro de start()

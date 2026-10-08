@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Spied K: ka
 onLevelUp only works inside start() => onLevelUp darbojas tikai start() iekšā
 Night Watch => Nakts sardze
 Warns you when night falls, and counts the nights you survive. => Brīdina, kad iestājas nakts, un skaita naktis, ko pārdzīvo.
+onNight only works inside start() => onNight darbojas tikai start() iekšā
+onDay only works inside start() => onDay darbojas tikai start() iekšā

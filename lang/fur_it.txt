@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Frache K: o
 onLevelUp only works inside start() => onLevelUp al funzione dome dentri di start()
 Night Watch => Vuardie di gnot
 Warns you when night falls, and counts the nights you survive. => Ti vise cuant che al ven gnot, e al conte lis gnots che tu sorevivis.
+onNight only works inside start() => onNight al funzione dome dentri di start()
+onDay only works inside start() => onDay al funzione dome dentri di start()

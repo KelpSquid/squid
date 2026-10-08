@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => o luka e K 
 onLevelUp only works inside start() => onLevelUp li pali lon insa start() taso
 Night Watch => ilo lukin pi tenpo pimeja
 Warns you when night falls, and counts the nights you survive. => tenpo pimeja li kama la ona li toki tawa sina. ona li nanpa e tenpo pimeja ale pi sina moli ala.
+onNight only works inside start() => onNight li pali lon insa start() taso
+onDay only works inside start() => onDay li pali lon insa start() taso

@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Preme K: om
 onLevelUp only works inside start() => onLevelUp tantum intra start() valet
 Night Watch => Vigilia Nocturna
 Warns you when night falls, and counts the nights you survive. => Te monet cum nox cadit, et noctes quas superas numerat.
+onNight only works inside start() => onNight tantum intra start() valet
+onDay only works inside start() => onDay tantum intra start() valet

@@ -497,3 +497,5 @@ Press K: every creeper nearby glows through walls for 10 seconds. => Shtyp K: ç
 onLevelUp only works inside start() => onLevelUp punon vetëm brenda start()
 Night Watch => Roja e natës
 Warns you when night falls, and counts the nights you survive. => Të paralajmëron kur bie nata dhe numëron netët që mbijeton.
+onNight only works inside start() => onNight punon vetëm brenda start()
+onDay only works inside start() => onDay punon vetëm brenda start()
