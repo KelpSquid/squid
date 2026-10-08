@@ -1899,6 +1899,10 @@ public class PipelineTest {
         String uberPatched = new String(Transformers.patch(uberName, uberBytes, startLoader), java.nio.charset.StandardCharsets.ISO_8859_1);
         check("faster chunk drawing swaps in the quicker map, and the class still loads", uberPatched.contains("Reference2ObjectOpenHashMap")
                 + " " + failure(() -> Class.forName(uberName, true, startLoader)), "true ");
+        // and LevelRenderer, with empty layers skipped first, still passes Java's checks (its own setup may need a game)
+        String levelRendererLoad = failure(() -> Class.forName("net.minecraft.client.renderer.LevelRenderer", true, startLoader));
+        check("chunk drawing that skips empty layers first still passes Java's checks", levelRendererLoad.contains("VerifyError")
+                || levelRendererLoad.contains("ClassFormatError"), false);
 
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);

@@ -31,6 +31,7 @@ final class ChunkDrawing {
     }
 
     static void install(Squid squid) {
+        squid.patch("net.minecraft.client.renderer.LevelRenderer", ChunkDrawing::emptyLayersFirst);
         squid.patch(BUFFER, node -> {
             boolean done = false;
             for (MethodNode method : node.methods) {
@@ -54,6 +55,40 @@ final class ChunkDrawing {
             if (!done) System.out.println("[Squid Speed] Minecraft's chunk buffers changed; faster chunk drawing is off.");
             oneHeapShortcut(node);
         });
+    }
+
+    /**
+     * For every chunk piece on screen and every layer (solid, cutout, see-through...), Minecraft looked up where that
+     * layer sits on the graphics card first, and only then checked whether the piece has anything in that layer. Most
+     * pieces only have one or two, so most of those lookups (each a couple of slow trips to memory) found nothing. This
+     * checks first: right after the layer's draw is fetched, an empty one skips to the next layer, the way the check
+     * further down would have.
+     *
+     * draw = mesh.getSectionDraw(layer); if (draw == null) continue;
+     */
+    private static void emptyLayersFirst(ClassNode node) {
+        for (MethodNode method : node.methods) {
+            if (!method.name.equals("extractSectionDrawGroups")) continue;
+            for (AbstractInsnNode insn : method.instructions.toArray()) {
+                if (!(insn instanceof MethodInsnNode call) || !call.name.equals("getSectionDraw")
+                        || !(call.getNext() instanceof VarInsnNode store) || store.getOpcode() != Opcodes.ASTORE) continue;
+                // the "continue" the original check jumps to: the first "if (draw == null)" after this
+                LabelNode next = null;
+                for (AbstractInsnNode later = store.getNext(); later != null; later = later.getNext()) {
+                    if (later instanceof VarInsnNode load && load.getOpcode() == Opcodes.ALOAD && load.var == store.var
+                            && load.getNext() instanceof JumpInsnNode jump && jump.getOpcode() == Opcodes.IFNULL) {
+                        next = jump.label;
+                        break;
+                    }
+                }
+                if (next == null) return; // Minecraft changed: leave it as it is
+                InsnList check = new InsnList();
+                check.add(new VarInsnNode(Opcodes.ALOAD, store.var));
+                check.add(new JumpInsnNode(Opcodes.IFNULL, next));
+                method.instructions.insert(store, check);
+                return;
+            }
+        }
     }
 
     /**
