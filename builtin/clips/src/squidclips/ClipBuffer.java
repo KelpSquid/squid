@@ -8,6 +8,7 @@ import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -125,5 +126,45 @@ public final class ClipBuffer {
             writer.dispose();
         }
         return bytes.toByteArray();
+    }
+
+    /**
+     * Turns pictures from the graphics card into JPEGs. It keeps its picture and its JPEG writer from one to the next,
+     * since making them each time (20 a second) was most of the work. Only one thread may use one at a time.
+     */
+    public static final class Encoder {
+        private BufferedImage image;
+        private ImageWriter writer;
+        private ImageWriteParam param;
+
+        /** rgba is 4 bytes a pixel (red, green, blue, alpha) with the bottom row first, the way graphics cards keep it. */
+        public byte[] jpeg(byte[] rgba, int width, int height) throws IOException {
+            if (rgba.length < width * height * 4) throw new IllegalArgumentException("too few pixels");
+            if (image == null || image.getWidth() != width || image.getHeight() != height) {
+                image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            }
+            int[] out = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+            for (int y = 0; y < height; y++) {
+                int from = (height - 1 - y) * width * 4;
+                int to = y * width;
+                for (int x = 0; x < width; x++, from += 4) {
+                    out[to + x] = (rgba[from] & 0xFF) << 16 | (rgba[from + 1] & 0xFF) << 8 | (rgba[from + 2] & 0xFF);
+                }
+            }
+            if (writer == null) {
+                writer = ImageIO.getImageWritersByFormatName("jpeg").next();
+                param = writer.getDefaultWriteParam();
+                param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                param.setCompressionQuality(0.75f);
+            }
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream(64 * 1024);
+            try (MemoryCacheImageOutputStream stream = new MemoryCacheImageOutputStream(bytes)) {
+                writer.setOutput(stream);
+                writer.write(null, new IIOImage(image, null, null), param);
+            } finally {
+                writer.setOutput(null);
+            }
+            return bytes.toByteArray();
+        }
     }
 }

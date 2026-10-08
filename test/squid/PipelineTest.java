@@ -951,6 +951,24 @@ public class PipelineTest {
         check("a clip is a Motion JPEG .avi with every picture", new String(avi, 0, 4) + " " + new String(avi, 8, 4) + " " + (header.getInt(4) + 8 == avi.length)
                 + " " + new String(avi, 0, avi.length, java.nio.charset.StandardCharsets.ISO_8859_1).contains("MJPG")
                 + " " + (new String(avi, 0, avi.length, java.nio.charset.StandardCharsets.ISO_8859_1).split("00dc", -1).length - 1), "RIFF AVI  true true 82");
+        // Pictures from the graphics card come bottom row first, 4 bytes a pixel: the top of the JPEG is red, the bottom blue
+        byte[] gpuPicture = new byte[64 * 36 * 4];
+        for (int y = 0; y < 36; y++) {
+            for (int x = 0; x < 64; x++) {
+                int at = (y * 64 + x) * 4;
+                boolean bottom = y < 18; // the first rows are the picture's bottom
+                gpuPicture[at] = (byte) (bottom ? 0 : 255);
+                gpuPicture[at + 2] = (byte) (bottom ? 255 : 0);
+                gpuPicture[at + 3] = (byte) 255;
+            }
+        }
+        squidclips.ClipBuffer.Encoder clipEncoder = new squidclips.ClipBuffer.Encoder();
+        clipEncoder.jpeg(gpuPicture, 64, 36); // the second picture reuses the first one's picture and writer
+        java.awt.image.BufferedImage decoded = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(clipEncoder.jpeg(gpuPicture, 64, 36)));
+        int topColor = decoded.getRGB(32, 4);
+        int bottomColor = decoded.getRGB(32, 31);
+        check("graphics card pictures come out the right way up and the right colors", decoded.getWidth() + "x" + decoded.getHeight()
+                + " " + ((topColor >> 16 & 0xFF) > 200 && (topColor & 0xFF) < 60) + " " + ((bottomColor & 0xFF) > 200 && (bottomColor >> 16 & 0xFF) < 60), "64x36 true true");
 
         // Replays: the last few minutes, smooth in slow motion, with blocks put back in order
         squidreplay.Timeline replayTimeline = new squidreplay.Timeline();
@@ -1689,6 +1707,17 @@ public class PipelineTest {
             if (hooked.startsWith("net.minecraft.") && startLoader.hasLoaded(hooked)) loadedBeforeHooked.add(hooked);
         }
         check("starting every built-in part loads nothing that's hooked (" + builtInParts.size() + " parts)", loadedBeforeHooked, List.of());
+
+        // Squid Speed's faster chunk drawing: Minecraft's chunk buffers get the quicker map, and the changed class still
+        // passes Java's checks as it loads
+        String uberName = "com.mojang.blaze3d.vertex.UberGpuBuffer";
+        byte[] uberBytes;
+        try (java.io.InputStream in = startLoader.getResourceAsStream(uberName.replace('.', '/') + ".class")) {
+            uberBytes = in.readAllBytes();
+        }
+        String uberPatched = new String(Transformers.patch(uberName, uberBytes, startLoader), java.nio.charset.StandardCharsets.ISO_8859_1);
+        check("faster chunk drawing swaps in the quicker map, and the class still loads", uberPatched.contains("Reference2ObjectOpenHashMap")
+                + " " + failure(() -> Class.forName(uberName, true, startLoader)), "true ");
 
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);

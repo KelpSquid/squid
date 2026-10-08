@@ -1,9 +1,7 @@
 package squidclips;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.Screenshot;
 import squid.Lang;
 import squid.Main;
 import squid.api.Game;
@@ -12,7 +10,6 @@ import squid.api.ModSettings;
 import squid.api.Squid;
 import squid.api.SquidMod;
 
-import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -29,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Clips implements SquidMod {
     private final ClipBuffer buffer = new ClipBuffer();
-    // Pictures are shrunk and made into JPEGs away from the game's own thread, so the game stays smooth
+    // Pictures are made into JPEGs away from the game's own thread, so the game stays smooth (ClipCapture shrinks them first)
     private final ExecutorService encoder = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "Squid clips");
         thread.setDaemon(true);
@@ -37,6 +34,10 @@ public class Clips implements SquidMod {
         return thread;
     });
     private final AtomicInteger waiting = new AtomicInteger();
+    private final ClipCapture capture = new ClipCapture();
+    private final ClipBuffer.Encoder frames = new ClipBuffer.Encoder(); // only used on the encoder thread
+    // The pictures' pixels on their way to the encoder: the same few arrays go round, instead of new ones every time
+    private final java.util.concurrent.ArrayBlockingQueue<byte[]> pixelArrays = new java.util.concurrent.ArrayBlockingQueue<>(8);
     private ModSettings settings;
     private KeyBinding saveKey;
 
@@ -92,37 +93,30 @@ public class Clips implements SquidMod {
         }
         if (waiting.get() > 4) return; // the computer is busy: skip a picture rather than slow the game down
         var target = minecraft.gameRenderer.mainRenderTarget();
-        int downscale = target.width % 2 == 0 && target.height % 2 == 0 ? 2 : 1;
         long time = System.currentTimeMillis();
         int width = videoWidth();
+        int height = width * 9 / 16;
         int seconds = seconds();
         var camera = minecraft.gameRenderer.mainCamera();
         double[] pose = {camera.position().x, camera.position().y, camera.position().z, camera.yRot()}; // where the sound is heard from
         waiting.incrementAndGet();
-        Screenshot.takeScreenshot(target, downscale, image -> {
-            int[] pixels;
-            int w;
-            int h;
-            try (NativeImage picture = image) {
-                w = picture.getWidth();
-                h = picture.getHeight();
-                pixels = picture.getPixels();
-            } catch (RuntimeException e) {
-                waiting.decrementAndGet();
-                return;
-            }
+        boolean taken = capture.capture(target, width, height, data -> {
+            byte[] pixels = pixelArrays.poll();
+            if (pixels == null || pixels.length != data.remaining()) pixels = new byte[data.remaining()];
+            data.get(pixels);
+            byte[] picture = pixels;
             encoder.execute(() -> {
                 try {
-                    BufferedImage frame = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-                    frame.setRGB(0, 0, w, h, pixels, 0, w);
-                    buffer.add(ClipBuffer.jpeg(ClipBuffer.fit(frame, width, width * 9 / 16), 0.75f), time, seconds, pose);
+                    buffer.add(frames.jpeg(picture, width, height), time, seconds, pose);
                 } catch (Exception e) {
                     // one lost picture: the clip just skips it
                 } finally {
+                    pixelArrays.offer(picture);
                     waiting.decrementAndGet();
                 }
             });
         });
+        if (!taken) waiting.decrementAndGet();
     }
 
     /** Writes what's kept as a video, in the background, and says where it went. */
