@@ -389,7 +389,7 @@ final class Mods {
 
     /** Every key squid.json can have. */
     static final Set<String> KEYS = Set.of("id", "name", "version", "description", "authors", "depends", "minecraft",
-            "main", "side");
+            "main", "side", "icon");
 
     /** Keys people often write by mistake, and the one they meant. */
     static final Map<String, String> DID_YOU_MEAN = Map.ofEntries(
@@ -397,7 +397,7 @@ final class Mods {
             Map.entry("requires", "depends"), Map.entry("mainclass", "main"), Map.entry("main_class", "main"),
             Map.entry("entrypoint", "main"), Map.entry("mc", "minecraft"), Map.entry("minecraft_version", "minecraft"),
             Map.entry("minecraftversion", "minecraft"), Map.entry("desc", "description"), Map.entry("title", "name"),
-            Map.entry("modid", "id"), Map.entry("mod_id", "id"), Map.entry("environment", "side"));
+            Map.entry("modid", "id"), Map.entry("mod_id", "id"), Map.entry("environment", "side"), Map.entry("logo", "icon"), Map.entry("image", "icon"));
 
     /**
      * The problems with squid.json keys, like "author" when it should be "authors". They don't stop the mod (it may

@@ -78,6 +78,7 @@ Everything `squid.json` can have:
 | `minecraft` | the versions it works on: `"26.3"`, `"26.3.x"` (26.3 and its updates), `">=26.3"`, or a list |
 | `main` | the class Squid starts |
 | `side` | `"client"` (the game, the default), `"server"`, or `"both"` |
+| `icon` | a picture in `resources`, shown in Kelp's Mods screen. `icon.png` if left out. New projects get one made from their name |
 
 A key Squid doesn't know is written in the log, with a guess when it looks like a typo (`"author"`: *did you mean
 "authors"?*). Kelp writes `id` and `main` for new projects, so renaming the folder later can't break the mod.
