@@ -273,6 +273,9 @@ public class PipelineTest {
                 "        onAttack(mob -> { if (mob.equals(\"zombie\")) particles(\"crit\", 5); });",
                 "        onKey(\"G\", () -> after(1.5, () -> title(\"Boom!\")));",
                 "        onPickup(item -> { if (item.equals(\"diamond\")) say(\"Shiny!\"); });",
+                "        onLevelUp(level -> title(\"Level \" + level + \"!\"));",
+                "        onNight(() -> say(\"Night!\"));",
+                "        onDay(() -> say(\"Morning! You're level \" + level()));",
                 "        onKey(\"K\", () -> { glow(\"creeper\"); after(10, () -> stopGlowing(\"creeper\")); });",
                 "        keepShowing(() -> \"Diamonds: \" + remembered(\"diamonds\", 0));",
                 "        every(1, () -> {",
@@ -855,7 +858,7 @@ public class PipelineTest {
         allSnippets.append("    }\n}\n");
         Path snippetsFile = java.nio.file.Files.createTempDirectory("squid-snippets").resolve("AllSnippets.java");
         java.nio.file.Files.writeString(snippetsFile, allSnippets);
-        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 27");
+        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 29");
 
         Main.setGameFolder(modsGame);
         squid.api.ModSettings settings = squid.api.ModSettings.of("settings-test");

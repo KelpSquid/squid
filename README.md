@@ -45,6 +45,8 @@ public class RainbowSheep extends EasyMod {
 | `after(3, () -> { ... })` | Runs once, 3 seconds from now (works inside other commands too, for countdowns) |
 | `onTick(() -> { ... })` | Runs 20 times a second |
 | `onHurt(() -> { ... })`, `onDeath(() -> { ... })` | Runs when you get hurt, or die |
+| `onLevelUp(level -> { ... })` | Runs when your experience level goes up, with the new level |
+| `onNight(() -> { ... })`, `onDay(() -> { ... })` | Runs when night falls, or the day starts again |
 | `onCommand("dance", () -> { ... })` | Your own chat command: typing `!dance` runs it (and isn't sent). `onCommand("shout", words -> ...)` gets what's typed after it |
 | `onChat(text -> { ... })` | Runs for every chat message you see (`"<Steve> hi"`, `"Alex joined the game"`), not mods' own |
 | `onBreak(block -> { ... })` | Runs when you break a block, with its name (`"stone"`, `"diamond_ore"`) |
@@ -55,7 +57,7 @@ public class RainbowSheep extends EasyMod {
 | `remember("diamonds", 5)`, `remembered("diamonds", 0)` | Keeps a number for next time you play, and gets it back (or the starting number) |
 | `onBeat(() -> { ... })` | Runs on every beat of the music: Jukebox songs (Squid finds their beat) and `.sqda` beats |
 | `musicLevel()`, `nowPlaying()` | How loud the music is (0 to 1), and what's playing |
-| `x()`, `y()`, `z()`, `health()`, `playerName()`, `random(1, 6)` | Things to know |
+| `x()`, `y()`, `z()`, `health()`, `level()`, `playerName()`, `random(1, 6)` | Things to know |
 | `biome()`, `dimension()`, `isNight()`, `isRaining()`, `holding()`, `lookingAt()` | Where you are, what's in your hand, and the block or mob you're looking at |
 | `nearby("creeper", 16)` | How many of a mob are within 16 blocks (`""` counts every mob) |
 | `setting("Show map", true)`, `setting("Zoom", 4, 1, 10)` | A setting players change in the Mods screen (top-left of the title screen and pause menu) |

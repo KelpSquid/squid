@@ -38,6 +38,11 @@ public abstract class EasyMod implements SquidMod {
     private int ticksInWorld; // since joining: your real health arrives from the server a moment after you join
     private final List<Timer> timers = new ArrayList<>();
     private final List<Later> laters = new ArrayList<>();
+    private final List<java.util.function.IntConsumer> levelUps = new ArrayList<>();
+    private final List<Action> nights = new ArrayList<>();
+    private final List<Action> days = new ArrayList<>();
+    private int lastLevel = -1;     // the experience level last tick (-1: not known yet)
+    private int lastNight = -1;     // 1 night, 0 day, -1 not known yet
     private final List<KeyAction> keys = new ArrayList<>();
     private final List<String[]> waitingMessages = new ArrayList<>(); // text and color, said before joining a world
     private Object world; // the world the player was in last tick, to notice joining and leaving
@@ -278,6 +283,27 @@ public abstract class EasyMod implements SquidMod {
         Events.glow(squid.mod().id(), full.substring(full.indexOf(':') + 1), false);
     }
 
+    /** Runs when your experience level goes up, with the new level: onLevelUp(level -> title("Level " + level)). */
+    protected void onLevelUp(java.util.function.IntConsumer action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onLevelUp only works inside start()"));
+        int[] level = {0};
+        Action run = new Action("onLevelUp", () -> action.accept(level[0]));
+        levelUps.add(value -> {
+            level[0] = value;
+            run.run();
+        });
+    }
+
+    /** Runs when night starts (or a storm makes it dark). */
+    protected void onNight(Runnable action) {
+        nights.add(new Action("onNight", action));
+    }
+
+    /** Runs when the day starts again. */
+    protected void onDay(Runnable action) {
+        days.add(new Action("onDay", action));
+    }
+
     /** Runs 20 times a second while you're in a world. */
     protected void onTick(Runnable action) {
         ticks.add(new Action("onTick", action));
@@ -436,6 +462,11 @@ public abstract class EasyMod implements SquidMod {
         return Game.inWorld() ? Game.dimension() : "";
     }
 
+    /** Your experience level, the green number above the hotbar. */
+    protected int level() {
+        return Game.inWorld() ? Game.xpLevel() : 0;
+    }
+
     /** Whether it's raining (or snowing) in the world right now. */
     protected boolean isRaining() {
         return Game.inWorld() && Game.raining();
@@ -499,6 +530,8 @@ public abstract class EasyMod implements SquidMod {
             if (world != null) leaves.forEach(Action::run);
             world = now;
             ticksInWorld = 0;
+            lastLevel = -1; // a new world: what it starts with isn't a change
+            lastNight = -1;
             if (now != null) {
                 for (String[] message : waitingMessages) Game.chat(message[0], message[1]);
                 waitingMessages.clear();
@@ -525,6 +558,19 @@ public abstract class EasyMod implements SquidMod {
             lastHealth = health;
         }
         worldTicks++;
+        // Levelling up and night falling, noticed from how they were last tick (after the first two seconds,
+        // while the server says the real values)
+        if (!levelUps.isEmpty() && ticksInWorld > 40) {
+            int level = Game.xpLevel();
+            if (lastLevel >= 0 && level > lastLevel) for (java.util.function.IntConsumer up : levelUps) up.accept(level);
+            lastLevel = level;
+        }
+        if ((!nights.isEmpty() || !days.isEmpty()) && ticksInWorld > 40) {
+            int night = Game.dark() ? 1 : 0;
+            if (lastNight == 0 && night == 1) nights.forEach(Action::run);
+            if (lastNight == 1 && night == 0) days.forEach(Action::run);
+            lastNight = night;
+        }
         ticks.forEach(Action::run);
         for (Timer timer : timers) {
             if (worldTicks % timer.everyTicks() == 0) timer.action().run();

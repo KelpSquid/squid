@@ -430,6 +430,11 @@ public final class Game {
         return key == null ? "" : path(call(key, "identifier"));
     }
 
+    /** The player's experience level (the green number above the hotbar). */
+    static int xpLevel() {
+        return (int) field(player(), "experienceLevel");
+    }
+
     /** Whether it's raining (or snowing) in the world. */
     static boolean raining() {
         return (boolean) call(world(), "isRaining");

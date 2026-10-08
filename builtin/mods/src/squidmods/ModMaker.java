@@ -38,6 +38,8 @@ public final class ModMaker {
             new String[] {"onAttack", "onAttack(mob -> particles(\"crit\", 5));"},
             new String[] {"onPickup", "onPickup(item -> { if (item.equals(\"diamond\")) say(\"Shiny!\"); });"},
             new String[] {"onHurt", "onHurt(() -> playSound(\"entity.villager.no\"));"},
+            new String[] {"onLevelUp", "onLevelUp(level -> title(\"Level \" + level + \"!\"));"},
+            new String[] {"onNight", "onNight(() -> say(\"Night is falling. Watch out!\"));"},
             new String[] {"onDeath", "onDeath(() -> title(\"Oops!\", \"Try again\"));"},
             new String[] {"onCommand", "onCommand(\"dance\", () -> particles(\"note\", 10));"},
             new String[] {"onChat", "onChat(text -> { if (text.contains(\"hi\")) say(\"Hello!\"); });"},
