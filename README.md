@@ -123,7 +123,11 @@ every line before it runs. Squid builds it the first time and keeps the result.
 
 A `.squid` is a zip with `squid.json`, `src/` and `resources/` at the top. Packing the same project twice gives the
 exact same file (so its fingerprint is the same too), and junk like `Thumbs.db` and `.DS_Store` stays out. Zipped by
-hand works too, even with the whole folder inside or Windows' `\` between folders.
+hand works too, even with the whole folder inside or Windows' `\` between folders. A `.squid` that's damaged, unpacks
+to more than 256 MB, or has a file that tries to leave its folder is skipped with a reason, like any broken mod.
+
+Live reload watches `.squid` files too: drop in a newer one while playing and it takes over. If the old copy is
+still there, the new one waits, and starts as soon as the old one is removed or turned off.
 
 ## .sqda files
 

@@ -28,6 +28,8 @@ final class Reloader {
     private final ClassLoader game;
     private final String minecraftVersion;
     private final Map<Path, String> fingerprints = new HashMap<>();
+    /** Copies of a mod that didn't start because another copy was running, by the mod's id: they start when it goes. */
+    private final Map<Path, String> waiting = new HashMap<>();
 
     Reloader(Path mods, SourceMods sources, ClassLoader game, String minecraftVersion) {
         this.mods = mods;
@@ -64,7 +66,10 @@ final class Reloader {
             if (!entry.getValue().equals(before)) rebuild(entry.getKey());
         }
         for (Path gone : fingerprints.keySet()) {
-            if (!now.containsKey(gone)) unload(gone);
+            if (!now.containsKey(gone)) {
+                waiting.remove(gone);
+                unload(gone);
+            }
         }
         fingerprints.clear();
         fingerprints.putAll(now);
@@ -113,7 +118,10 @@ final class Reloader {
     /** Builds a changed mod again and, if that works, swaps it in on the game's own thread. */
     void rebuild(Path path) {
         LiveReload.building(path);
+        waiting.remove(path);
         String name = path.getFileName().toString();
+        // What this file was before, in case its squid.json now gives it another id
+        String before = sources.built.get(path);
         ModInfo info;
         try {
             ModInfo described = Mods.describe(path);
@@ -125,6 +133,7 @@ final class Reloader {
             // Another file that's already running this mod: two copies can't run at once
             for (Map.Entry<Path, String> other : sources.built.entrySet()) {
                 if (other.getValue().equals(described.id()) && !other.getKey().equals(path) && Files.exists(other.getKey())) {
+                    waiting.put(path, described.id());
                     tell(path, false, Lang.t("Squid didn't load {0}: it's another copy of {1}. You can delete {2}.", name,
                             other.getKey().getFileName(), name), "YELLOW");
                     return;
@@ -147,11 +156,18 @@ final class Reloader {
             return;
         }
         ModInfo ready = info;
-        onGameThread(() -> swapIn(ready, path));
+        onGameThread(() -> {
+            boolean started = swapIn(ready, path);
+            if (before == null || before.equals(ready.id())) return;
+            // Its id changed (squid.json says another one now): the mod it used to be stops, unless another file
+            // is still that mod. If the new one broke, the old one keeps running, and removing the file stops it.
+            if (!started) sources.built.put(path, before);
+            else if (!sources.built.containsValue(before)) stop(before);
+        });
     }
 
-    /** Starts the new version of a mod in place of its old one (or for the first time, for a new mod). */
-    void swapIn(ModInfo info, Path path) {
+    /** Starts the new version of a mod in place of its old one (or for the first time, for a new mod). Says whether it started. */
+    boolean swapIn(ModInfo info, Path path) {
         boolean wasRunning = Main.mods().stream().anyMatch(m -> m.id().equals(info.id()));
         Slots.beginReload(info.id());
         Class<?> main = null;
@@ -170,6 +186,7 @@ final class Reloader {
                 tell(path, false, Lang.t("Part of {0} needs a restart to work: it changes {1}, which is already loaded.", info.name(),
                         String.join(", ", restart)), "YELLOW");
             }
+            return true;
         } catch (Throwable problem) {
             Hooks.turnOff(info.id());
             Events.remove(info.id());
@@ -177,6 +194,7 @@ final class Reloader {
             Main.removeMod(info.id()); // it isn't running now, so saving the old code again starts it again
             tell(path, false, Lang.t("{0} broke while reloading: {1}", info.name(), Mistakes.explain(problem, main)), "RED");
             problem.printStackTrace(System.out);
+            return false;
         }
     }
 
@@ -186,6 +204,19 @@ final class Reloader {
         if (id == null) return;
         // Renamed (X.squid became X-v2.squid) or updated under a new name: the new file runs this mod now
         if (sources.built.containsValue(id)) return;
+        // A copy that was waiting for this one to go (like a newer download added before the old one was turned
+        // off) takes over now, instead of the mod stopping until the game restarts
+        for (Map.Entry<Path, String> copy : Map.copyOf(waiting).entrySet()) {
+            if (copy.getValue().equals(id) && Files.exists(copy.getKey())) {
+                rebuild(copy.getKey());
+                if (sources.built.containsValue(id)) return;
+            }
+        }
+        stop(id);
+    }
+
+    /** Stops a mod: its hooks, its events, and its place in the running list. */
+    private void stop(String id) {
         Hooks.turnOff(id);
         Events.remove(id);
         String name = Main.mods().stream().filter(m -> m.id().equals(id)).map(ModInfo::name).findFirst().orElse(id);

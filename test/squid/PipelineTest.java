@@ -823,6 +823,30 @@ public class PipelineTest {
         Events.runTicks();
         check("a removed mod stops", ReloadProbe.value + " " + Main.mods().stream().anyMatch(m -> m.id().equals("ticker")), "0 false");
 
+        // A second copy of a running mod waits; when the running copy goes (an update dropped in before the old file
+        // was turned off), the waiting copy takes over instead of the mod stopping until the game restarts
+        Path copyA = project(live, "CopyA", "{\"id\": \"twin\", \"main\": \"Twin\"}", "Twin", "s.onTick(() -> squid.ReloadProbe.value = 5);");
+        reloader.check();
+        Path copyB = project(live, "CopyB", "{\"id\": \"twin\", \"main\": \"Twin\"}", "Twin", "s.onTick(() -> squid.ReloadProbe.value = 6);");
+        reloader.check();
+        ReloadProbe.value = 0;
+        Events.runTicks();
+        int whileBoth = ReloadProbe.value;
+        deleteTree(copyA);
+        reloader.check();
+        ReloadProbe.value = 0;
+        Events.runTicks();
+        check("a waiting copy of a mod takes over when the running one is removed", whileBoth + " " + ReloadProbe.value + " "
+                + Main.mods().stream().anyMatch(m -> m.id().equals("twin")), "5 6 true");
+        // Giving a running mod another id in its squid.json: the mod it used to be stops
+        java.nio.file.Files.writeString(copyB.resolve("squid.json"), "{\"id\": \"twin-two\", \"main\": \"Twin\"}");
+        java.nio.file.Files.setLastModifiedTime(copyB.resolve("squid.json"), java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() + 5000));
+        reloader.check();
+        check("changing a running mod's id stops the old one", Main.mods().stream().map(ModInfo::id).filter(id -> id.startsWith("twin")).toList().toString(), "[twin-two]");
+        deleteTree(copyB);
+        reloader.check();
+        check("and removing it stops the new one", Main.mods().stream().anyMatch(m -> m.id().startsWith("twin")), false);
+
         // A reloaded mod takes over its old hooks in classes that can't be patched again
         ModInfo hooker = new ModInfo("hooker", "Hooker", "1.0", "", List.of(), List.of(), List.of(), "x", live);
         new Squid(hooker).atStart("test.NeverLoaded", "run", call -> ReloadProbe.hookCalls = 1);
@@ -1819,6 +1843,21 @@ public class PipelineTest {
         out.writeInt(body.size());
         body.writeTo(out);
         return file.toByteArray();
+    }
+
+    /** A project folder with a squid.json and one class whose init runs the code given. */
+    static Path project(Path mods, String folder, String squidJson, String className, String initCode) throws java.io.IOException {
+        Path project = java.nio.file.Files.createDirectories(mods.resolve(folder).resolve("src"));
+        java.nio.file.Files.writeString(mods.resolve(folder).resolve("squid.json"), squidJson);
+        java.nio.file.Files.writeString(project.resolve(className + ".java"), "public class " + className
+                + " implements SquidMod {\n    public void init(Squid s) {\n        " + initCode + "\n    }\n}\n");
+        return mods.resolve(folder);
+    }
+
+    static void deleteTree(Path folder) throws java.io.IOException {
+        try (java.util.stream.Stream<Path> walk = java.nio.file.Files.walk(folder)) {
+            for (Path p : walk.sorted(java.util.Comparator.reverseOrder()).toList()) java.nio.file.Files.delete(p);
+        }
     }
 
     /** Numbers packed into bits the way Vorbis packs them: {value, how many bits}, lowest bit first. */
