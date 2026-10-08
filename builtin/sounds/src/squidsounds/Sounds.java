@@ -2,56 +2,160 @@ package squidsounds;
 
 import com.mojang.blaze3d.audio.SoundBuffer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.Sound;
+import net.minecraft.client.sounds.AudioStream;
 import net.minecraft.client.sounds.FiniteAudioStream;
+import net.minecraft.client.sounds.WeighedSoundEvents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.util.Util;
+import net.minecraft.util.valueproviders.SampledFloat;
 import squid.api.Squid;
 import squid.api.SquidMod;
 import squid.audio.Audio;
 import squid.audio.Pcm;
+import squid.audio.Sqda;
 
 import javax.sound.sampled.AudioFormat;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Resource packs can use .wav, .mp3 and .flac sounds and music, not just .ogg. Minecraft always asks for
- * "sounds/name.ogg"; when that file isn't there but name.wav, name.mp3 or name.flac is (or the .ogg is really one of
- * those inside), Squid decodes it with its own decoders and hands Minecraft the sound. Real .ogg files are left to
- * Minecraft, as always.
+ * Resource packs can use .wav, .mp3, .flac and Squid's own .sqda sounds and music, not just .ogg. Minecraft always
+ * asks for "sounds/name.ogg"; when that file isn't there but name.wav, .mp3, .flac or .sqda is (or the .ogg is really
+ * one of those inside), Squid decodes it with its own decoders and hands Minecraft the sound. Real .ogg files are
+ * left to Minecraft, as always.
+ *
+ * .sqda files bring more: a variant picked at random each play, loop points, their own volume, pitch, distance,
+ * streaming and subtitle, and while they play, their cues and light cues go to mods and entity triggers fire
+ * (see {@link Playing}).
  */
 public class Sounds implements SquidMod {
-    private static final String[] OTHER_KINDS = {".wav", ".mp3", ".flac"};
+    private static final String[] OTHER_KINDS = {".sqda", ".wav", ".mp3", ".flac"};
+    /** A trigger plays one of a file's own variants as "name.squidvariant3": the same file, variant 3. */
+    static final Pattern VARIANT = Pattern.compile("^(.*)\\.squidvariant(\\d+)(\\.ogg)?$");
+
     private final Set<Identifier> plainOgg = ConcurrentHashMap.newKeySet(); // checked already: Minecraft's own
-    private final java.util.Map<Identifier, Pcm> decoded = new ConcurrentHashMap<>();
+    private final Map<Identifier, Pcm> decoded = new ConcurrentHashMap<>();
+    private final Map<Identifier, Sqda> sqdas = new ConcurrentHashMap<>();
+    private final Map<Identifier, Optional<Sqda>> headers = new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<SoundBuffer>> buffers = new ConcurrentHashMap<>();
+    private final Random random = new Random();
+    private static Field soundList;
 
     @Override
     public void init(Squid squid) {
-        // Short sounds: decoded whole
+        Playing playing = new Playing(squid.settings());
+        // Short sounds: decoded whole, once per variant, and kept like Minecraft keeps its own
         squid.atStart("net.minecraft.client.sounds.SoundBufferLibrary", "getCompleteBuffer", call -> {
-            Identifier path = (Identifier) call.args()[0];
+            Identifier asked = (Identifier) call.args()[0];
+            Identifier path = basePath(asked);
             byte[] data = ours(path);
             if (data == null) return;
-            call.cancel(CompletableFuture.supplyAsync(() -> {
-                Pcm pcm = decode(path, data);
+            int variant = Sqda.is(data) ? variantFor(asked, path, data) : 0;
+            call.cancel(buffers.computeIfAbsent(path + "#" + variant, key -> CompletableFuture.supplyAsync(() -> {
+                Pcm pcm = Sqda.is(data) ? sqda(path, data).decode(variant) : decode(path, data);
                 return new SoundBuffer(bytes(pcm), format(pcm));
-            }, Util.nonCriticalIoPool()));
+            }, Util.nonCriticalIoPool())));
         });
-        // Music and long sounds: streamed (here, decoded whole and handed out a piece at a time)
+        // Music and long sounds: streamed. A .sqda is decoded as it plays; the others are decoded whole first.
         squid.atStart("net.minecraft.client.sounds.SoundBufferLibrary", "getStream", call -> {
-            Identifier path = (Identifier) call.args()[0];
+            Identifier asked = (Identifier) call.args()[0];
+            Identifier path = basePath(asked);
             boolean looping = (boolean) call.args()[1];
             byte[] data = ours(path);
             if (data == null) return;
-            call.cancel(CompletableFuture.supplyAsync(() -> new Stream(decode(path, data), looping), Util.nonCriticalIoPool()));
+            if (Sqda.is(data)) {
+                int variant = variantFor(asked, path, data);
+                call.cancel(CompletableFuture.supplyAsync(() -> {
+                    Sqda file = sqda(path, data);
+                    SqdaStream stream = new SqdaStream(file.play(variant, looping), file, variant, soundName(path));
+                    playing.started(stream);
+                    return (AudioStream) stream;
+                }, Util.nonCriticalIoPool()));
+                return;
+            }
+            call.cancel(CompletableFuture.supplyAsync(() -> (AudioStream) new Stream(decode(path, data), looping), Util.nonCriticalIoPool()));
         });
+        // When resource packs change, everything is looked up again (and our sound buffers let go)
+        squid.atStart("net.minecraft.client.sounds.SoundBufferLibrary", "clear", call -> {
+            for (CompletableFuture<SoundBuffer> f : buffers.values()) f.thenAccept(SoundBuffer::discardAlBuffer);
+            buffers.clear();
+            plainOgg.clear();
+            decoded.clear();
+            sqdas.clear();
+            headers.clear();
+        });
+        // A .sqda's own sound settings, on top of sounds.json's
+        squid.atEnd("net.minecraft.client.resources.sounds.Sound", "getVolume", call -> {
+            Sqda.Settings s = settingsOf((Sound) call.self());
+            if (s != null && s.volume() != 1) {
+                SampledFloat original = (SampledFloat) call.returnValue();
+                float volume = s.volume();
+                call.setReturnValue((SampledFloat) r -> original.sample(r) * volume);
+            }
+        });
+        squid.atEnd("net.minecraft.client.resources.sounds.Sound", "getPitch", call -> {
+            Sqda.Settings s = settingsOf((Sound) call.self());
+            if (s != null && s.pitch() != 1) {
+                SampledFloat original = (SampledFloat) call.returnValue();
+                float pitch = s.pitch();
+                call.setReturnValue((SampledFloat) r -> original.sample(r) * pitch);
+            }
+        });
+        squid.atEnd("net.minecraft.client.resources.sounds.Sound", "getAttenuationDistance", "()I", call -> {
+            Sqda.Settings s = settingsOf((Sound) call.self());
+            if (s != null && s.distance() != Sqda.Settings.DEFAULT.distance()) call.setReturnValue(s.distance());
+        });
+        squid.atEnd("net.minecraft.client.resources.sounds.Sound", "shouldStream", call -> {
+            Sqda.Settings s = settingsOf((Sound) call.self());
+            if (s != null && s.stream() != 0) call.setReturnValue(s.stream() == 1);
+        });
+        // A subtitle from the .sqda, when sounds.json doesn't give one
+        squid.atEnd("net.minecraft.client.sounds.WeighedSoundEvents", "getSubtitle", call -> {
+            if (call.returnValue() != null) return;
+            Sound first = firstSound((WeighedSoundEvents) call.self());
+            Sqda.Settings s = first == null ? null : settingsOf(first);
+            if (s != null && !s.subtitle().isEmpty()) call.setReturnValue(Component.translatableWithFallback(s.subtitle(), s.subtitle()));
+        });
+        squid.onTick(playing::tick);
+        squid.onHud(playing::hud);
+    }
+
+    /** "sounds/x.squidvariant3.ogg" (a trigger asking for variant 3) is the file "sounds/x.ogg". */
+    static Identifier basePath(Identifier path) {
+        Matcher m = VARIANT.matcher(path.getPath());
+        return m.matches() ? path.withPath(m.group(1) + ".ogg") : path;
+    }
+
+    private int variantFor(Identifier asked, Identifier path, byte[] data) {
+        Matcher m = VARIANT.matcher(asked.getPath());
+        Sqda file = sqda(path, data);
+        if (m.matches()) return Math.min(file.variants.size() - 1, Integer.parseInt(m.group(2)));
+        synchronized (random) {
+            return file.pickVariant(random);
+        }
+    }
+
+    /** "minecraft:sounds/music/x.ogg" is the sound "minecraft:music/x". */
+    static String soundName(Identifier path) {
+        String p = path.getPath();
+        if (p.startsWith("sounds/")) p = p.substring(7);
+        if (p.endsWith(".ogg")) p = p.substring(0, p.length() - 4);
+        return path.getNamespace() + ":" + p;
     }
 
     /** The file to decode ourselves for a sound Minecraft wants, or null to let Minecraft load its .ogg as usual. */
@@ -90,18 +194,71 @@ public class Sounds implements SquidMod {
         return null;
     }
 
+    /** Just the settings part of a .sqda (quick: it's at the front), or empty if the sound isn't one. */
+    private Optional<Sqda> header(Identifier path) {
+        return headers.computeIfAbsent(path, p -> {
+            if (plainOgg.contains(p)) return Optional.empty();
+            var resources = Minecraft.getInstance().getResourceManager();
+            String base = p.getPath().endsWith(".ogg") ? p.getPath().substring(0, p.getPath().length() - 4) : p.getPath();
+            for (Identifier candidate : List.of(p, p.withPath(base + ".sqda"))) {
+                Optional<Resource> found = resources.getResource(candidate);
+                if (found.isEmpty()) continue;
+                try (InputStream in = found.get().open()) {
+                    byte[] start = in.readNBytes(5);
+                    if (!Sqda.is(start)) return Optional.empty(); // a real .ogg (or another kind): no .sqda settings
+                } catch (IOException e) {
+                    return Optional.empty();
+                }
+                try (InputStream in = found.get().open()) {
+                    return Optional.of(Sqda.read(in, false));
+                } catch (IOException | RuntimeException e) {
+                    System.out.println("[Squid Sounds] Couldn't read " + candidate + ": " + e.getMessage());
+                    return Optional.empty();
+                }
+            }
+            return Optional.empty();
+        });
+    }
+
+    private Sqda.Settings settingsOf(Sound sound) {
+        if (sound.getType() != Sound.Type.FILE) return null;
+        return header(basePath(sound.getPath())).map(s -> s.settings).orElse(null);
+    }
+
+    private static Sound firstSound(WeighedSoundEvents events) {
+        try {
+            if (soundList == null) {
+                Field f = WeighedSoundEvents.class.getDeclaredField("list");
+                f.setAccessible(true);
+                soundList = f;
+            }
+            List<?> list = (List<?>) soundList.get(events);
+            return !list.isEmpty() && list.getFirst() instanceof Sound s ? s : null;
+        } catch (ReflectiveOperationException e) {
+            return null;
+        }
+    }
+
+    private Sqda sqda(Identifier path, byte[] data) {
+        return sqdas.computeIfAbsent(path, p -> Sqda.read(data));
+    }
+
     private Pcm decode(Identifier path, byte[] data) {
         return decoded.computeIfAbsent(path, p -> Audio.decode(data));
     }
 
-    private static AudioFormat format(Pcm pcm) {
+    static AudioFormat format(Pcm pcm) {
         return new AudioFormat(pcm.rate(), 16, pcm.channels(), true, false);
     }
 
-    private static ByteBuffer bytes(Pcm pcm) {
-        ByteBuffer buffer = ByteBuffer.allocateDirect(pcm.samples().length * 2).order(ByteOrder.LITTLE_ENDIAN);
-        for (short s : pcm.samples()) buffer.putShort(s);
+    static ByteBuffer bytes(short[] samples, int count) {
+        ByteBuffer buffer = ByteBuffer.allocateDirect(count * 2).order(ByteOrder.LITTLE_ENDIAN);
+        for (int i = 0; i < count; i++) buffer.putShort(samples[i]);
         return buffer.flip();
+    }
+
+    private static ByteBuffer bytes(Pcm pcm) {
+        return bytes(pcm.samples(), pcm.samples().length);
     }
 
     /** A sound handed to Minecraft a piece at a time, starting over at the end if it loops. */
@@ -142,6 +299,41 @@ public class Sounds implements SquidMod {
 
         @Override
         public void close() {
+        }
+    }
+
+    /** A .sqda handed to Minecraft as it's decoded, looping at its loop points. */
+    static final class SqdaStream implements AudioStream {
+        final Sqda.Player player;
+        final Sqda file;
+        final int variant;
+        final String sound;
+        volatile boolean closed;
+        volatile long firstRead;
+
+        SqdaStream(Sqda.Player player, Sqda file, int variant, String sound) {
+            this.player = player;
+            this.file = file;
+            this.variant = variant;
+            this.sound = sound;
+        }
+
+        @Override
+        public AudioFormat getFormat() {
+            return new AudioFormat(player.rate(), 16, player.channels(), true, false);
+        }
+
+        @Override
+        public ByteBuffer read(int size) {
+            if (firstRead == 0) firstRead = System.nanoTime();
+            short[] s = player.read(Math.max(1, size / 2 / player.channels()));
+            if (s == null) return null;
+            return bytes(s, s.length);
+        }
+
+        @Override
+        public void close() {
+            closed = true;
         }
     }
 }

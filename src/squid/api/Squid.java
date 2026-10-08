@@ -104,6 +104,14 @@ public final class Squid {
         squid.Events.onHud(mod.id(), draw);
     }
 
+    /**
+     * Runs right as a cue in a playing .sqda sound is heard: its beats, bars, sections, named cues and light cues.
+     * Good for lights or effects that follow the music.
+     */
+    public void onSoundCue(Consumer<SoundCue> cue) {
+        squid.Events.onSoundCue(mod.id(), cue);
+    }
+
     /** Runs 20 times a second, all the time the game is open (in menus too). */
     public void onTick(Runnable tick) {
         squid.Events.onTick(mod.id(), tick);

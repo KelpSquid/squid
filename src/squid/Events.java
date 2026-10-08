@@ -1,6 +1,7 @@
 package squid;
 
 import squid.api.Hud;
+import squid.api.SoundCue;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -22,6 +23,7 @@ public final class Events {
 
     private static final List<Listener<Void>> TICKS = new CopyOnWriteArrayList<>();
     private static final List<Listener<Hud>> HUDS = new CopyOnWriteArrayList<>();
+    private static final List<Listener<SoundCue>> CUES = new CopyOnWriteArrayList<>();
 
     public static void onTick(String modId, Runnable tick) {
         TICKS.add(new Listener<>(modId, nothing -> tick.run(), new AtomicInteger()));
@@ -31,10 +33,20 @@ public final class Events {
         HUDS.add(new Listener<>(modId, draw, new AtomicInteger()));
     }
 
+    public static void onSoundCue(String modId, Consumer<SoundCue> cue) {
+        CUES.add(new Listener<>(modId, cue, new AtomicInteger()));
+    }
+
+    /** Hands a .sqda cue to every mod listening (Squid Sounds calls this as cues are heard). */
+    public static void soundCue(SoundCue cue) {
+        run(CUES, cue);
+    }
+
     /** Removes a mod's listeners, like when it's reloaded or turned off. */
     static void remove(String modId) {
         TICKS.removeIf(l -> l.modId().equals(modId));
         HUDS.removeIf(l -> l.modId().equals(modId));
+        CUES.removeIf(l -> l.modId().equals(modId));
     }
 
     /** Squid hooks Minecraft's tick and HUD here once, before any mod starts. */

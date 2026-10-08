@@ -830,10 +830,77 @@ public class PipelineTest {
                 "60 true");
         check("a lost packet just fades out, without breaking", voiceOut.decode(null).length, 320);
 
+        // Squid Music, the codec inside .sqda: close to the original, exactly as long
+        squid.audio.Pcm tone = squid.audio.Audio.decode(java.nio.file.Files.readAllBytes(Path.of("test", "audio", "tone.wav")));
+        squid.audio.MusicCodec.Encoded music = squid.audio.MusicCodec.encode(tone, squid.audio.MusicCodec.DEFAULT_QUALITY);
+        squid.audio.Pcm musicBack = squid.audio.MusicCodec.decode(music);
+        double musicError = 0;
+        double musicSignal = 0;
+        for (int i = 0; i < tone.samples().length; i++) {
+            double d = musicBack.samples()[i] - tone.samples()[i];
+            musicError += d * d;
+            musicSignal += (double) tone.samples()[i] * tone.samples()[i];
+        }
+        check("Squid Music sounds like the original and is exactly as long", musicBack.samples().length == tone.samples().length
+                && 10 * Math.log10(musicSignal / musicError) > 20, true);
+
+        // .sqda: everything it carries comes back, and the quick read skips the sound
+        squid.audio.Sqda made = squid.audio.Sqda.fromSound(tone, 6);
+        short[] blip = new short[4410];
+        for (int i = 0; i < blip.length; i++) blip[i] = (short) (Math.sin(i * 0.2) * 8000);
+        made.addVariant("sting", 0, new squid.audio.Pcm(blip, 1, 44100), 6);
+        made.info.put("title", "Tone");
+        made.loops.add(new squid.audio.Sqda.Loop(0, 1000, 9000));
+        made.cues.add(new squid.audio.Sqda.Cue(0, 4410, squid.audio.Sqda.BEAT, ""));
+        made.lights.add(new squid.audio.Sqda.Light(0, 4410, 2205, 0xFF4080, 200, squid.audio.Sqda.LIGHT_FLASH, "stage"));
+        made.triggers.add(new squid.audio.Sqda.Trigger("minecraft:creeper", squid.audio.Sqda.ENTERS_VIEW, 24, "variant:sting", 1, 1, 100));
+        made.settings = new squid.audio.Sqda.Settings("Music plays", 0.8f, 1, 24, 1);
+        byte[] sqdaBytes = made.write();
+        // A chunk from some future Squid, which this one must skip
+        byte[] future = new byte[sqdaBytes.length + 12];
+        System.arraycopy(sqdaBytes, 0, future, 0, 5);
+        System.arraycopy(new byte[] {'Z', 'Z', 'Z', 'Z', 0, 0, 0, 4, 1, 2, 3, 4}, 0, future, 5, 12);
+        System.arraycopy(sqdaBytes, 5, future, 17, sqdaBytes.length - 5);
+        squid.audio.Sqda read = squid.audio.Sqda.read(future);
+        check(".sqda keeps its info, loop, cues, lights, triggers, settings and variants (and skips chunks it doesn't know)",
+                squid.audio.SqdaTool.describe(read).equals(squid.audio.SqdaTool.describe(made)) && read.cues.equals(made.cues)
+                        && read.lights.equals(made.lights) && read.triggers.equals(made.triggers) && read.variants.size() == 2, true);
+        squid.audio.Sqda quick = squid.audio.Sqda.read(new java.io.ByteArrayInputStream(sqdaBytes), false);
+        check("the quick read has the settings but not the sound", quick.settings.subtitle() + " " + quick.variants.size() + " " + quick.triggers.size(), "Music plays 0 1");
+        java.util.Random picker = new java.util.Random(7);
+        boolean stingPicked = false;
+        for (int i = 0; i < 200; i++) stingPicked |= read.pickVariant(picker) == 1;
+        check("a weight-0 variant only plays from triggers", stingPicked, false);
+        check("Squid's decoders read .sqda too", squid.audio.Audio.canDecode(sqdaBytes) + " " + squid.audio.Audio.decode(sqdaBytes).samples().length,
+                "true " + tone.samples().length);
+        // Playing a piece at a time is the same as decoding it whole, from the start or after a jump
+        squid.audio.Pcm whole = read.decode(0);
+        squid.audio.Sqda.Player straight = read.play(0, false);
+        short[] piecesRead = straight.read(30000);
+        straight.seek(5000);
+        short[] later = straight.read(100);
+        check("a .sqda plays in pieces exactly like it decodes whole, after a jump too",
+                java.util.Arrays.equals(piecesRead, java.util.Arrays.copyOf(whole.samples(), piecesRead.length))
+                        && java.util.Arrays.equals(later, java.util.Arrays.copyOfRange(whole.samples(), 5000 * whole.channels(), (5000 + 100) * whole.channels())), true);
+        squid.audio.Sqda.Player looper = read.play(0, true);
+        int ch = whole.channels();
+        java.util.List<Short> heardLoop = new ArrayList<>();
+        while (looper.loops() < 2) {
+            short[] piece = looper.read(1000);
+            for (short v : piece) heardLoop.add(v);
+        }
+        // Around the first seam (9000 samples in), the sound should flow on without a jump
+        int seam = 9000 * ch;
+        int biggestStep = 0;
+        for (int i = seam - 300 * ch; i < seam + 300 * ch && i + ch < heardLoop.size(); i++) biggestStep = Math.max(biggestStep, Math.abs(heardLoop.get(i + ch) - heardLoop.get(i)));
+        int normalStep = 0;
+        for (int i = ch; i < 9000 * ch; i++) normalStep = Math.max(normalStep, Math.abs(whole.samples()[i] - whole.samples()[i - ch]));
+        check("looping jumps back to the loop's start smoothly, over and over", looper.loops() + " " + (biggestStep <= normalStep * 2 + 200), "2 true");
+
         // Squid Net: Squid's messages ride in Minecraft's own custom payload packets, both ways, through the real
         // packet code. Minecraft throws away channels it doesn't know; Squid keeps its own.
         List<URL> netUrls = new ArrayList<>(urls);
-        for (String part : new String[] {"net", "voice", "voiceserver"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
+        for (String part : new String[] {"net", "voice", "voiceserver", "sounds"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
         SquidClassLoader netLoader = new SquidClassLoader(netUrls.toArray(URL[]::new));
         Squid netSquid = new Squid(mod("squid-net"));
         ((SquidMod) netLoader.loadClass("squidnet.Net").getDeclaredConstructor().newInstance()).init(netSquid);
@@ -898,6 +965,14 @@ public class PipelineTest {
         Object inGame = unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, clientListener);
         clientListener.getMethod("handleCustomPayload", clientbound).invoke(inGame, arrivedInGame);
         check("the game hands Squid messages to Squid", clientGot.toString(), "[hi game]");
+        // Squid Sounds' hooks go into Minecraft's sound classes, which must still load and pass Java's checks
+        ((SquidMod) netLoader.loadClass("squidsounds.Sounds").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-sounds")));
+        boolean soundsLoad = true;
+        for (String name : new String[] {"net.minecraft.client.resources.sounds.Sound", "net.minecraft.client.sounds.WeighedSoundEvents",
+                "net.minecraft.client.sounds.SoundBufferLibrary"}) {
+            soundsLoad &= Class.forName(name, true, netLoader).getClassLoader() == netLoader;
+        }
+        check("Minecraft's sound classes load with Squid Sounds' .sqda hooks", soundsLoad, true);
         check("the server's player list loads with Squid Net's join and leave hooks",
                 Class.forName("net.minecraft.server.players.PlayerList", true, netLoader).getClassLoader() == netLoader, true);
 

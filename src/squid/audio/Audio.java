@@ -5,7 +5,7 @@ import java.nio.ByteOrder;
 
 /**
  * Squid's own sound decoders, from scratch: give it a sound file's bytes and get 16-bit samples back. It tells the
- * kind of file from its first bytes, not its name: WAV, FLAC, Ogg Vorbis and MP3.
+ * kind of file from its first bytes, not its name: WAV, FLAC, Ogg Vorbis, MP3, and Squid's own .sqda.
  */
 public final class Audio {
     private Audio() {
@@ -13,7 +13,7 @@ public final class Audio {
 
     /** Whether Squid can decode a file like this. */
     public static boolean canDecode(byte[] data) {
-        return Wav.is(data) || Flac.is(data) || Vorbis.is(data) || Mp3.is(data);
+        return Wav.is(data) || Flac.is(data) || Vorbis.is(data) || Mp3.is(data) || Sqda.is(data);
     }
 
     public static Pcm decode(byte[] data) {
@@ -21,6 +21,7 @@ public final class Audio {
         if (Flac.is(data)) return Flac.decode(data);
         if (Vorbis.is(data)) return Vorbis.decode(data);
         if (Mp3.is(data)) return Mp3.decode(data);
+        if (Sqda.is(data)) return Sqda.read(data).decode(0);
         throw new IllegalArgumentException("not a sound file Squid can read");
     }
 
