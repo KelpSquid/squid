@@ -1315,7 +1315,7 @@ public class PipelineTest {
         // Squid Net: Squid's messages ride in Minecraft's own custom payload packets, both ways, through the real
         // packet code. Minecraft throws away channels it doesn't know; Squid keeps its own.
         List<URL> netUrls = new ArrayList<>(urls);
-        for (String part : new String[] {"net", "voice", "voiceserver", "sounds", "jukebox", "mods", "paint"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
+        for (String part : new String[] {"net", "voice", "voiceserver", "sounds", "jukebox", "mods", "paint", "emotes"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
         SquidClassLoader netLoader = new SquidClassLoader(netUrls.toArray(URL[]::new));
         Squid netSquid = new Squid(mod("squid-net"));
         ((SquidMod) netLoader.loadClass("squidnet.Net").getDeclaredConstructor().newInstance()).init(netSquid);
@@ -1427,6 +1427,24 @@ public class PipelineTest {
         processVoice.invoke(echoChanger, (Object) echoAfter);
         check("the voice changer: higher, deeper, robot and echo", changerPitches.toString().strip() + " " + (robotFrame[100] != 1000) + " " + (echoAfter[100] != 0),
                 "400 600 300 true true");
+        // Emotes: the server's message says who and which, and nobody can send more than one a second
+        Class<?> emotes = netLoader.loadClass("squidemotes.Emotes");
+        java.lang.reflect.Method emoteMessage = emotes.getDeclaredMethod("message", java.util.UUID.class, int.class);
+        java.lang.reflect.Method emoteWho = emotes.getDeclaredMethod("who", byte[].class);
+        java.lang.reflect.Method emoteWhich = emotes.getDeclaredMethod("emote", byte[].class);
+        java.lang.reflect.Method emoteAllowed = emotes.getDeclaredMethod("allowed", java.util.Map.class, java.util.UUID.class, long.class);
+        for (java.lang.reflect.Method m : new java.lang.reflect.Method[] {emoteMessage, emoteWho, emoteWhich, emoteAllowed}) m.setAccessible(true);
+        java.util.UUID waver = java.util.UUID.randomUUID();
+        byte[] waved = (byte[]) emoteMessage.invoke(null, waver, 3);
+        byte[] unknownEmote = waved.clone();
+        unknownEmote[16] = 99;
+        java.util.Map<java.util.UUID, Long> emoteTimes = new java.util.HashMap<>();
+        check("an emote's message says who and which, and an unknown emote is ignored", waver.equals(emoteWho.invoke(null, waved)) + " "
+                + emoteWhich.invoke(null, waved) + " " + emoteWhich.invoke(null, unknownEmote), "true 3 -1");
+        check("one emote a second at most", emoteAllowed.invoke(null, emoteTimes, waver, 10_000L) + " " + emoteAllowed.invoke(null, emoteTimes, waver, 10_500L) + " "
+                + emoteAllowed.invoke(null, emoteTimes, waver, 11_000L), "true false true");
+        check("the emote wheel loads", Class.forName("squidemotes.EmoteScreen", true, netLoader).getSimpleName() + " "
+                + Class.forName("squidemotes.EmotesClient", true, netLoader).getSimpleName(), "EmoteScreen EmotesClient");
         // Karaoke lyrics from an .lrc file: times in any order, a line sung twice, an offset, word times left out
         Class<?> lyricsClass = netLoader.loadClass("squidjukebox.Lyrics");
         java.lang.reflect.Method parseLyrics = lyricsClass.getDeclaredMethod("parse", String.class);

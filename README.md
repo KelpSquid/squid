@@ -152,6 +152,8 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
   any command with an example, so you can make a mod without knowing them by heart.
 - **Voice chat:** on servers with Squid, talk to players near you or in your group (push to talk, or always on),
   with a voice changer: Robot, Chipmunk, Giant or Echo.
+- **Emotes:** press B for the emote wheel (Wave, Love, Laugh, GG, Angry, Sad, Wow, Sleepy). It pops up above your
+  head, with particles, for everyone near you with Squid. Always one of the eight, never typed words.
 - **Skins and capes:** Options > Skin Customization > Squid Skin & Cape: wear your own skin and cape, a Store cape,
   or a Mojang cape (shown from Mojang's own servers, with a tag if you don't own it), with animated effects.
 - **Squid Count:** points for every advancement, like gamerscore.
