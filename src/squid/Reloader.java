@@ -217,10 +217,24 @@ final class Reloader {
     /** A chat message for the player (or the log, before they're in a world). */
     private static void tell(String message, String color) {
         System.out.println("[Squid] " + message);
+        if (!Main.gameStarted()) return;
+        // The chat is only touched from the game's own thread (this one is live reload's watcher)
+        Runnable say = () -> {
+            try {
+                Game.chat(message, color);
+            } catch (RuntimeException e) {
+                // not in a world yet: the log has it
+            }
+        };
         try {
-            if (Main.gameStarted()) Game.chat(message, color);
-        } catch (RuntimeException e) {
-            // not in a world yet: the log has it
+            Class<?> minecraft = Class.forName("net.minecraft.client.Minecraft", false, Main.gameLoader());
+            if (minecraft.getMethod("getInstance").invoke(null) instanceof Executor executor) {
+                executor.execute(say);
+                return;
+            }
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
+            // no game running (like in tests)
         }
+        say.run();
     }
 }

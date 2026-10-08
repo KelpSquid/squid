@@ -99,6 +99,10 @@ public final class Events {
      * before Minecraft's classes load.
      */
     public static void hookAtStartup(String className, String method, boolean atStart, squid.api.Hook hook) {
+        // Mods hook with their own Squid (so their hooks can be turned off and reloaded); this is Squid's alone
+        if (Main.gameStarted() || !Thread.currentThread().getStackTrace()[2].getClassName().startsWith("squid.")) {
+            throw new IllegalStateException("Events.hookAtStartup is Squid's own; mods use Squid.atStart and atEnd");
+        }
         Transformers.add(className, new Transformers.HookPatch(method, null, atStart, Hooks.register("squid", hook)));
     }
 
