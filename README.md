@@ -82,6 +82,9 @@ Messages to the server work in single player straight away (your world's server 
 the server needs Squid and the mod too, so a project with `"side": "both"`. A message can be up to 30,000 bytes, and a
 mod can send about 40 a second; more than that is held back, so no mod can flood a server.
 
+Squid gets new commands now and then. If your mod already has a method of its own with the same name as a new one
+(like `send` or `screen`), Java says so when Squid builds it: give yours another name.
+
 If there's a mistake, the game still opens. The title screen and Kelp say which line it's on and what's wrong, like *"there's a mistake on line 3: a ; is missing at the end of the line"*. A mod that goes wrong while you play says so in the chat and switches that part off.
 
 When you're ready for more, `squid()` gives an easy mod everything below.
@@ -339,9 +342,11 @@ squid.on("treasure-found", value -> squid.log("Someone found " + value));
 ```
 
 A project's `resources` folder works on its own too: `resources/assets/<namespace>/...` (textures, sounds, `.sqda`,
-lang files, models) is a resource pack while the mod is on, and `resources/data/<namespace>/...` (recipes, loot
-tables, advancements) is a data pack on every world and server the mod runs on. There's nothing to switch on, and
-saving new pictures or sounds while playing loads them straight away.
+lang files, models) is a resource pack while the mod is on, just above Minecraft's own (so your resource packs still
+win), and `resources/data/<namespace>/...` (recipes, loot tables, advancements) is a data pack on the worlds and
+servers the mod runs on, for mods with `"side": "both"` (a data pack is saved into the world, so a mod for the game
+alone doesn't get one). There's nothing to switch on, and saving new pictures or sounds while playing loads them
+straight away.
 
 
 Set hooks up in `init` before touching any Minecraft class, or that class will already be loaded without them. See [`examples`](examples) for whole mods: Hello Squid, Zoom, Compass and Minimap.
