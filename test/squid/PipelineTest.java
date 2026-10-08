@@ -1491,6 +1491,13 @@ public class PipelineTest {
                 + currentLyric.invoke(null, sung, 15.0) + " " + currentLyric.invoke(null, sung, 999.0), "-1 1 1 3");
         // The Block Painter starts, and its screens load against Minecraft's classes
         ((SquidMod) netLoader.loadClass("squidpaint.Paint").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-paint")));
+        // Voice chat, Emotes and the Squid menu (with the Mod Maker) start too, like they do when the game opens
+        List<String> partsStarted = new ArrayList<>();
+        for (String[] part : new String[][] {{"squidvoice.Voice", "squid-voice"}, {"squidemotes.Emotes", "squid-emotes"}, {"squidmods.ModsMenu", "squid-mods"}}) {
+            ((SquidMod) netLoader.loadClass(part[0]).getDeclaredConstructor().newInstance()).init(new Squid(mod(part[1])));
+            partsStarted.add(part[1]);
+        }
+        check("voice chat, emotes and the Squid menu start", partsStarted.toString(), "[squid-voice, squid-emotes, squid-mods]");
         check("the Block Painter's and Sound Swapper's screens load", Class.forName("squidpaint.BlockPaintScreen", true, netLoader).getSimpleName() + " "
                 + Class.forName("squidpaint.BlockPickScreen", true, netLoader).getSimpleName() + " "
                 + Class.forName("squidpaint.SoundSwapScreen", true, netLoader).getSimpleName(), "BlockPaintScreen BlockPickScreen SoundSwapScreen");
