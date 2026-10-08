@@ -830,6 +830,126 @@ public class PipelineTest {
                 "60 true");
         check("a lost packet just fades out, without breaking", voiceOut.decode(null).length, 320);
 
+        // Squid Net: Squid's messages ride in Minecraft's own custom payload packets, both ways, through the real
+        // packet code. Minecraft throws away channels it doesn't know; Squid keeps its own.
+        List<URL> netUrls = new ArrayList<>(urls);
+        for (String part : new String[] {"net", "voice", "voiceserver"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
+        SquidClassLoader netLoader = new SquidClassLoader(netUrls.toArray(URL[]::new));
+        Squid netSquid = new Squid(mod("squid-net"));
+        ((SquidMod) netLoader.loadClass("squidnet.Net").getDeclaredConstructor().newInstance()).init(netSquid);
+        Class<?> netClass = netLoader.loadClass("squidnet.Net");
+        List<String> serverGot = new ArrayList<>();
+        List<String> clientGot = new ArrayList<>();
+        java.util.function.BiConsumer<Object, byte[]> onServer = (player, data) -> serverGot.add(new String(data));
+        java.util.function.Consumer<byte[]> onClient = data -> clientGot.add(new String(data));
+        Class<?> serverPlayerClass = Class.forName("net.minecraft.server.level.ServerPlayer", false, netLoader);
+        netClass.getMethod("onServer", String.class, java.util.function.BiConsumer.class).invoke(null, "test", onServer);
+        netClass.getMethod("onClient", String.class, java.util.function.Consumer.class).invoke(null, "test", onClient);
+        Class<?> identifier = Class.forName("net.minecraft.resources.Identifier", true, netLoader);
+        java.lang.reflect.Method idOf = identifier.getMethod("fromNamespaceAndPath", String.class, String.class);
+        Class<?> byteBuf = Class.forName("io.netty.buffer.ByteBuf", true, netLoader);
+        Class<?> friendly = Class.forName("net.minecraft.network.FriendlyByteBuf", true, netLoader);
+        Class<?> streamCodec = Class.forName("net.minecraft.network.codec.StreamCodec", true, netLoader);
+        Class<?> payloadClass = netLoader.loadClass("squidnet.SquidPayload");
+        Class<?> serverbound = Class.forName("net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket", true, netLoader);
+        Class<?> clientbound = Class.forName("net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket", true, netLoader);
+        // Written into bytes and read back, the way a real connection does
+        java.util.function.BiFunction<Object, Object, Object> throughTheWire = (codec, packet) -> {
+            try {
+                Object buf = friendly.getConstructor(byteBuf).newInstance(Class.forName("io.netty.buffer.Unpooled", true, netLoader).getMethod("buffer").invoke(null));
+                streamCodec.getMethod("encode", Object.class, Object.class).invoke(codec, buf, packet);
+                return streamCodec.getMethod("decode", Object.class).invoke(codec, buf);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e.getCause() == null ? e : e.getCause());
+            }
+        };
+        Object hiServer = serverbound.getConstructors()[0].newInstance(payloadClass.getConstructors()[0].newInstance(idOf.invoke(null, "squid", "test"), "hi server".getBytes()));
+        Object arrived = throughTheWire.apply(serverbound.getField("STREAM_CODEC").get(null), hiServer);
+        Object arrivedPayload = serverbound.getMethod("payload").invoke(arrived);
+        check("a Squid message to the server arrives whole", arrivedPayload.getClass().getSimpleName() + " "
+                + new String((byte[]) payloadClass.getMethod("data").invoke(arrivedPayload)), "SquidPayload hi server");
+        // Another mod's message, as it comes off the wire: its channel name, then its bytes
+        Object otherBuf = friendly.getConstructor(byteBuf).newInstance(Class.forName("io.netty.buffer.Unpooled", true, netLoader).getMethod("buffer").invoke(null));
+        friendly.getMethod("writeIdentifier", identifier).invoke(otherBuf, idOf.invoke(null, "othermod", "x"));
+        friendly.getMethod("writeBytes", byte[].class).invoke(otherBuf, (Object) "?".getBytes());
+        Object otherMod = streamCodec.getMethod("decode", Object.class).invoke(serverbound.getField("STREAM_CODEC").get(null), otherBuf);
+        check("other channels are still thrown away like Minecraft does", serverbound.getMethod("payload").invoke(otherMod).getClass().getSimpleName(), "DiscardedPayload");
+        Object hiGame = clientbound.getConstructors()[0].newInstance(payloadClass.getConstructors()[0].newInstance(idOf.invoke(null, "squid", "test"), "hi game".getBytes()));
+        Object arrivedInGame = throughTheWire.apply(clientbound.getField("CONFIG_STREAM_CODEC").get(null), hiGame);
+        // The server's listener gets it: a real ServerGamePacketListenerImpl (made without its constructor) with a player.
+        // Players need Minecraft's registries, so Minecraft starts them up first, like it does when it opens.
+        Class.forName("net.minecraft.SharedConstants", true, netLoader).getMethod("tryDetectVersion").invoke(null);
+        Class.forName("net.minecraft.server.Bootstrap", true, netLoader).getMethod("bootStrap").invoke(null);
+        Class<?> gameListener = Class.forName("net.minecraft.server.network.ServerGamePacketListenerImpl", true, netLoader);
+        Object listener = unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, gameListener);
+        Object fakePlayer = unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, serverPlayerClass);
+        Field uuidField = Class.forName("net.minecraft.world.entity.Entity", false, netLoader).getDeclaredField("uuid");
+        uuidField.setAccessible(true);
+        uuidField.set(fakePlayer, java.util.UUID.fromString("00000000-0000-0000-0000-000000000062"));
+        gameListener.getField("player").set(listener, fakePlayer);
+        check("before saying hello, a player doesn't count as having Squid", netClass.getMethod("hasSquid", serverPlayerClass).invoke(null, fakePlayer), false);
+        gameListener.getMethod("handleCustomPayload", serverbound).invoke(listener, arrived);
+        Object hello = serverbound.getConstructors()[0].newInstance(payloadClass.getConstructors()[0].newInstance(idOf.invoke(null, "squid", "hello"), new byte[] {1}));
+        gameListener.getMethod("handleCustomPayload", serverbound).invoke(listener, throughTheWire.apply(serverbound.getField("STREAM_CODEC").get(null), hello));
+        check("the server hands Squid messages to Squid, and knows who has Squid", serverGot + " " + netClass.getMethod("hasSquid", serverPlayerClass).invoke(null, fakePlayer),
+                "[hi server] true");
+        // And the game's listener
+        Class<?> clientListener = Class.forName("net.minecraft.client.multiplayer.ClientPacketListener", true, netLoader);
+        Object inGame = unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, clientListener);
+        clientListener.getMethod("handleCustomPayload", clientbound).invoke(inGame, arrivedInGame);
+        check("the game hands Squid messages to Squid", clientGot.toString(), "[hi game]");
+        check("the server's player list loads with Squid Net's join and leave hooks",
+                Class.forName("net.minecraft.server.players.PlayerList", true, netLoader).getClassLoader() == netLoader, true);
+
+        // Squid Voice on the network: what the server sends on is what the game reads, and voices come from where people stand
+        java.util.UUID speakerId = java.util.UUID.fromString("12345678-0000-0000-0000-00000000abcd");
+        java.lang.reflect.Method message = netLoader.loadClass("squidvoiceserver.VoiceServer").getDeclaredMethod("message", java.util.UUID.class, int.class, byte[].class, double.class, double.class, double.class);
+        message.setAccessible(true);
+        Class<?> speakersClass = netLoader.loadClass("squidvoice.Speakers");
+        Class<?> earClass = netLoader.loadClass("squidvoice.Speakers$Ear");
+        java.lang.reflect.Constructor<?> earMaker = earClass.getDeclaredConstructor(double.class, double.class, double.class, float.class);
+        earMaker.setAccessible(true);
+        Object voiceEar = earMaker.newInstance(0.0, 64.0, 0.0, 0f); // facing south (+z), so east (+x) is on your left
+        java.lang.reflect.Constructor<?> speakersMaker = speakersClass.getDeclaredConstructor(java.util.function.Supplier.class);
+        speakersMaker.setAccessible(true);
+        Object speakers = speakersMaker.newInstance((java.util.function.Supplier<Object>) () -> voiceEar);
+        java.lang.reflect.Method received = speakersClass.getDeclaredMethod("received", byte[].class);
+        received.setAccessible(true);
+        squid.audio.VoiceCodec.Encoder netVoice = new squid.audio.VoiceCodec.Encoder();
+        for (int seq = 0; seq < 3; seq++) {
+            byte[] packet = netVoice.encode(java.util.Arrays.copyOfRange(talking, seq * 320, seq * 320 + 320));
+            byte[] fromGame = new byte[2 + packet.length];
+            fromGame[1] = (byte) seq;
+            System.arraycopy(packet, 0, fromGame, 2, packet.length);
+            received.invoke(speakers, (byte[]) message.invoke(null, speakerId, 0, fromGame, 10.0, 64.0, 0.0));
+        }
+        java.lang.reflect.Method all = speakersClass.getDeclaredMethod("all");
+        all.setAccessible(true);
+        Object speaker = ((java.util.Map<?, ?>) all.invoke(speakers)).get(speakerId);
+        java.lang.reflect.Method next = speaker.getClass().getDeclaredMethod("next");
+        next.setAccessible(true);
+        java.lang.reflect.Method place = speakersClass.getDeclaredMethod("place", earClass, speaker.getClass(), int.class);
+        place.setAccessible(true);
+        float[] gains = (float[]) place.invoke(null, voiceEar, speaker, 48);
+        int frames = 0;
+        while (next.invoke(speaker) != null && frames < 20) frames++;
+        clearSpeakers(speakersClass, speakers);
+        check("the game reads who's talking and plays every frame, then stops when they do", frames, 3 + 4);
+        check("a voice 10 blocks to the east, while you face south, is on your left and a bit quieter",
+                (gains[0] > gains[1] * 3) + " " + (gains[0] < 0.75 * Math.sqrt(2)), "true true");
+        Field nearField = speaker.getClass().getDeclaredField("near");
+        nearField.setAccessible(true);
+        nearField.set(speaker, false);
+        float[] callGains = (float[]) place.invoke(null, voiceEar, speaker, 48);
+        check("a group or whole-server voice is in the middle, the same however far", callGains[0] + " " + callGains[1], "0.75 0.75");
+        java.lang.reflect.Method loadConfig = netLoader.loadClass("squidvoiceserver.VoiceServer").getDeclaredMethod("loadConfig", Path.class);
+        loadConfig.setAccessible(true);
+        Path voiceConfig = java.nio.file.Files.createTempDirectory("squid-voice").resolve("config").resolve("squid-voice.properties");
+        String firstConfig = loadConfig.invoke(null, voiceConfig).toString();
+        java.nio.file.Files.writeString(voiceConfig, "mode=world\ndistance=500\ngroups=false\n");
+        check("the server owner's voice settings: written the first time, and kept in bounds", firstConfig + " | " + loadConfig.invoke(null, voiceConfig)
+                + " | " + java.nio.file.Files.readString(voiceConfig).contains("world"), "Config[enabled=true, mode=0, distance=48, groups=true] | Config[enabled=true, mode=1, distance=128, groups=false] | true");
+
         // Languages: Squid follows Minecraft's language, and every file has every text with the same {0}s
         check("Minecraft's language variants share files", Lang.fileFor("en_gb") + " " + Lang.fileFor("es_ar") + " " + Lang.fileFor("fr_ca")
                 + " " + Lang.fileFor("en_pt") + " " + Lang.fileFor("ja_jp"), "en_us es_mx fr_fr en_pt ja_jp");
@@ -860,6 +980,13 @@ public class PipelineTest {
 
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);
+    }
+
+    /** Stops a Speakers' sound thread, so the test doesn't play anything. */
+    static void clearSpeakers(Class<?> speakersClass, Object speakers) throws ReflectiveOperationException {
+        java.lang.reflect.Method clear = speakersClass.getDeclaredMethod("clear");
+        clear.setAccessible(true);
+        clear.invoke(speakers);
     }
 
     /** The {0}, {1}... in a text, sorted. */

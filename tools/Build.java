@@ -83,10 +83,13 @@ public class Build {
             }
         }
 
-        // 4. The store folder: store.json plus the files, ready to upload to the squid-store repo as they are
+        // 4. The Squid Server download, for people who run servers
+        serverZip(squidJar, libraries, builtInJars);
+
+        // 5. The store folder: store.json plus the files, ready to upload to the squid-store repo as they are
         storeFolder(examplesFolder);
 
-        // 5. Put Squid where Kelp looks for it
+        // 6. Put Squid where Kelp looks for it
         Path installed = KELP.resolve("squid");
         Files.createDirectories(installed.resolve("builtin"));
         for (Path part : builtInJars) {
@@ -164,6 +167,30 @@ public class Build {
         try (Stream<Path> walk = Files.walk(folder)) {
             for (Path p : walk.sorted((a, b) -> b.compareTo(a)).toList()) Files.delete(p);
         }
+    }
+
+    /**
+     * The Squid Server: one zip with squid.jar (which runs a Minecraft server), its libraries in lib, the built-in
+     * parts that run on servers (squid.json "side" is "server" or "both"), start scripts and a readme.
+     */
+    static void serverZip(Path squidJar, List<Path> libraries, List<Path> builtInJars) throws IOException {
+        Path zipFile = BUILD.resolve("squid-server-" + squidVersion() + ".zip");
+        String top = "squid-server/";
+        Path extras = Path.of("tools", "server");
+        try (OutputStream file = Files.newOutputStream(zipFile); JarOutputStream zip = new JarOutputStream(file);
+             Stream<Path> extraFiles = Files.list(extras)) {
+            addToZip(zip, squidJar, top + "squid.jar");
+            for (Path library : libraries) addToZip(zip, library, top + "lib/" + library.getFileName());
+            for (Path part : builtInJars) {
+                String info = Files.readString(Path.of("builtin", part.getFileName().toString().replace(".jar", ""), "squid.json"));
+                String side = field(info, "side");
+                if ("server".equals(side) || "both".equals(side)) addToZip(zip, part, top + "builtin/" + part.getFileName());
+            }
+            for (Path p : extraFiles.sorted().toList()) addToZip(zip, p, top + p.getFileName());
+            zip.putNextEntry(new JarEntry(top + "mods/"));
+            zip.closeEntry();
+        }
+        System.out.println("Built the Squid Server: " + zipFile);
     }
 
     /** Squid's version, from Main.VERSION. */

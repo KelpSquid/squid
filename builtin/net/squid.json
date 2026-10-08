@@ -1,0 +1,9 @@
+{
+    "id": "squid-net",
+    "name": "Squid Net",
+    "version": "1.0.0",
+    "description": "Lets Squid on your game and Squid on a server send each other messages, for things like voice chat.",
+    "authors": ["Samuel"],
+    "side": "both",
+    "main": "squidnet.Net"
+}

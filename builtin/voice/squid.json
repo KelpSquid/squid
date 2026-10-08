@@ -1,0 +1,9 @@
+{
+    "id": "squid-voice",
+    "name": "Squid Voice",
+    "version": "1.0.0",
+    "description": "Voice chat on servers with Squid: hear players near you (or the whole world, or your group), push V to talk.",
+    "authors": ["Samuel"],
+    "main": "squidvoice.Voice",
+    "depends": ["squid-net"]
+}

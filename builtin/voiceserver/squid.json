@@ -1,0 +1,10 @@
+{
+    "id": "squid-voice-server",
+    "name": "Squid Voice Server",
+    "version": "1.0.0",
+    "description": "Passes voice chat between players on a server with Squid (and on a LAN game's host).",
+    "authors": ["Samuel"],
+    "side": "both",
+    "main": "squidvoiceserver.VoiceServer",
+    "depends": ["squid-net"]
+}
