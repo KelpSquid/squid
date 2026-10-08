@@ -44,6 +44,8 @@ public class RainbowSheep extends EasyMod {
 | `every(10, () -> { ... })` | Runs every 10 seconds |
 | `onTick(() -> { ... })` | Runs 20 times a second |
 | `onHurt(() -> { ... })`, `onDeath(() -> { ... })` | Runs when you get hurt, or die |
+| `onBeat(() -> { ... })` | Runs on every beat of the music: Jukebox songs (Squid finds their beat) and `.sqda` beats |
+| `musicLevel()`, `nowPlaying()` | How loud the music is (0 to 1), and what's playing |
 | `x()`, `y()`, `z()`, `health()`, `playerName()`, `random(1, 6)` | Things to know |
 | `biome()`, `isNight()`, `holding()`, `lookingAt()` | Where you are, what's in your hand, and the block or mob you're looking at |
 | `nearby("creeper", 16)` | How many of a mob are within 16 blocks (`""` counts every mob) |

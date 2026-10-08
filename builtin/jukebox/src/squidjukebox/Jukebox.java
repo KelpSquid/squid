@@ -295,6 +295,7 @@ public class Jukebox implements SquidMod {
         }
         p.volume = gain();
         p.wantBars = musicBars();
+        beats(p, song);
         SquidAudio.updateJukebox(song.shown(), p.paused ? 0 : p.level);
         if (!gameMusicStopped && pauseGameMusic()) {
             Minecraft.getInstance().getMusicManager().stopPlaying();
@@ -304,6 +305,27 @@ public class Jukebox implements SquidMod {
 
     private volatile String problem;
     private volatile long problemAt;
+    /** The last beat sent, so each one is sent once. */
+    private long lastBeat = -1;
+    private SongPlayer beatPlayer;
+
+    /** Sends a beat cue (and a bar every 4) as each beat of the song is heard, for mods' onBeat and onSoundCue. */
+    private void beats(SongPlayer p, Song song) {
+        if (p != beatPlayer) {
+            beatPlayer = p;
+            lastBeat = -1;
+        }
+        if (p.beatEvery <= 0 || p.paused) return;
+        double heard = p.seconds() - 0.15; // what's playing now: the speakers are a little behind what was sent
+        long beat = (long) Math.floor((heard - p.firstBeat) / p.beatEvery);
+        if (beat < 0) return;
+        if (beat < lastBeat) lastBeat = beat - 1; // looped back to the start
+        if (beat > lastBeat) {
+            lastBeat = beat;
+            squid.Events.soundCue(new squid.api.SoundCue(song.shown(), beat % 4 == 0 ? "bar" : "beat", "",
+                    p.firstBeat + beat * p.beatEvery, 0, 0, 0, ""));
+        }
+    }
 
     String problem() {
         return System.currentTimeMillis() - problemAt < 8000 ? problem : null;

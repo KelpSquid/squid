@@ -265,10 +265,12 @@ public class PipelineTest {
                 "        onKey(\"F\", () -> dash(2));",
                 "        onHurt(() -> particles(\"angry_villager\", 5));",
                 "        onDeath(() -> title(\"Oops!\", \"Try again\"));",
+                "        onBeat(() -> particles(\"note\", 2));",
                 "        every(1, () -> {",
                 "            if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");",
                 "            showText(holding() + \" / \" + lookingAt() + \" / \" + biome() + \" / \" + (isNight() ? \"night\" : \"day\"));",
                 "            particles(\"heart\", 3);",
+                "            if (musicLevel() > 0.5) showText(nowPlaying());",
                 "        });",
                 "    }",
                 "}", ""));

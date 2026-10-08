@@ -37,6 +37,9 @@ final class SongPlayer {
     volatile float[] bars = new float[8];
     /** Whether the bars are shown: they're only measured then. */
     volatile boolean wantBars;
+    /** The song's beats: how many seconds apart, and when the first one is (seconds), or 0 if it has no steady beat. */
+    volatile double beatEvery;
+    volatile double firstBeat;
 
     SongPlayer(Path file, boolean repeat, Runnable ended) {
         this.file = file;
@@ -159,6 +162,12 @@ final class SongPlayer {
             } else {
                 pcm = Audio.decode(data);
                 source = new PcmSource(pcm, repeat);
+                // Its beat, so mods' onBeat can follow any song (a .sqda brings its own beat cues)
+                squid.audio.Analysis.Tempo tempo = squid.audio.Analysis.tempo(pcm);
+                if (tempo != null && tempo.confidence() >= 0.2) {
+                    firstBeat = tempo.offset();
+                    beatEvery = 60 / tempo.bpm();
+                }
             }
             data = null; // the file's bytes aren't needed any more
             length = source.length();

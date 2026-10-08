@@ -133,6 +133,18 @@ public abstract class EasyMod implements SquidMod {
         deaths.add(new Action("onDeath", action));
     }
 
+    /**
+     * Runs on every beat of the music playing: a Jukebox song, or a .sqda with beats in it. Like
+     * onBeat(() -> particles("note", 3)) for notes that dance to the music.
+     */
+    protected void onBeat(Runnable action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onBeat only works inside start()"));
+        Action beat = new Action("onBeat", action);
+        squid.onSoundCue(cue -> {
+            if (Game.inWorld() && (cue.kind().equals("beat") || cue.kind().equals("bar"))) beat.run();
+        });
+    }
+
     /** Runs 20 times a second while you're in a world. */
     protected void onTick(Runnable action) {
         ticks.add(new Action("onTick", action));
@@ -275,6 +287,16 @@ public abstract class EasyMod implements SquidMod {
     /** Whether it's night (or dark from a storm) where you are. */
     protected boolean isNight() {
         return Game.inWorld() && Game.dark();
+    }
+
+    /** How loud the music playing is right now, from 0 (quiet, or none) to 1. */
+    protected double musicLevel() {
+        return SquidAudio.level();
+    }
+
+    /** What's playing: a Jukebox song like "Pigstep - Lena Raine", a .sqda's name, or "" when nothing is. */
+    protected String nowPlaying() {
+        return SquidAudio.playing();
     }
 
     /** A random whole number from min to max, both included. */
