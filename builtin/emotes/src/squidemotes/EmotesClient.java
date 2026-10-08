@@ -19,7 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * The game's side of {@link Emotes}: the B key opens the wheel, a picked emote goes to the server, and emotes from
+ * The game's side of {@link Emotes}: the J key opens the wheel, a picked emote goes to the server, and emotes from
  * players nearby (and your own) show their particles above each one's head for a second and a half, with a little
  * "Steve: Hi!" on the left of the screen for a few seconds.
  */
@@ -35,22 +35,22 @@ final class EmotesClient {
     }
 
     static void init(Squid squid) {
-        key = squid.addKeyBinding("Emotes", InputConstants.KEY_B);
+        key = squid.addKeyBinding("Emotes", InputConstants.KEY_J); // B is Fullbright's, and Ctrl+B the narrator
         // Messages arrive on the network thread: they're shown from the game's own thread
         Net.onClient("emote", data -> Minecraft.getInstance().execute(() -> arrived(data)));
         squid.onTick(EmotesClient::tick);
         squid.onHud(EmotesClient::hud);
     }
 
-    /** Sends a picked emote. Without Squid on the server nobody else would see it, so it's only shown to you. */
+    /**
+     * Sends a picked emote to the server, which shows it to everyone near you. You see your own straight away (so it
+     * shows even on a server with an older Squid, or none, where nobody else would see it).
+     */
     static void send(int emote) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) return;
-        if (NetClient.serverHasSquid()) {
-            NetClient.toServer("emote", new byte[] {(byte) emote});
-        } else {
-            show(minecraft.player.getUUID(), emote, minecraft.player.getName().getString());
-        }
+        show(minecraft.player.getUUID(), emote, minecraft.player.getName().getString());
+        if (NetClient.serverHasSquid()) NetClient.toServer("emote", new byte[] {(byte) emote});
     }
 
     private static void arrived(byte[] data) {
@@ -58,7 +58,8 @@ final class EmotesClient {
         if (emote < 0) return;
         UUID who = Emotes.who(data);
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null) return;
+        if (minecraft.level == null || minecraft.player == null) return;
+        if (who.equals(minecraft.player.getUUID())) return; // your own, already showing
         Player player = minecraft.level.getPlayerByUUID(who);
         String name = player != null ? player.getName().getString() : "?";
         show(who, emote, name);

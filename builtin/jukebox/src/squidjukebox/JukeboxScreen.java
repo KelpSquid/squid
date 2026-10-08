@@ -151,6 +151,7 @@ final class JukeboxScreen extends Screen {
             say(Lang.t("Couldn't add it: {0}", e.getMessage()), 0xFFFF5555);
             return;
         }
+        if (lyricsAdded > 0) jukebox().reloadLyrics(); // the playing song's lyrics show straight away
         if (added == 0 && lyricsAdded > 0) say(Lang.t("Added the lyrics! They show while their song plays."), 0xFF55FF55);
         else if (added == 0) say(Lang.t("Songs are .mp3, .m4a, .flac, .wav, .ogg or .sqda files."), 0xFFFF5555);
         else say(added == 1 ? Lang.t("Added 1 song!") : Lang.t("Added {0} songs!", added), 0xFF55FF55);

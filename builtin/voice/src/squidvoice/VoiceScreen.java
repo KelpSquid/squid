@@ -30,6 +30,8 @@ final class VoiceScreen extends Screen {
         return Voice.instance;
     }
 
+    private int listTop = 94; // where the list of players starts, worked out in init()
+
     @Override
     protected void init() {
         Voice v = voice();
@@ -66,7 +68,8 @@ final class VoiceScreen extends Screen {
             }).bounds(x + 168, y, 32, 20).build());
             y += 30;
         }
-        // Everyone else here, with a Mute button each
+        // Everyone else here, with a Mute button each (their names are drawn from the same spot)
+        listTop = y;
         List<PlayerInfo> others = others();
         int perPage = Math.max(1, (height - y - 70) / 24);
         int pages = Math.max(1, (others.size() + perPage - 1) / perPage);
@@ -131,7 +134,7 @@ final class VoiceScreen extends Screen {
         if (v.mic.problem() != null && !Voice.LISTEN.equals(v.talk())) {
             g.centeredText(font, Lang.t("No microphone: {0}", v.mic.problem()), width / 2, height - 66, 0xFFFF7777);
         }
-        int y = 70 + (v.config.groups() ? 30 : 0);
+        int y = listTop;
         List<PlayerInfo> others = others();
         if (others.isEmpty()) g.text(font, Lang.t("Nobody else is here yet."), x, y + 6, 0xFFA0A0A0, true);
         int perPage = Math.max(1, (height - y - 70) / 24);

@@ -122,7 +122,10 @@ final class Mic {
                     now = pushed;
                 }
                 if (now && encoder == null) encoder = new VoiceCodec.Encoder(); // a fresh start, so nothing old leaks in
-                if (!now) encoder = null;
+                if (!now) {
+                    encoder = null;
+                    changer = null; // a fresh start for the voice changer too, so no echo of last time comes back
+                }
                 talking = now;
                 if (now) {
                     String wanted = effect;

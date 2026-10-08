@@ -103,6 +103,12 @@ public class Jukebox implements SquidMod {
         return settings.toggle("Music bars", false);
     }
 
+    /** Reads the playing song's lyrics again (they were just added). */
+    void reloadLyrics() {
+        Song song = current;
+        if (song != null) lyrics = Lyrics.forSong(song.file());
+    }
+
     boolean showLyrics() {
         return settings.toggle("Lyrics", true);
     }

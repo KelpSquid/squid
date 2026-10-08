@@ -13,7 +13,7 @@ final class VoiceEffect {
     private final int rate;
     // The pitch changer: the last moments of your voice, read back faster or slower by two crossfading read heads
     private final float[] past = new float[8192];
-    private int written;
+    private long written;
     private double phase;
     private final int window;
     // The robot's hum and the echo's delay
@@ -60,17 +60,17 @@ final class VoiceEffect {
         int size = past.length;
         double step = (1 - factor) / window; // how fast the delay changes
         for (int i = 0; i < frame.length; i++) {
-            past[written % size] = frame[i];
+            past[(int) Math.floorMod(written, (long) size)] = frame[i];
             double out = 0;
             for (int head = 0; head < 2; head++) {
                 double p = phase + head * 0.5;
                 p -= Math.floor(p);
                 double delay = p * window + 1;
                 double at = written - delay;
-                int a = (int) Math.floor(at);
+                long a = (long) Math.floor(at);
                 double between = at - a;
-                float x0 = past[Math.floorMod(a, size)];
-                float x1 = past[Math.floorMod(a + 1, size)];
+                float x0 = past[(int) Math.floorMod(a, (long) size)];
+                float x1 = past[(int) Math.floorMod(a + 1, (long) size)];
                 double gain = 1 - Math.abs(2 * p - 1);
                 out += (x0 + (x1 - x0) * between) * gain;
             }

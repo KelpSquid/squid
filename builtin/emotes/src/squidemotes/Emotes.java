@@ -12,7 +12,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Emotes: press B for the emote wheel and pick one (wave, love, laugh, GG...). It pops up above your head, with its
+ * Emotes: press J for the emote wheel and pick one (wave, love, laugh, GG...). It pops up above your head, with its
  * particles, for everyone near you whose game has Squid. They're always one of the eight below, never typed words,
  * so they're safe for anyone to see.
  *
@@ -49,6 +49,8 @@ public class Emotes implements SquidMod {
     /** A player picked an emote: everyone with Squid near them sees it (them too). Runs on the network thread. */
     void relay(ServerPlayer from, byte[] data) {
         if (data.length != 1 || data[0] < 0 || data[0] >= ALL.length) return;
+        // Someone hiding (watching as a spectator, or invisible) mustn't give away where they are
+        if (from.isSpectator() || from.isInvisible()) return;
         if (!allowed(lastSent, from.getUUID(), System.currentTimeMillis())) return;
         var server = from.level().getServer();
         if (server == null) return;

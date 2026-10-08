@@ -2,7 +2,7 @@
     "id": "squid-emotes",
     "name": "Squid Emotes",
     "version": "1.0.0",
-    "description": "Press B for the emote wheel: wave, love, laugh, GG and more, seen above your head by everyone near you with Squid.",
+    "description": "Press J for the emote wheel: wave, love, laugh, GG and more, seen above your head by everyone near you with Squid.",
     "authors": ["Samuel"],
     "side": "both",
     "main": "squidemotes.Emotes",
