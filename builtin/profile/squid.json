@@ -1,0 +1,9 @@
+{
+    "id": "squid-profile",
+    "name": "Squid Profile",
+    "version": "1.0.0",
+    "description": "Your emblem and badges: make an emblem Call of Duty style, with more tools unlocking as your Squid Count grows.",
+    "authors": ["Samuel"],
+    "main": "squidprofile.Profile",
+    "depends": ["squid-count"]
+}

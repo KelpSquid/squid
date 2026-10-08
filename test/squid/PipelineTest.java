@@ -830,6 +830,39 @@ public class PipelineTest {
                 "60 true");
         check("a lost packet just fades out, without breaking", voiceOut.decode(null).length, 320);
 
+        // Emblems (Squid > Emblem): saved and read back layer by layer, drawn at 64x64, more layers with more Squid Count
+        String homeBefore = System.getProperty("squid.home");
+        System.setProperty("squid.home", java.nio.file.Files.createTempDirectory("squid-emblem-home").toString());
+        squidprofile.Emblem emblem = squidprofile.Emblem.starter();
+        emblem.layers.add(new squidprofile.Emblem.Layer(squidprofile.Emblem.Shape.SQUID, 0x202020, 0.25, 0.75, 0.4, 90, true, false));
+        emblem.save("test-player");
+        squidprofile.Emblem emblemBack = squidprofile.Emblem.load("test-player");
+        squidprofile.Emblem.Layer squidLayer = emblemBack.layers.get(2);
+        check("an emblem is saved and read back, layer by layer", emblemBack.layers.size() + " " + squidLayer.shape + " " + Integer.toHexString(squidLayer.color)
+                + " " + squidLayer.x + " " + squidLayer.y + " " + squidLayer.turn + " " + squidLayer.flipX + " " + squidLayer.flipY, "3 SQUID 202020 0.25 0.75 90.0 true false");
+        java.awt.image.BufferedImage emblemPicture = emblemBack.draw();
+        int emblemFilled = 0;
+        for (int x = 0; x < squidprofile.Emblem.SIZE; x++) {
+            for (int y = 0; y < squidprofile.Emblem.SIZE; y++) if ((emblemPicture.getRGB(x, y) >>> 24) != 0) emblemFilled++;
+        }
+        boolean everyShapeDraws = true;
+        for (squidprofile.Emblem.Shape shape : squidprofile.Emblem.Shape.values()) {
+            squidprofile.Emblem one = new squidprofile.Emblem();
+            one.layers.add(new squidprofile.Emblem.Layer(shape, 0xFFFFFF, 0.5, 0.5, 1, 0, false, false));
+            java.awt.image.BufferedImage drawn = one.draw();
+            int pixels = 0;
+            for (int x = 0; x < 64; x++) for (int y = 0; y < 64; y++) if ((drawn.getRGB(x, y) >>> 24) != 0) pixels++;
+            everyShapeDraws &= pixels > 100; // a shape filling the emblem covers well over 100 of its 4096 pixels
+        }
+        check("an emblem draws as a 64x64 picture with see-through corners, and every shape draws", emblemPicture.getWidth() + " " + (emblemFilled > 1000)
+                + " " + (emblemPicture.getRGB(0, 0) >>> 24) + " " + everyShapeDraws, "64 true 0 true");
+        check("more Squid Count unlocks more layers", squidprofile.Emblem.UNLOCKS.layers(0) + " " + squidprofile.Emblem.UNLOCKS.layers(49) + " "
+                + squidprofile.Emblem.UNLOCKS.layers(50) + " " + squidprofile.Emblem.UNLOCKS.layers(5000), "3 3 5 32");
+        check("a broken emblem file is read as far as it makes sense", squidprofile.Emblem.parse("CIRCLE ff0000 9 0.5 1 0 0 0\nNOT_A_SHAPE 1 1 1 1 1 1 1\nhi").layers.size()
+                + " " + squidprofile.Emblem.parse("CIRCLE ff0000 9 0.5 1 0 0 0").layers.get(0).x + " " + (squidprofile.Emblem.load("nobody") == null), "1 1.5 true");
+        if (homeBefore == null) System.clearProperty("squid.home");
+        else System.setProperty("squid.home", homeBefore);
+
         // Squid Music, the codec inside .sqda: close to the original, exactly as long
         squid.audio.Pcm tone = squid.audio.Audio.decode(java.nio.file.Files.readAllBytes(Path.of("test", "audio", "tone.wav")));
         squid.audio.MusicCodec.Encoded music = squid.audio.MusicCodec.encode(tone, squid.audio.MusicCodec.DEFAULT_QUALITY);

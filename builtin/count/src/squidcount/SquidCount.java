@@ -86,7 +86,7 @@ public class SquidCount implements SquidMod {
      * squid-count.json in Kelp's folder, which Kelp passes as -Dsquid.home. Without it, two folders up from the
      * instance (Kelp/instances/&lt;instance&gt;), or the game folder itself.
      */
-    static Path countFile() {
+    public static Path countFile() {
         String home = System.getProperty("squid.home");
         if (home != null) return Path.of(home, "squid-count.json");
         Path game = Main.gameFolder().toAbsolutePath();
