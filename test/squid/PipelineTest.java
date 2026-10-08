@@ -541,6 +541,13 @@ public class PipelineTest {
         }
         check("a file that doesn't match its fingerprint is refused", swapProblem + " | left behind: "
                 + java.nio.file.Files.exists(storeGame.resolve("resourcepacks/swapped.zip")), "it arrived damaged, so it wasn't installed | left behind: false");
+        // A .squid zipped by hand (its folder inside, Windows' \, a BOM, no id: Squid gets it from the file name) is
+        // the same mod to the Store as it is to Squid
+        jar(storeGame.resolve("mods/Dice.squid"), "Dice\\squid.json", "﻿{\"name\": \"Dice\", \"version\": \"0.5\"}");
+        squidstore.Catalog.Item dice = new squidstore.Catalog.Item("dice", "mod", "Dice", "Sam", "", List.of(), false, "dice-1.0.squid",
+                hosted.resolve("fun.jar").toUri().toString(), goodHash, modBytes.length, "1.0", "");
+        check("the Store knows a hand-zipped .squid of a mod", squidstore.Installer.installed(dice, storeGame) + " "
+                + squidstore.Installer.updateAvailable(dice, storeGame), "true true");
 
         List<URL> storeUrls = new ArrayList<>(urls);
         storeUrls.add(Path.of(a[3]).toUri().toURL());

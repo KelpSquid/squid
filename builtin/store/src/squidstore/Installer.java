@@ -103,9 +103,19 @@ public final class Installer {
         return copies;
     }
 
-    /** The id in a jar's squid.json, or null if it hasn't got one (or can't be read). */
+    /**
+     * The id in a mod file's squid.json, or null if it hasn't got one (or can't be read). A .squid without one gets
+     * its id from its file name, like Squid gives it (MegaMod.squid is mega-mod).
+     */
     static String modId(Path jar) {
-        return squidJson(jar, "id");
+        String id = squidJson(jar, "id");
+        String name = jar.getFileName().toString().replace(".disabled", "");
+        if (id == null && name.endsWith(".squid") && squidJson(jar, "name") != null) {
+            String className = name.substring(0, name.length() - ".squid".length()).replaceAll("[^A-Za-z0-9_]", "");
+            id = className.replace('_', ' ').replaceAll("(?<=[a-z0-9])(?=[A-Z])", " ").replaceAll("(?<=[A-Z])(?=[A-Z][a-z])", " ")
+                    .replaceAll("(?<=[A-Za-z])(?=[0-9])", " ").trim().toLowerCase(java.util.Locale.ROOT).replace(' ', '-');
+        }
+        return id == null || id.isEmpty() ? null : id;
     }
 
     /** The version in a jar's squid.json, or null. */
@@ -113,17 +123,38 @@ public final class Installer {
         return squidJson(jar, "version");
     }
 
+    /**
+     * A value from a mod file's squid.json. A .squid is read the way Squid reads it: zipped by hand with its folder
+     * inside or with \ between folders, and squid.json with a BOM, so the Store finds every copy Squid would load.
+     */
     private static String squidJson(Path jar, String key) {
         try (ZipFile zip = new ZipFile(jar.toFile())) {
             ZipEntry entry = zip.getEntry("squid.json");
+            if (entry == null && jar.getFileName().toString().contains(".squid")) entry = nestedSquidJson(zip);
             if (entry == null) return null;
             try (InputStream in = zip.getInputStream(entry)) {
-                Map<String, Object> json = squid.Json.object(squid.Json.parse(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)));
+                byte[] bytes = in.readAllBytes();
+                int bom = bytes.length >= 3 && (bytes[0] & 0xFF) == 0xEF && (bytes[1] & 0xFF) == 0xBB && (bytes[2] & 0xFF) == 0xBF ? 3 : 0;
+                Map<String, Object> json = squid.Json.object(squid.Json.parse(new String(bytes, bom, bytes.length - bom, java.nio.charset.StandardCharsets.UTF_8)));
                 return json != null && json.get(key) instanceof String value ? value : null;
             }
         } catch (IOException | RuntimeException e) {
             return null;
         }
+    }
+
+    /** A hand-zipped .squid's squid.json: "squid.json" written with \, or inside the one folder that was zipped. */
+    private static ZipEntry nestedSquidJson(ZipFile zip) {
+        ZipEntry nested = null;
+        var entries = zip.entries();
+        while (entries.hasMoreElements()) {
+            ZipEntry entry = entries.nextElement();
+            String name = entry.getName().replace('\\', '/');
+            if (name.equals("squid.json")) return entry;
+            int slash = name.indexOf('/');
+            if (slash > 0 && name.substring(slash + 1).equals("squid.json")) nested = entry;
+        }
+        return nested;
     }
 
     /**
