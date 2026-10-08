@@ -50,18 +50,21 @@ final class Aac {
         } catch (RuntimeException damaged) {
             throw new IllegalArgumentException("the AAC file is damaged (" + damaged.getMessage() + ")");
         }
-        if (track.objectType != 2 && track.objectType != 5 && track.objectType != 29 && track.objectType != 1 && track.objectType != 4) {
+        if (track.objectType != 2) {
+            // AAC Main and LTP use prediction, which Squid doesn't do: they'd play as long stretches of nothing
             throw new IllegalArgumentException("this AAC kind (" + track.objectType + ") isn't supported, only AAC-LC");
         }
         Decoder decoder = new Decoder(track.rateIndex, track.channels);
         int channels = Math.max(1, track.channels);
         long total = (long) track.frames.size() * 1024;
-        if ((total - track.skip) * channels > Audio.MAX_SAMPLES) throw new IllegalArgumentException("the AAC file is far too long");
-        short[] out = new short[(int) Math.max(0, total * channels)];
+        if (total * channels > Audio.MAX_SAMPLES) throw new IllegalArgumentException("the AAC file is far too long");
+        short[] out = new short[(int) (total * channels)];
         int written = 0;
+        int biggest = 768 * channels + 64; // the most a frame can be: 6144 bits a channel, by the standard
         for (int[] frame : track.frames) {
             float[][] pcm;
             try {
+                if (frame[1] > biggest) throw new IllegalStateException("a frame that's too big");
                 pcm = decoder.frame(d, frame[0], frame[1]);
             } catch (RuntimeException damaged) {
                 pcm = new float[channels][1024]; // a damaged frame is a moment of silence
@@ -77,11 +80,12 @@ final class Aac {
             }
         }
         // Trim the encoder's warm-up at the start, and its padding at the end
-        long start = Math.min(track.skip, total);
+        long start = Math.clamp(track.skip, 0, total);
         long length = track.length > 0 ? Math.min(track.length, total - start) : total - start;
         short[] trimmed = new short[(int) (length * channels)];
         System.arraycopy(out, (int) (start * channels), trimmed, 0, trimmed.length);
-        return reorder(new Pcm(trimmed, channels, RATES[Math.min(track.rateIndex, RATES.length - 1)]), track.channels);
+        int rate = track.rate > 0 ? track.rate : RATES[Math.min(track.rateIndex, RATES.length - 1)];
+        return reorder(new Pcm(trimmed, channels, rate), track.channels);
     }
 
     /** AAC lists surround channels center first (C L R ...); Squid works in WAV's order (L R C LFE ...). */
@@ -93,6 +97,18 @@ final class Aac {
             case 8 -> new int[] {1, 2, 0, 7, 5, 6, 3, 4};
             default -> null;
         };
+        if (pcm.channels() == 4) {
+            // C, L, R and a back center: mixed straight to stereo (as quad it would put the center hard left)
+            short[] in = pcm.samples();
+            short[] out = new short[in.length / 2];
+            for (int i = 0; i < in.length / 4; i++) {
+                double center = in[i * 4] * 0.7071;
+                double back = in[i * 4 + 3] * 0.7071;
+                out[i * 2] = (short) Math.clamp(Math.round(in[i * 4 + 1] + center + back), Short.MIN_VALUE, Short.MAX_VALUE);
+                out[i * 2 + 1] = (short) Math.clamp(Math.round(in[i * 4 + 2] + center + back), Short.MIN_VALUE, Short.MAX_VALUE);
+            }
+            return new Pcm(out, 2, pcm.rate());
+        }
         if (from == null) return pcm;
         int ch = pcm.channels();
         short[] in = pcm.samples();
@@ -106,7 +122,14 @@ final class Aac {
     // ---- Containers ----
 
     /** Where the frames are, what's in them, and how much to trim off the start (skip) and how long it really is. */
-    record Track(int objectType, int rateIndex, int channels, List<int[]> frames, long skip, long length) {
+    record Track(int objectType, int rateIndex, int channels, List<int[]> frames, long skip, long length, int rate) {
+    }
+
+    /** Stops a made-up file from listing more frames than any real sound has, before they fill the memory. */
+    private static void checkCount(List<int[]> frames, int channels) {
+        if ((long) frames.size() * 1024 * Math.max(1, channels) > Audio.MAX_SAMPLES) {
+            throw new IllegalArgumentException("the AAC file is far too long");
+        }
     }
 
     /** A raw AAC stream: frames one after another, each with a 7 (or 9) byte ADTS header. */
@@ -126,18 +149,23 @@ final class Aac {
             int length = ((d[at + 3] & 0x03) << 11) | ((d[at + 4] & 0xFF) << 3) | ((d[at + 5] & 0xE0) >> 5);
             int blocks = (d[at + 6] & 0x03) + 1;
             int header = noCrc ? 7 : 9;
-            if (length < header || at + length > d.length) break;
+            if (length < header || at + length > d.length) {
+                at++; // a damaged header: look for the next real one, so one bad byte doesn't end the song
+                continue;
+            }
             if (first) {
                 objectType = ((d[at + 2] & 0xC0) >> 6) + 1;
                 rateIndex = (d[at + 2] & 0x3C) >> 2;
                 channels = ((d[at + 2] & 0x01) << 2) | ((d[at + 3] & 0xC0) >> 6);
+                if (channels == 7) channels = 8;
                 first = false;
             }
             if (blocks == 1) frames.add(new int[] {at + header, length - header});
+            checkCount(frames, channels);
             at += length;
         }
         if (frames.isEmpty()) throw new IllegalArgumentException("the AAC file has no frames");
-        return new Track(objectType, rateIndex, channels == 0 ? 2 : channels, frames, 0, 0);
+        return new Track(objectType, rateIndex, channels == 0 ? 2 : channels, frames, 0, 0, 0);
     }
 
     /** An .m4a/.mp4 file: finds the first AAC track and where every one of its frames is. */
@@ -150,32 +178,40 @@ final class Aac {
         int objectType = b.read(5);
         if (objectType == 31) objectType = 32 + b.read(6);
         int rateIndex = b.read(4);
+        int exactRate = 0;
         if (rateIndex == 15) {
-            int rate = b.read(24);
-            rateIndex = nearestRate(rate);
+            exactRate = b.read(24); // a rate not in the table: it plays at exactly that rate
+            rateIndex = nearestRate(exactRate);
         }
         int channels = b.read(4);
         if (channels == 0) channels = m.channels > 0 ? m.channels : 2;
         if (channels == 7) channels = 8;
-        if (objectType == 5 || objectType == 29) {
+        boolean he = objectType == 5 || objectType == 29;
+        if (he) {
             // HE-AAC: the real sample rate follows, then the core's kind. The core is plain AAC-LC at half the rate.
             int extRate = b.read(4);
             if (extRate == 15) b.read(24);
             objectType = b.read(5);
         }
+        if (objectType == 2 && b.read(1) == 1) {
+            throw new IllegalArgumentException("AAC with 960-sample frames isn't supported");
+        }
         if (m.sizes == null || m.offsets == null) throw new IllegalArgumentException("the file doesn't say where its sound is");
         // Frames: chunks hold runs of frames, as stsc says; stco says where each chunk starts
         List<int[]> frames = new ArrayList<>();
         int sample = 0;
+        int entry = 0; // which stsc entry applies: chunks only go forward, so this does too
         for (int chunk = 0; chunk < m.offsets.length && sample < m.sizes.length; chunk++) {
-            int perChunk = m.samplesPerChunk(chunk + 1);
+            while (m.stsc != null && entry + 1 < m.stsc.length && m.stsc[entry + 1][0] <= chunk + 1) entry++;
+            int perChunk = m.stsc == null || m.stsc.length == 0 ? 1 : m.stsc[entry][1];
             long at = m.offsets[chunk];
             for (int s = 0; s < perChunk && sample < m.sizes.length; s++) {
                 int size = m.sizes[sample++];
-                if (at < 0 || at + size > d.length) throw new IllegalArgumentException("the file is cut short");
+                if (at < 0 || size < 0 || at + size > d.length) throw new IllegalArgumentException("the file is cut short");
                 frames.add(new int[] {(int) at, size});
                 at += size;
             }
+            checkCount(frames, channels);
         }
         long skip = 0;
         long length = 0;
@@ -186,17 +222,23 @@ final class Aac {
                 try {
                     skip = Long.parseLong(parts[1], 16);
                     length = Long.parseLong(parts[3], 16);
+                    if (he) { // iTunes counts HE-AAC at its full rate; the core plays at half
+                        skip /= 2;
+                        length /= 2;
+                    }
                 } catch (NumberFormatException ignored) {
                     skip = 0;
                 }
             }
         } else if (m.editStart >= 0) {
-            skip = m.editStart * Math.max(1, 1) * (long) RATES[Math.min(rateIndex, RATES.length - 1)] / Math.max(1, m.mediaScale);
-            if (m.editDuration > 0 && m.movieScale > 0) {
-                length = m.editDuration * RATES[Math.min(rateIndex, RATES.length - 1)] / m.movieScale;
+            int rate = exactRate > 0 ? exactRate : RATES[Math.min(rateIndex, RATES.length - 1)];
+            // Huge numbers (a damaged file) can't overflow into a negative trim: anything past the end is just the end
+            skip = m.editStart > Long.MAX_VALUE / 200_000 ? Long.MAX_VALUE : m.editStart * rate / Math.max(1, m.mediaScale);
+            if (m.editDuration > 0 && m.movieScale > 0 && m.editDuration < Long.MAX_VALUE / 200_000) {
+                length = m.editDuration * rate / m.movieScale;
             }
         }
-        return new Track(objectType, rateIndex, channels, frames, skip, length);
+        return new Track(objectType, rateIndex, channels, frames, Math.max(0, skip), Math.max(0, length), exactRate);
     }
 
     private static int nearestRate(int rate) {
@@ -219,16 +261,6 @@ final class Aac {
         String smpb;
         boolean audioTrack;
         boolean done;
-
-        int samplesPerChunk(int chunk) {
-            if (stsc == null || stsc.length == 0) return 1;
-            int per = stsc[0][1];
-            for (int[] entry : stsc) {
-                if (entry[0] <= chunk) per = entry[1];
-                else break;
-            }
-            return per;
-        }
 
         void walk(byte[] d, int from, int to, int depth) {
             int at = from;
@@ -304,7 +336,8 @@ final class Aac {
                     case "stsz" -> {
                         long fixed = u32(d, body + 4);
                         long count = u32(d, body + 8);
-                        if (count > (end - body) / 4 + (fixed != 0 ? Integer.MAX_VALUE : 0) || count > 50_000_000) return;
+                        // No more sizes than the box holds (unless they're all the same), and no more than any real sound has
+                        if (fixed == 0 && count > (end - body) / 4L || count > Audio.MAX_SAMPLES / 1024 + 1) return;
                         sizes = new int[(int) count];
                         for (int i = 0; i < count; i++) sizes[i] = fixed != 0 ? (int) fixed : (int) u32(d, body + 12 + 4 * i);
                     }

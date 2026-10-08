@@ -27,6 +27,8 @@ final class SongPlayer {
     /** How loud it is right now, 0 to 1, for mods that move with the music. */
     volatile float level;
     volatile long position;
+    /** Where the speakers are (a little behind position, by what's waiting in the line), in samples. */
+    volatile long heard;
     volatile long length;
     volatile int rate = 1;
     /** What went wrong, in words, or null. */
@@ -60,6 +62,11 @@ final class SongPlayer {
     /** Seconds played and the song's length, for the progress bar. */
     double seconds() {
         return position / (double) Math.max(1, rate);
+    }
+
+    /** Seconds heard: what's coming out of the speakers right now. */
+    double heardSeconds() {
+        return heard / (double) Math.max(1, rate);
     }
 
     double lengthSeconds() {
@@ -162,12 +169,20 @@ final class SongPlayer {
             } else {
                 pcm = Audio.decode(data);
                 source = new PcmSource(pcm, repeat);
-                // Its beat, so mods' onBeat can follow any song (a .sqda brings its own beat cues)
-                squid.audio.Analysis.Tempo tempo = squid.audio.Analysis.tempo(pcm);
-                if (tempo != null && tempo.confidence() >= 0.2) {
-                    firstBeat = tempo.offset();
-                    beatEvery = 60 / tempo.bpm();
-                }
+                // Its beat, so mods' onBeat can follow any song (a .sqda brings its own beat cues). Found alongside,
+                // so the song starts right away, and a problem finding it never stops the song.
+                Pcm song = pcm;
+                Thread.ofVirtual().start(() -> {
+                    try {
+                        squid.audio.Analysis.Tempo tempo = squid.audio.Analysis.tempo(song);
+                        if (tempo != null && tempo.confidence() >= 0.2) {
+                            firstBeat = tempo.offset();
+                            beatEvery = 60 / tempo.bpm();
+                        }
+                    } catch (Throwable e) {
+                        // no beat for this song
+                    }
+                });
             }
             data = null; // the file's bytes aren't needed any more
             length = source.length();
@@ -215,6 +230,9 @@ final class SongPlayer {
                 line.write(out, 0, chunk.length * 2);
                 started = true;
                 position = source.position();
+                // What the speakers are playing now: what was sent, less what's still waiting in the line
+                long waiting = (line.getBufferSize() - line.available()) / (2L * source.channels());
+                heard = Math.max(0, position - waiting);
             }
             if (!stopped) line.drain();
         } catch (InterruptedException e) {

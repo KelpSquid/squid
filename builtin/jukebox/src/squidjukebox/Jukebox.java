@@ -316,7 +316,7 @@ public class Jukebox implements SquidMod {
             lastBeat = -1;
         }
         if (p.beatEvery <= 0 || p.paused) return;
-        double heard = p.seconds() - 0.15; // what's playing now: the speakers are a little behind what was sent
+        double heard = p.heardSeconds(); // what's coming out of the speakers now, not what was sent
         long beat = (long) Math.floor((heard - p.firstBeat) / p.beatEvery);
         if (beat < 0) return;
         if (beat < lastBeat) lastBeat = beat - 1; // looped back to the start
