@@ -165,7 +165,7 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
   right away; Reset brings Minecraft's own texture back. Items and animated blocks too.
 - **Sound Swapper:** Squid > Sound Swapper: pick any Minecraft sound (a pig's oink, the door creak...), hear it, and
   drop your own sound file on it, or press Record and make the sound yourself (the quiet bits at the ends are cut
-  off). It goes in the same pack as a `.sqda`, so Squid plays it in its place (only Squid players hear swapped
+  off), with an effect if you like: Chipmunk, Giant, Robot, Echo or Backwards. It goes in the same pack as a `.sqda`, so Squid plays it in its place (only Squid players hear swapped
   sounds).
 - **120 languages:** Squid's own texts follow Minecraft's language setting (BETA, not checked yet).
 

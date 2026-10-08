@@ -1363,6 +1363,17 @@ public class PipelineTest {
         check("a recording loses its quiet ends and gets loud", Math.abs(tidied.length - 4410 - 4410) <= 441 * 2 && loudestTidied > 28000
                 && tidied[0] == 0, true);
         check("a recording of nothing is empty", ((short[]) tidy.invoke(null, new short[44100], 44100)).length, 0);
+        // Sound Swapper effects: Chipmunk is shorter (faster), Giant longer, Echo rings on, Backwards is backwards
+        Class<?> effects = netLoader.loadClass("squidpaint.Effects");
+        java.lang.reflect.Method effect = effects.getDeclaredMethod("apply", String.class, squid.audio.Pcm.class);
+        effect.setAccessible(true);
+        squid.audio.Pcm voice = new squid.audio.Pcm(new short[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, 1, 8);
+        StringBuilder lengths = new StringBuilder();
+        for (String name : new String[] {"None", "Chipmunk", "Giant", "Robot", "Echo", "Backwards"}) {
+            lengths.append(((squid.audio.Pcm) effect.invoke(null, name, voice)).samples().length).append(' ');
+        }
+        check("Sound Swapper effects change the sound", lengths.toString().strip() + " "
+                + ((squid.audio.Pcm) effect.invoke(null, "Backwards", voice)).samples()[0], "10 6 15 10 14 10 10");
         // A dropped picture becomes pixel art: a picture half red, half blue fills a 16 x 16 texture the same way
         java.awt.image.BufferedImage picture = new java.awt.image.BufferedImage(200, 100, java.awt.image.BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < 100; y++) for (int x = 0; x < 200; x++) picture.setRGB(x, y, x < 100 ? 0xFFFF0000 : 0xFF0000FF);

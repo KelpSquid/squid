@@ -29,7 +29,7 @@ import java.util.Optional;
  * The Sound Swapper: swap any Minecraft sound (a pig's oink, a creeper's hiss, the door creak) for your own. Pick the
  * sound, then drop a sound file onto the window (MP3, M4A, WAV, FLAC, Ogg or .sqda). It's squeezed into a .sqda,
  * made mono so the game can place it in the world, and saved in the Squid Paint pack under the sound's own name, so
- * Squid plays it in its place. Or press Record and be the pig yourself. Hear it plays the sound as it is now, and
+ * Squid plays it in its place. Or press Record and be the pig yourself, with an effect (Chipmunk, Giant, Robot...). Hear it plays the sound as it is now, and
  * Reset brings Minecraft's sound back.
  *
  * Only players with Squid hear swapped sounds (the file is a .sqda inside), which is why it lives in Squid's own pack.
@@ -44,6 +44,7 @@ final class SoundSwapScreen extends Screen {
     private volatile boolean working; // a sound is being squeezed in the background
     private final Recorder recorder = new Recorder();
     private boolean wasRecording;
+    private String effect = "None";
     private String message;
     private int messageColor;
 
@@ -136,6 +137,11 @@ final class SoundSwapScreen extends Screen {
             picked = null;
             rebuildWidgets();
         }).bounds(width / 2 + 2, height / 2 + 44, 98, 20).build());
+        // An effect for the next sound you drop or record; pressing it goes to the next one
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Effect: {0}", Effects.name(effect))), b -> {
+            effect = Effects.ALL.get((Effects.ALL.indexOf(effect) + 1) % Effects.ALL.size());
+            rebuildWidgets();
+        }).bounds(width / 2 - 100, height / 2 + 68, 200, 20).build()).active = !working;
     }
 
     /** Plays the picked sound as it is now: yours if you've swapped it, else Minecraft's. */
@@ -239,6 +245,7 @@ final class SoundSwapScreen extends Screen {
 
     /** Squeezes a sound into the pack in place of this one, in the background, then reloads so it's heard. */
     private void swapIn(Identifier sound, SoundReader read, String title) {
+        String withEffect = effect;
         working = true;
         say(Lang.t("Squeezing it in..."), 0xFFA0A0A0);
         rebuildWidgets();
@@ -246,6 +253,7 @@ final class SoundSwapScreen extends Screen {
             String problem = null;
             try {
                 Pcm pcm = SqdaTool.toMono(read.get()); // Minecraft only places mono sounds in the world
+                pcm = Effects.apply(withEffect, pcm);
                 if (pcm.seconds() > 60) {
                     problem = Lang.t("That's {0} seconds long. Sounds can be a minute at most.", (int) pcm.seconds());
                 } else {
@@ -306,7 +314,7 @@ final class SoundSwapScreen extends Screen {
             if (recorder.recording()) {
                 // How loud the mic is, and how long is left
                 int bar = Math.round(recorder.level() * 196);
-                int y = height / 2 + 70;
+                int y = height / 2 + 94;
                 g.fill(width / 2 - 100, y, width / 2 + 100, y + 8, 0xFF000000);
                 g.fill(width / 2 - 98, y + 2, width / 2 - 98 + bar, y + 6, 0xFF55FF55);
                 int left = (int) Math.ceil(Recorder.MOST_SECONDS - recorder.seconds());
