@@ -352,3 +352,4 @@ One => Otu
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft enweghị obere irighiri ihe a na-akpọ "{0}". Nwalee "heart", "flame", "happy_villager" ma ọ bụ "note"
 Squid couldn't look around => Squid enweghị ike ilegharị anya
 Squid couldn't make the particles => Squid enweghị ike ịme irighiri ihe ndị ahụ
+onBeat only works inside start() => onBeat na-arụ ọrụ naanị n'ime start()

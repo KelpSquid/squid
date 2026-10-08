@@ -352,3 +352,4 @@ One => Isa
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Walang simpleng particle na "{0}" sa Minecraft. Subukan ang "heart", "flame", "happy_villager" o "note"
 Squid couldn't look around => Hindi makatingin-tingin si Squid sa paligid
 Squid couldn't make the particles => Hindi magawa ni Squid ang mga particle
+onBeat only works inside start() => sa loob lang ng start() gumagana ang onBeat

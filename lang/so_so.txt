@@ -352,3 +352,4 @@ One => Mid
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft ma laha qayb-yar fudud oo la yiraahdo "{0}". Isku day "heart", "flame", "happy_villager" ama "note"
 Squid couldn't look around => Squid ma uusan eegi karin hareeraha
 Squid couldn't make the particles => Squid ma uusan samayn karin qaybaha-yar
+onBeat only works inside start() => onBeat wuxuu ku shaqeeyaa oo keliya gudaha start()

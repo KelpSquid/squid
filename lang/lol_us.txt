@@ -352,3 +352,4 @@ One => Wun
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft haz no simpl partikl calld "{0}". Try "heart", "flame", "happy_villager" or "note"
 Squid couldn't look around => Squid cant luk arownd
 Squid couldn't make the particles => Squid cant maek teh partiklz
+onBeat only works inside start() => onBeat onli werks inside start()

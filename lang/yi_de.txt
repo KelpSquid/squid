@@ -352,3 +352,4 @@ One => איינס
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft האָט ניט קיין פּשוטע פּאַרטיקל וואָס הייסט "{0}". פּרוּוו "heart", "flame", "happy_villager" אָדער "note"
 Squid couldn't look around => Squid האָט זיך ניט געקענט אַרומקוקן
 Squid couldn't make the particles => Squid האָט ניט געקענט מאַכן די פּאַרטיקלען
+onBeat only works inside start() => onBeat אַרבעט נאָר אין start()

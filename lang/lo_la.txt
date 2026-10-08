@@ -352,3 +352,4 @@ One => ເພງດຽວ
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft ບໍ່ມີອະນຸພາກແບບງ່າຍທີ່ຊື່ "{0}" ລອງ "heart", "flame", "happy_villager" ຫຼື "note"
 Squid couldn't look around => Squid ເບິ່ງອ້ອມຂ້າງບໍ່ໄດ້
 Squid couldn't make the particles => Squid ສ້າງອະນຸພາກບໍ່ໄດ້
+onBeat only works inside start() => onBeat ໃຊ້ໄດ້ແຕ່ໃນ start()

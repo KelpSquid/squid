@@ -352,3 +352,4 @@ One => Okta
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraftas ii leat álkes partihkkal man namma lea "{0}". Geahččal "heart", "flame", "happy_villager" dahje "note"
 Squid couldn't look around => Squid ii sáhttán geahččat birra
 Squid couldn't make the particles => Squid ii sáhttán ráhkadit partihkkaliid
+onBeat only works inside start() => onBeat doaibmá dušše start() siste

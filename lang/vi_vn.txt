@@ -352,3 +352,4 @@ One => Một bài
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft không có hạt hiệu ứng đơn giản nào tên "{0}". Thử "heart", "flame", "happy_villager" hoặc "note"
 Squid couldn't look around => Squid không nhìn xung quanh được
 Squid couldn't make the particles => Squid không tạo được hạt hiệu ứng
+onBeat only works inside start() => onBeat chỉ dùng được bên trong start()

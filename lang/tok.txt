@@ -352,3 +352,4 @@ One => wan
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft li jo ala e sitelen lili pi nimi "{0}". o pali kepeken "heart", "flame", "happy_villager" anu "note"
 Squid couldn't look around => Squid li ken ala lukin lon poka
 Squid couldn't make the particles => Squid li ken ala pali e sitelen lili
+onBeat only works inside start() => onBeat li pali lon insa start() taso

@@ -352,3 +352,4 @@ One => wa'
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft Daq "{0}" pongbogh 'ay'Hom nap tu'lu'be'. "heart", "flame", "happy_villager" pagh "note" yInIDqa'
 Squid couldn't look around => Dat bejlaHbe' Squid
 Squid couldn't make the particles => 'ay'Hommey chenmoHlaHbe' Squid
+onBeat only works inside start() => start() qoDDaq neH Qap onBeat

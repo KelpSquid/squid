@@ -352,3 +352,4 @@ One => ساتو
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft تيادا ڤرتيکل ريڠکس برنام "{0}". چوبا "heart"، "flame"، "happy_villager" اتاو "note"
 Squid couldn't look around => Squid تيدق داڤت مليهت سکليليڠ
 Squid couldn't make the particles => Squid تيدق داڤت ممبوات ڤرتيکل
+onBeat only works inside start() => onBeat هاڽ برفوڠسي د دالم start()

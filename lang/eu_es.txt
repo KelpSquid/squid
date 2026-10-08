@@ -352,3 +352,4 @@ One => Bat
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraftek ez du "{0}" izeneko partikula sinplerik. Probatu "heart", "flame", "happy_villager" edo "note"
 Squid couldn't look around => Squidek ezin izan du inguruan begiratu
 Squid couldn't make the particles => Squidek ezin izan ditu partikulak sortu
+onBeat only works inside start() => onBeat start() barruan bakarrik dabil

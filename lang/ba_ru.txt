@@ -352,3 +352,4 @@ One => Берәү
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft-та "{0}" тигән ябай киҫәксәк юҡ. "heart", "flame", "happy_villager" йәки "note" һынап ҡара
 Squid couldn't look around => Squid тирә-яҡҡа ҡарай алманы
 Squid couldn't make the particles => Squid киҫәксәктәрҙе яһай алманы
+onBeat only works inside start() => onBeat start() эсендә генә эшләй

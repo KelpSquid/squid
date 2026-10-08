@@ -352,3 +352,4 @@ One => واحدة
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => لا يوجد في Minecraft جسيم بسيط اسمه "{0}". جرّب "heart" أو "flame" أو "happy_villager" أو "note"
 Squid couldn't look around => تعذّر على Squid النظر حوله
 Squid couldn't make the particles => تعذّر على Squid إنشاء الجسيمات
+onBeat only works inside start() => onBeat يعمل فقط داخل start()

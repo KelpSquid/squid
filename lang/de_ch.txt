@@ -352,3 +352,4 @@ One => Eis
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft het kei eifachs Partikel mit em Name "{0}". Probier "heart", "flame", "happy_villager" oder "note"
 Squid couldn't look around => Squid het sich nöd chöne umluege
 Squid couldn't make the particles => Squid het d Partikel nöd chöne mache
+onBeat only works inside start() => onBeat gaht nur i start()

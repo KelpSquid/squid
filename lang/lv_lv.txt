@@ -352,3 +352,4 @@ One => Viena
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft nav vienkāršas daļiņas ar nosaukumu "{0}". Pamēģini "heart", "flame", "happy_villager" vai "note"
 Squid couldn't look around => Squid nevarēja paskatīties apkārt
 Squid couldn't make the particles => Squid nevarēja izveidot daļiņas
+onBeat only works inside start() => onBeat darbojas tikai start() iekšā

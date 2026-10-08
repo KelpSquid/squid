@@ -352,3 +352,4 @@ One => Aon
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Chan eil gràinean sìmplidh air a bheil "{0}" aig Minecraft. Feuch "heart", "flame", "happy_villager" no "note"
 Squid couldn't look around => Cha b' urrainn do Squid coimhead mun cuairt
 Squid couldn't make the particles => Cha b' urrainn do Squid na gràineanan a dhèanamh
+onBeat only works inside start() => chan obraich onBeat ach am broinn start()

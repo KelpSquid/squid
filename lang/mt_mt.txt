@@ -352,3 +352,4 @@ One => Waħda
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft m'għandux partiċella sempliċi msejħa "{0}". Ipprova "heart", "flame", "happy_villager" jew "note"
 Squid couldn't look around => Squid ma setax iħares madwaru
 Squid couldn't make the particles => Squid ma setax jagħmel il-partiċelli
+onBeat only works inside start() => onBeat jaħdem biss ġewwa start()

@@ -352,3 +352,4 @@ One => Üks
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraftis pole lihtsat osakest nimega "{0}". Proovi "heart", "flame", "happy_villager" või "note"
 Squid couldn't look around => Squid ei saanud ringi vaadata
 Squid couldn't make the particles => Squid ei saanud osakesi teha
+onBeat only works inside start() => onBeat töötab ainult start() sees

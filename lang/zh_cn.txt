@@ -352,3 +352,4 @@ One => 单曲
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft 没有叫 "{0}" 的简单粒子。试试 "heart"、"flame"、"happy_villager" 或 "note"
 Squid couldn't look around => Squid 无法环顾四周
 Squid couldn't make the particles => Squid 无法生成粒子
+onBeat only works inside start() => onBeat 只能写在 start() 里

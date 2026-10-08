@@ -352,3 +352,4 @@ One => Една
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft нема едноставна честичка наречена "{0}". Пробај "heart", "flame", "happy_villager" или "note"
 Squid couldn't look around => Squid не можеше да погледне наоколу
 Squid couldn't make the particles => Squid не можеше да ги направи честичките
+onBeat only works inside start() => onBeat работи само во start()

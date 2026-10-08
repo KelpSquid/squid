@@ -352,3 +352,4 @@ One => ಒಂದು
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft ನಲ್ಲಿ "{0}" ಎಂಬ ಸರಳ ಕಣ ಇಲ್ಲ. "heart", "flame", "happy_villager" ಅಥವಾ "note" ಪ್ರಯತ್ನಿಸಿ
 Squid couldn't look around => Squid ಗೆ ಸುತ್ತಲೂ ನೋಡಲಾಗಲಿಲ್ಲ
 Squid couldn't make the particles => Squid ಗೆ ಕಣಗಳನ್ನು ಮಾಡಲಾಗಲಿಲ್ಲ
+onBeat only works inside start() => onBeat start() ಒಳಗೆ ಮಾತ್ರ ಕೆಲಸ ಮಾಡುತ್ತದೆ

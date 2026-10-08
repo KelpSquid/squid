@@ -352,3 +352,4 @@ One => Një
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft nuk ka grimcë të thjeshtë që quhet "{0}". Provo "heart", "flame", "happy_villager" ose "note"
 Squid couldn't look around => Squid nuk mundi të shikonte përreth
 Squid couldn't make the particles => Squid nuk mundi të krijonte grimcat
+onBeat only works inside start() => onBeat punon vetëm brenda start()

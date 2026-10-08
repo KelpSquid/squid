@@ -352,3 +352,4 @@ One => یکی
 Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft ذره‌ی ساده‌ای به نام "{0}" ندارد. "heart"، "flame"، "happy_villager" یا "note" را امتحان کنید
 Squid couldn't look around => Squid نتوانست اطرافش را نگاه کند
 Squid couldn't make the particles => Squid نتوانست ذره‌ها را بسازد
+onBeat only works inside start() => onBeat فقط داخل start() کار می‌کند
