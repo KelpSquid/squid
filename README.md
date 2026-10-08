@@ -81,8 +81,9 @@ mods/
 ```
 
 `squid.json` only needs what isn't obvious. The id and name come from the folder (`MegaMod` is `mega-mod`,
-"Mega Mod"), the version starts at `1.0`, and the main class is the one named like the folder. A mistake says which
-file it's in: *"there's a mistake in src/Second.java on line 2: a ; is missing at the end of the line"*.
+"Mega Mod"), the version starts at `1.0`, and the main class is the one named like the folder. A folder named only
+in other letters (like `日本語`) leaves nothing to make them from, so its `squid.json` needs `id` and `main`.
+A mistake says which file it's in: *"there's a mistake in src/Second.java on line 2: a ; is missing at the end of the line"*.
 
 Everything `squid.json` can have:
 

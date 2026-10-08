@@ -846,6 +846,12 @@ public class PipelineTest {
         deleteTree(copyB);
         reloader.check();
         check("and removing it stops the new one", Main.mods().stream().anyMatch(m -> m.id().startsWith("twin")), false);
+        // A project folder named only in another alphabet asks for an id, instead of saying the id it made up is wrong
+        Path alphabet = java.nio.file.Files.createDirectories(live.resolve("日本語"));
+        java.nio.file.Files.writeString(alphabet.resolve("squid.json"), "{\"name\": \"Nihongo\"}");
+        check("a folder named in another alphabet asks for an id", failure(() -> Mods.describe(alphabet)),
+                "IOException: 日本語: squid.json needs a \"id\"");
+        deleteTree(alphabet);
 
         // A reloaded mod takes over its old hooks in classes that can't be patched again
         ModInfo hooker = new ModInfo("hooker", "Hooker", "1.0", "", List.of(), List.of(), List.of(), "x", live);

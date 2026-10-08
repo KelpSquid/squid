@@ -341,7 +341,15 @@ final class Mods {
         if (!Files.exists(file)) throw new IOException(Lang.t("it needs a squid.json, with at least its \"name\" in it."));
         Map<String, Object> json = parse(SourceMods.text(Files.readAllBytes(file)), null);
         String className = folder.getFileName().toString().replaceAll("[^A-Za-z0-9_]", "");
-        return info(json, folder, idFor(className), SourceMods.spaced(className), className);
+        return info(json, folder, orNull(idFor(className)), orNull(SourceMods.spaced(className)), orNull(className));
+    }
+
+    /**
+     * A name made from a file or folder's name, or null when nothing is left of it (a folder named only in another
+     * alphabet): then squid.json has to say it, and Squid asks for that instead of giving an id error.
+     */
+    private static String orNull(String fromName) {
+        return fromName.isEmpty() ? null : fromName;
     }
 
     /** A mod's id from its class or file name, the same for every kind of mod: MegaMod becomes mega-mod. */
@@ -361,7 +369,7 @@ final class Mods {
         }
         String fileName = file.getFileName().toString();
         String className = fileName.substring(0, fileName.length() - ".squid".length()).replaceAll("[^A-Za-z0-9_]", "");
-        return info(json, file, idFor(className), SourceMods.spaced(className), className);
+        return info(json, file, orNull(idFor(className)), orNull(SourceMods.spaced(className)), orNull(className));
     }
 
     /** Reads a squid.json. jarName is the jar it's in, for saying which one is broken, or null for "its squid.json". */
@@ -399,7 +407,7 @@ final class Mods {
         warnUnknownKeys(json, where);
         return new ModInfo(id,
                 text(json, "name", defaultName != null ? defaultName : id, where),
-                text(json, "version", defaultId != null ? "1.0" : null, where),
+                text(json, "version", where.getFileName().toString().endsWith(".jar") ? null : "1.0", where), // mods made from code start at 1.0
                 text(json, "description", "", where),
                 strings(json, "authors"),
                 depends,
