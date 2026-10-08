@@ -480,6 +480,11 @@ public class PipelineTest {
         ((SquidMod) countLoader.loadClass("squidcount.SquidCount").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-count")));
         Class<?> clientAdvancements = Class.forName("net.minecraft.client.multiplayer.ClientAdvancements", true, countLoader);
         check("ClientAdvancements loads with the Squid Count's hook", clientAdvancements.getClassLoader() == countLoader, true);
+        java.lang.reflect.Method milestones = countLoader.loadClass("squidcount.SquidCount").getDeclaredMethod("milestoneBetween", int.class, int.class);
+        milestones.setAccessible(true);
+        check("Squid Count milestones: 50, 100, 250, 500, 1000, then every 500 (the biggest one passed counts)",
+                milestones.invoke(null, 40, 60) + " " + milestones.invoke(null, 90, 260) + " " + milestones.invoke(null, 990, 1010) + " "
+                        + milestones.invoke(null, 1400, 1550) + " " + milestones.invoke(null, 60, 90), "50 250 1000 1500 0");
 
         // Skins and capes: telling them apart, bringing them in, remembering picks, and getting a skin by name
         Path wardrobeHome = java.nio.file.Files.createTempDirectory("squid-wardrobe-test");

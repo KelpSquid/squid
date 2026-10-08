@@ -13,6 +13,7 @@ import net.minecraft.resources.Identifier;
 import squid.Lang;
 import squid.Main;
 import squid.api.Hud;
+import squid.api.ModSettings;
 import squid.api.Squid;
 import squid.api.SquidMod;
 
@@ -27,10 +28,18 @@ import java.util.Optional;
  */
 public class SquidCount implements SquidMod {
     private CountFile count;
+    private ModSettings settings;
+    /** The milestone being celebrated, and when it started (ms), or 0 for none. */
+    private volatile int celebrating;
+    private volatile long celebratedAt;
 
     @Override
     public void init(Squid squid) {
         count = CountFile.load(countFile());
+        settings = squid.settings();
+        celebrations();
+        squid.onHud(this::hud);
+        squid.onTick(this::tick);
 
         // The game tells itself about advancements in batches. The first batch when you join a world (a "reset")
         // is everything already done there, so it's skipped: only ones that become done while you play count.
@@ -59,10 +68,13 @@ public class SquidCount implements SquidMod {
             if (holder == null) continue;
             Optional<DisplayInfo> display = holder.value().display();
             if (display.isEmpty()) continue; // recipes and other hidden bookkeeping aren't real advancements
+            int before = count.player(uuid).points;
             int points = count.earn(uuid, name, entry.getKey().toString(), CountFile.points(typeName(display.get().type())));
             if (points > 0) {
                 changed = true;
                 int total = count.player(uuid).points;
+                int milestone = milestoneBetween(before, total);
+                if (milestone > 0 && celebrations()) celebrate(milestone);
                 minecraft.gui.chatListener().handleOverlay(Component.literal(Lang.t("+{0} Squid Count  ({1} total)", points, total))
                         .withStyle(ChatFormatting.GOLD));
             }
@@ -74,6 +86,71 @@ public class SquidCount implements SquidMod {
                 System.out.println("[Squid Count] Couldn't save: " + e.getMessage());
             }
         }
+    }
+
+    boolean celebrations() {
+        return settings.toggle("Milestone celebrations", true);
+    }
+
+    /** The milestones: 50, 100, 250, 500, 1000, then every 500. */
+    static boolean isMilestone(int points) {
+        return points == 50 || points == 100 || points == 250 || points == 500 || points >= 1000 && points % 500 == 0;
+    }
+
+    /** The biggest milestone passed going from `before` to `after` points, or 0 if none. */
+    static int milestoneBetween(int before, int after) {
+        int found = 0;
+        for (int p = before + 1; p <= after; p++) if (isMilestone(p)) found = p;
+        return found;
+    }
+
+    /** A milestone: a fanfare, fireworks all around you, and a banner for a few seconds. */
+    private void celebrate(int milestone) {
+        celebrating = milestone;
+        celebratedAt = System.currentTimeMillis();
+        Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+                net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f));
+    }
+
+    private void tick() {
+        if (celebrating == 0) return;
+        long age = System.currentTimeMillis() - celebratedAt;
+        if (age > 5000) {
+            celebrating = 0;
+            return;
+        }
+        // Fireworks for the first two seconds: sparks shooting up and out around you (only you see them)
+        Minecraft minecraft = Minecraft.getInstance();
+        if (age > 2000 || minecraft.player == null || minecraft.level == null) return;
+        var random = minecraft.player.getRandom();
+        for (int i = 0; i < 6; i++) {
+            double angle = random.nextDouble() * Math.PI * 2;
+            double x = minecraft.player.getX() + Math.cos(angle) * 1.5;
+            double z = minecraft.player.getZ() + Math.sin(angle) * 1.5;
+            minecraft.level.addParticle(net.minecraft.core.particles.ParticleTypes.FIREWORK, x, minecraft.player.getY() + 0.5, z,
+                    Math.cos(angle) * 0.1, 0.3 + random.nextDouble() * 0.2, Math.sin(angle) * 0.1);
+            if (i % 3 == 0) {
+                minecraft.level.addParticle(net.minecraft.core.particles.ParticleTypes.TOTEM_OF_UNDYING, x, minecraft.player.getY() + 1.5, z,
+                        (random.nextDouble() - 0.5) * 0.5, 0.4, (random.nextDouble() - 0.5) * 0.5);
+            }
+        }
+    }
+
+    /** The banner: "Squid Count 500!" in gold, sliding down from the top. */
+    private void hud(Hud hud) {
+        int milestone = celebrating;
+        if (milestone == 0) return;
+        long age = System.currentTimeMillis() - celebratedAt;
+        String big = Lang.t("Squid Count {0}!", milestone);
+        String small = Lang.t("Milestone reached. Keep going!");
+        int width = Math.max(hud.textWidth(big), hud.textWidth(small)) + 24;
+        int x = (hud.width() - width) / 2;
+        int y = age < 300 ? (int) (-30 + 50 * age / 300) : age > 4600 ? (int) (20 - 50 * (age - 4600) / 400) : 20;
+        boolean bright = (age / 250) % 2 == 0 && age < 2000;
+        hud.box(x, y, width, 28, 0xD0000000);
+        hud.outline(x, y, width, 28, bright ? 0xFFFFFF55 : 0xFFFFAA00);
+        hud.centeredText(big, hud.width() / 2, y + 5, bright ? 0xFFFFFF55 : 0xFFFFAA00);
+        hud.centeredText(small, hud.width() / 2, y + 16, 0xFFE0E0E0);
     }
 
     private static String typeName(AdvancementType type) {
