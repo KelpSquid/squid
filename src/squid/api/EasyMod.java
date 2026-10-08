@@ -145,6 +145,52 @@ public abstract class EasyMod implements SquidMod {
         });
     }
 
+    /**
+     * Your own chat command: typing "!name" in the chat runs it, and the message isn't sent to anyone. Like
+     * onCommand("dance", () -> particles("note", 10)) for typing !dance.
+     */
+    protected void onCommand(String name, Runnable action) {
+        onCommand(name, words -> action.run());
+    }
+
+    /**
+     * A chat command that gets the words typed after it: onCommand("say", words -> title(words)) shows a title for
+     * "!say Hello there".
+     */
+    protected void onCommand(String name, java.util.function.Consumer<String> action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onCommand only works inside start()"));
+        String command = "!" + name.toLowerCase(java.util.Locale.ROOT).replaceFirst("^!", "");
+        String[] words = {""}; // what was typed after the command, handed to the action
+        Action run = new Action("onCommand(\"" + name + "\")", () -> action.accept(words[0]));
+        squid.atStart("net.minecraft.client.multiplayer.ClientPacketListener", "sendChat", call -> {
+            String typed = String.valueOf(call.args()[0]).strip();
+            String first = typed.split("\\s+", 2)[0].toLowerCase(java.util.Locale.ROOT);
+            if (!first.equals(command)) return;
+            call.cancel(); // it's yours: it doesn't go to the server
+            words[0] = typed.length() > first.length() ? typed.substring(first.length()).strip() : "";
+            run.run();
+        });
+    }
+
+    /**
+     * Runs for every chat message you see: other players' ("<Name> hi!") and the game's ("Steve joined the game").
+     * Messages from mods (like say()) aren't included, so a mod can answer without hearing itself.
+     */
+    protected void onChat(java.util.function.Consumer<String> action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onChat only works inside start()"));
+        String[] text = {""};
+        Action run = new Action("onChat", () -> action.accept(text[0]));
+        squid.atEnd("net.minecraft.client.multiplayer.chat.ChatListener", "handleSystemMessage", call -> {
+            if (Game.saying || Boolean.TRUE.equals(call.args()[1])) return; // a mod talking, or the bar above the hotbar
+            text[0] = Game.plain(call.args()[0]);
+            run.run();
+        });
+        squid.atEnd("net.minecraft.client.multiplayer.chat.ChatListener", "handlePlayerChatMessage", call -> {
+            text[0] = Game.playerChat(call.args()[0], call.args()[1]);
+            run.run();
+        });
+    }
+
     /** Runs 20 times a second while you're in a world. */
     protected void onTick(Runnable action) {
         ticks.add(new Action("onTick", action));

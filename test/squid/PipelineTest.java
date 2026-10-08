@@ -266,6 +266,9 @@ public class PipelineTest {
                 "        onHurt(() -> particles(\"angry_villager\", 5));",
                 "        onDeath(() -> title(\"Oops!\", \"Try again\"));",
                 "        onBeat(() -> particles(\"note\", 2));",
+                "        onCommand(\"dance\", () -> particles(\"note\", 10));",
+                "        onCommand(\"shout\", words -> title(words));",
+                "        onChat(text -> { if (text.contains(\"hello\")) say(\"Hi back!\"); });",
                 "        every(1, () -> {",
                 "            if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");",
                 "            showText(holding() + \" / \" + lookingAt() + \" / \" + biome() + \" / \" + (isNight() ? \"night\" : \"day\"));",
@@ -276,6 +279,13 @@ public class PipelineTest {
                 "}", ""));
         ModInfo allCommands = sources.compile(everything);
         check("every EasyMod command compiles in a mod", allCommands.id(), "all-commands");
+        // ...and starts, with its chat hooks going into Minecraft's chat classes, which must still load
+        SquidClassLoader chatLoader = new SquidClassLoader(urls.toArray(URL[]::new));
+        Main.setGameLoader(chatLoader);
+        ((SquidMod) new ModClassLoader(allCommands.jar(), chatLoader).loadClass("AllCommands").getDeclaredConstructor().newInstance())
+                .init(new Squid(allCommands));
+        check("chat commands and onChat hook into Minecraft's chat classes", Class.forName("net.minecraft.client.multiplayer.ClientPacketListener", false, chatLoader).getClassLoader() == chatLoader
+                && Class.forName("net.minecraft.client.multiplayer.chat.ChatListener", false, chatLoader).getClassLoader() == chatLoader, true);
 
 
         // Projects: a folder with many files and resources, and the same thing packed into one .squid file

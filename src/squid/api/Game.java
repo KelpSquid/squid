@@ -120,9 +120,34 @@ public final class Game {
         }
     }
 
+    /** True while a mod's own message is being shown, so onChat doesn't hear mods talking (and loop forever). */
+    static boolean saying;
+
     /** A chat message only this player sees, in one of Minecraft's colors like "GREEN". Squid uses it too. */
     public static void chat(String message, String color) {
-        call(chatListener(), "handleSystemMessage", text(message, color), false);
+        saying = true;
+        try {
+            call(chatListener(), "handleSystemMessage", text(message, color), false);
+        } finally {
+            saying = false;
+        }
+    }
+
+    /** A chat message's words: Minecraft's text turned into plain letters. */
+    static String plain(Object component) {
+        return component == null ? "" : (String) call(component, "getString");
+    }
+
+    /** A player's chat message as "<Name> words". */
+    static String playerChat(Object message, Object profile) {
+        String words = plain(call(message, "decoratedContent"));
+        String name;
+        try {
+            name = (String) call(profile, "name");
+        } catch (IllegalStateException e) {
+            name = (String) call(profile, "getName");
+        }
+        return "<" + name + "> " + words;
     }
 
     static void overlay(String message) {
