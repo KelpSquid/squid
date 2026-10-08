@@ -65,6 +65,28 @@ mods/
 "Mega Mod"), the version starts at `1.0`, and the main class is the one named like the folder. A mistake says which
 file it's in: *"there's a mistake in src/Second.java on line 2: a ; is missing at the end of the line"*.
 
+Everything `squid.json` can have:
+
+| Key | What it is |
+| --- | --- |
+| `id` | a-z, 0-9, `_` and `-`. Its settings are saved under it, so keep it the same between versions |
+| `name` | what players see |
+| `version` | like `"1.2"`. Of two copies of a mod, Squid loads the newer one |
+| `description` | a sentence about it |
+| `authors` | `["You", "A Friend"]`, or just `"You"` |
+| `depends` | ids of mods it needs. Squid starts those first |
+| `minecraft` | the versions it works on: `"26.3"`, `"26.3.x"` (26.3 and its updates), `">=26.3"`, or a list |
+| `main` | the class Squid starts |
+| `side` | `"client"` (the game, the default), `"server"`, or `"both"` |
+
+A key Squid doesn't know is written in the log, with a guess when it looks like a typo (`"author"`: *did you mean
+"authors"?*). Kelp writes `id` and `main` for new projects, so renaming the folder later can't break the mod.
+
+**One mod never stops the game.** A mod with a mistake, a broken `squid.json`, a second copy of a mod, a mod that
+needs a missing mod, or mods that need each other in a loop: each is skipped with a reason (Kelp shows it), and the
+game opens without it. The ids `squid`, `minecraft` and Squid's own parts (`squid-store`, `squid-replay`...) are
+taken.
+
 In Kelp, **New Mod** can make a project for you, already set up for VS Code and IntelliJ. They autocomplete every Squid
 and Minecraft command and explain each one, using the Squid library that comes with Squid (`squid-api.jar` and its
 code, in Kelp's `squid/library` folder).
@@ -78,6 +100,28 @@ a readme. It's on the [Releases](https://github.com/KelpSquid/squid/releases) pa
 **Pack** in Kelp squishes a project into one small `.squid` file, for sending to friends or to the Store. Drop it in
 `mods` and it works like the folder did. Its code stays readable inside, so anyone (and the Store's reviewer) can check
 every line before it runs. Squid builds it the first time and keeps the result.
+
+A `.squid` is a zip with `squid.json`, `src/` and `resources/` at the top. Packing the same project twice gives the
+exact same file (so its fingerprint is the same too), and junk like `Thumbs.db` and `.DS_Store` stays out. Zipped by
+hand works too, even with the whole folder inside or Windows' `\` between folders.
+
+## .sqda files
+
+`.sqda` is Squid's own sound file, made for resource packs and mods. Next to the sound (squeezed by Squid Music,
+Squid's own codec) it carries loop points, a volume track, beat and bar cues, light cues, the sound's settings
+(subtitle, volume, pitch, distance), sounds to play when a mob comes into view, and info like the title and artist.
+Drop one into a resource pack where an `.ogg` would go.
+
+Make them with Kelp's **Sound Maker**, or SqdaTool:
+
+```
+java -cp squid.jar squid.audio.SqdaTool song.mp3 --loop 12.5 end --bpm 120 --title "My Song"
+java -cp squid.jar squid.audio.SqdaTool --info song.sqda
+```
+
+Every chunk carries a check, so a damaged download is caught instead of playing noise, and the file says which
+codec version it uses, so a future Squid Music can't break old songs. The full layout is in
+[docs/sqda.md](docs/sqda.md).
 
 ## Built in
 
@@ -94,8 +138,9 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
 - **Replay:** F9 rewinds the last few minutes, Skate 3 style: watch it from any angle with Free, Follow, Tripod
   or Path (keyframe) cameras, a lens setting, slow motion, backwards, trim, sounds and particles. Save replays to
   watch later, or export them as videos.
-- **Sounds:** resource packs can use `.wav`, `.mp3` and `.flac` sounds and music, not just `.ogg`. Squid has its
-  own decoders for all of them (`squid.audio`), written from scratch.
+- **Sounds:** resource packs can use `.wav`, `.mp3`, `.flac` and `.sqda` sounds and music, not just `.ogg`. Squid
+  has its own decoders for all of them (`squid.audio`), written from scratch. Surround files play as stereo, and a
+  damaged file plays what it can instead of breaking the game's sound.
 - **120 languages:** Squid's own texts follow Minecraft's language setting (BETA, not checked yet).
 
 ## How it works

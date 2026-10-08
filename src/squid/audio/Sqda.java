@@ -30,9 +30,20 @@ import java.util.Random;
  * The file is "SQDA", a version byte, then chunks like a PNG: a 4-letter name, a length, and the chunk. Chunks a
  * reader doesn't know are skipped, so new kinds can be added without breaking older Squids. Numbers are big-endian,
  * text is a 2-byte length then UTF-8. The sound (VARI chunks) comes last, so the rest can be read quickly.
+ *
+ * Two chunks keep files safe for the future (older Squids skip both, so they still read new files):
+ * - CRCS (empty) says every chunk after it ends with a CRC32 of its own bytes, so a damaged download is caught and
+ *   named, instead of playing as noise.
+ * - CODC says which codec the sound uses and its version. If Squid Music ever changes, a newer file says so, and an
+ *   older Squid says "update Squid" instead of guessing.
+ * The full layout is in docs/sqda.md.
  */
 public final class Sqda {
     public static final int VERSION = 1;
+    /** The sound's codec: Squid Music. */
+    public static final int CODEC_SQUID_MUSIC = 1;
+    /** Squid Music's bitstream version. Raise it if the codec ever changes how frames are written. */
+    public static final int CODEC_VERSION = 1;
 
     /** One take of the sound. Frames are Squid Music frames. A weight of 0 means it only plays from a trigger. */
     public record Variant(String name, int weight, int rate, int channels, long samples, List<byte[]> frames) {
@@ -187,6 +198,12 @@ public final class Sqda {
             DataOutputStream out = new DataOutputStream(bytes);
             out.writeBytes("SQDA");
             out.writeByte(VERSION);
+            out.writeBytes("CRCS"); // from here on, every chunk ends with its own CRC32
+            out.writeInt(0);
+            chunk(out, "CODC", d -> {
+                d.writeByte(CODEC_SQUID_MUSIC);
+                d.writeByte(CODEC_VERSION);
+            });
             if (!info.isEmpty()) chunk(out, "INFO", d -> {
                 d.writeShort(info.size());
                 for (Map.Entry<String, String> e : info.entrySet()) {
@@ -300,12 +317,16 @@ public final class Sqda {
         void write(DataOutputStream d) throws IOException;
     }
 
+    /** Writes a chunk: its name, its length, its bytes, and a CRC32 of those bytes (counted in the length). */
     private static void chunk(DataOutputStream out, String name, Body body) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         body.write(new DataOutputStream(bytes));
+        java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+        crc.update(bytes.toByteArray());
         out.writeBytes(name);
-        out.writeInt(bytes.size());
+        out.writeInt(bytes.size() + 4);
         bytes.writeTo(out);
+        out.writeInt((int) crc.getValue());
     }
 
     // ---- Reading ----
@@ -329,6 +350,7 @@ public final class Sqda {
         if (!is(magic)) throw new IOException("it isn't a .sqda file");
         if ((magic[4] & 0xFF) > VERSION) throw new IOException("it's from a newer Squid (version " + (magic[4] & 0xFF) + ")");
         Sqda s = new Sqda();
+        boolean checked = false; // after CRCS, every chunk ends with a CRC32
         while (true) {
             byte[] name = new byte[4];
             int got = in.readNBytes(name, 0, 4);
@@ -340,8 +362,27 @@ public final class Sqda {
             if (type.equals("VARI") && !withSound) break;
             byte[] body = in.readNBytes(length);
             if (body.length < length) throw new EOFException("the " + type + " chunk is cut off");
+            if (type.equals("CRCS")) {
+                checked = true;
+                continue;
+            }
+            if (checked) {
+                if (body.length < 4) throw new IOException("the " + type + " chunk is damaged");
+                java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+                crc.update(body, 0, body.length - 4);
+                int stored = ((body[body.length - 4] & 0xFF) << 24) | ((body[body.length - 3] & 0xFF) << 16)
+                        | ((body[body.length - 2] & 0xFF) << 8) | (body[body.length - 1] & 0xFF);
+                if ((int) crc.getValue() != stored) throw new IOException("it's damaged (the " + type + " chunk doesn't match its check). Download or make it again");
+                body = java.util.Arrays.copyOf(body, body.length - 4);
+            }
             DataInputStream d = new DataInputStream(new java.io.ByteArrayInputStream(body));
             switch (type) {
+                case "CODC" -> {
+                    int codec = d.readUnsignedByte();
+                    int version = d.readUnsignedByte();
+                    if (codec != CODEC_SQUID_MUSIC) throw new IOException("its sound uses a codec this Squid doesn't know (" + codec + "). Update Squid");
+                    if (version > CODEC_VERSION) throw new IOException("its sound uses a newer Squid Music (version " + version + "). Update Squid");
+                }
                 case "INFO" -> {
                     int n = d.readUnsignedShort();
                     for (int i = 0; i < n; i++) s.info.put(d.readUTF(), d.readUTF());

@@ -46,17 +46,63 @@ public final class SqdaTool {
     private SqdaTool() {
     }
 
-    public static void main(String[] args) throws IOException {
-        if (args.length == 0) {
-            System.out.println("Makes .sqda files. Try: java -cp squid.jar squid.audio.SqdaTool song.wav  (see SqdaTool.java for more)");
+    static final String HELP = """
+            SqdaTool makes .sqda files (Squid's own sound files) from WAV, FLAC, MP3 or Ogg Vorbis.
+
+              java -cp squid.jar squid.audio.SqdaTool song.mp3 [song.sqda] [options]
+                --quality 0-10        how good it sounds (default %d; higher is bigger)
+                --loop START END      loop points, in seconds (END can be "end")
+                --title "My Song"     --artist "Me"
+                --bpm 120             add beat and bar cues  [--offset 0.25] [--beats-per-bar 4]
+                --mono                mix down to one channel (Minecraft only places mono sounds in the world)
+
+              java -cp squid.jar squid.audio.SqdaTool recipe.json [out.sqda]    everything, from a recipe
+              java -cp squid.jar squid.audio.SqdaTool --info song.sqda          what's inside
+              java -cp squid.jar squid.audio.SqdaTool --wav song.sqda out.wav [--variant name]
+
+            The recipe and the file layout are explained in docs/sqda.md.""".formatted(MusicCodec.DEFAULT_QUALITY);
+
+    public static void main(String[] args) {
+        try {
+            run(args);
+        } catch (Problem problem) {
+            System.err.println("SqdaTool: " + problem.getMessage());
+            System.exit(1);
+        } catch (java.nio.file.NoSuchFileException e) {
+            System.err.println("SqdaTool: there's no file called " + e.getFile());
+            System.exit(1);
+        } catch (IOException | RuntimeException e) {
+            System.err.println("SqdaTool: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
+            System.exit(1);
+        }
+    }
+
+    /** A mistake in how SqdaTool was asked, said plainly. */
+    static final class Problem extends RuntimeException {
+        Problem(String message) {
+            super(message);
+        }
+    }
+
+    static void run(String[] args) throws IOException {
+        if (args.length == 0 || args[0].equals("--help") || args[0].equals("-h") || args[0].equals("/?")) {
+            System.out.println(HELP);
             return;
         }
         if (args[0].equals("--info")) {
-            System.out.println(describe(Sqda.read(Files.readAllBytes(Path.of(args[1])))));
+            if (args.length < 2) throw new Problem("--info needs a .sqda file: SqdaTool --info song.sqda");
+            Sqda s = Sqda.read(Files.readAllBytes(Path.of(args[1])));
+            System.out.println(describe(s));
+            System.out.println(details(s));
             return;
         }
         if (args[0].equals("--wav")) {
-            writeWav(Path.of(args[2]), Sqda.read(Files.readAllBytes(Path.of(args[1]))).decode(0));
+            if (args.length < 3) throw new Problem("--wav needs a .sqda file and where to save: SqdaTool --wav song.sqda out.wav");
+            Sqda s = Sqda.read(Files.readAllBytes(Path.of(args[1])));
+            int variant = 0;
+            if (args.length >= 5 && args[3].equals("--variant")) variant = variantNamed(s, args[4]);
+            writeWav(Path.of(args[2]), s.decode(variant));
+            System.out.println("Saved " + args[2]);
             return;
         }
         Path in = Path.of(args[0]);
@@ -70,38 +116,150 @@ public final class SqdaTool {
             int dot = name.lastIndexOf('.');
             out = in.resolveSibling((dot > 0 ? name.substring(0, dot) : name) + ".sqda");
         }
+        if (out.toAbsolutePath().normalize().equals(in.toAbsolutePath().normalize())) {
+            throw new Problem("that would save over " + in.getFileName() + ". Give the new file another name");
+        }
         Sqda made;
         if (in.toString().toLowerCase(Locale.ROOT).endsWith(".json")) {
-            made = fromRecipe(Json.object(Json.parse(Files.readString(in))), in.toAbsolutePath().getParent());
+            Object recipe;
+            try {
+                recipe = Json.parse(Files.readString(in));
+            } catch (IllegalArgumentException e) {
+                throw new Problem("the recipe isn't valid JSON: " + e.getMessage());
+            }
+            if (!(recipe instanceof Map<?, ?>)) throw new Problem("the recipe has to start with { and end with }");
+            made = fromRecipe(Json.object(recipe), in.toAbsolutePath().getParent());
         } else {
             int quality = MusicCodec.DEFAULT_QUALITY;
             Double loopStart = null;
             Double loopEnd = null;
+            boolean loopToEnd = false;
             Double bpm = null;
             double offset = 0;
             int perBar = 4;
+            boolean mono = false;
             Map<String, String> info = new java.util.LinkedHashMap<>();
             for (int i = next; i < args.length; i++) {
-                switch (args[i]) {
-                    case "--quality" -> quality = Integer.parseInt(args[++i]);
-                    case "--loop" -> {
-                        loopStart = Double.parseDouble(args[++i]);
-                        loopEnd = Double.parseDouble(args[++i]);
+                String option = args[i];
+                switch (option) {
+                    case "--quality" -> {
+                        quality = (int) number(args, ++i, option);
+                        if (quality < 0 || quality > 10) throw new Problem("--quality goes from 0 to 10");
                     }
-                    case "--title" -> info.put("title", args[++i]);
-                    case "--artist" -> info.put("artist", args[++i]);
-                    case "--bpm" -> bpm = Double.parseDouble(args[++i]);
-                    case "--offset" -> offset = Double.parseDouble(args[++i]);
-                    case "--beats-per-bar" -> perBar = Integer.parseInt(args[++i]);
-                    default -> throw new IllegalArgumentException("unknown option " + args[i]);
+                    case "--loop" -> {
+                        loopStart = number(args, ++i, option);
+                        if (i + 1 < args.length && args[i + 1].equalsIgnoreCase("end")) {
+                            loopToEnd = true;
+                            i++;
+                        } else {
+                            loopEnd = number(args, ++i, option);
+                        }
+                    }
+                    case "--title" -> info.put("title", value(args, ++i, option));
+                    case "--artist" -> info.put("artist", value(args, ++i, option));
+                    case "--bpm" -> {
+                        bpm = number(args, ++i, option);
+                        if (bpm <= 0 || bpm > 1000) throw new Problem("--bpm should be a tempo like 120");
+                    }
+                    case "--offset" -> offset = number(args, ++i, option);
+                    case "--beats-per-bar" -> perBar = (int) number(args, ++i, option);
+                    case "--mono" -> mono = true;
+                    default -> throw new Problem("there's no option " + option + ". Run SqdaTool --help to see them");
                 }
             }
-            made = simple(Audio.decode(Files.readAllBytes(in)), quality, loopStart, loopEnd, info, bpm, offset, perBar);
+            Pcm pcm = Audio.decode(Files.readAllBytes(in));
+            if (mono) pcm = toMono(pcm);
+            double seconds = pcm.samples().length / (double) pcm.channels() / pcm.rate();
+            if (loopToEnd) loopEnd = seconds;
+            if (loopStart != null) {
+                if (loopEnd <= loopStart) throw new Problem("the loop's end has to come after its start");
+                if (loopStart >= seconds) throw new Problem(String.format(Locale.ROOT, "the loop starts at %.2f s, but the sound is only %.2f s long", loopStart, seconds));
+                if (loopEnd > seconds + 0.01) {
+                    System.out.printf(Locale.ROOT, "Note: the sound is %.2f s long, so the loop ends there instead of at %.2f s%n", seconds, loopEnd);
+                    loopEnd = seconds;
+                }
+            }
+            made = simple(pcm, quality, loopStart, loopEnd, info, bpm, offset, perBar);
         }
+        for (String warning : warnings(made)) System.out.println("Note: " + warning);
         byte[] bytes = made.write();
         Files.write(out, bytes);
         System.out.println("Made " + out + " (" + bytes.length / 1024 + " KB)");
         System.out.println(describe(made));
+    }
+
+    private static String value(String[] args, int i, String option) {
+        if (i >= args.length) throw new Problem(option + " needs a value after it");
+        return args[i];
+    }
+
+    private static double number(String[] args, int i, String option) {
+        String text = value(args, i, option);
+        try {
+            return Double.parseDouble(text);
+        } catch (NumberFormatException e) {
+            throw new Problem(option + " needs a number, not \"" + text + "\"");
+        }
+    }
+
+    private static int variantNamed(Sqda s, String name) {
+        for (int i = 0; i < s.variants.size(); i++) if (s.variants.get(i).name().equals(name)) return i;
+        List<String> names = new ArrayList<>();
+        for (Sqda.Variant v : s.variants) names.add(v.name());
+        throw new Problem("there's no variant called " + name + ". It has: " + String.join(", ", names));
+    }
+
+    /** Both channels mixed into one. */
+    public static Pcm toMono(Pcm pcm) {
+        if (pcm.channels() == 1) return pcm;
+        int ch = pcm.channels();
+        short[] in = pcm.samples();
+        short[] out = new short[in.length / ch];
+        for (int i = 0; i < out.length; i++) {
+            int sum = 0;
+            for (int c = 0; c < ch; c++) sum += in[i * ch + c];
+            out[i] = (short) (sum / ch);
+        }
+        return new Pcm(out, 1, pcm.rate());
+    }
+
+    /** Things that work, but probably not the way the maker hoped. */
+    public static List<String> warnings(Sqda s) {
+        List<String> warnings = new ArrayList<>();
+        boolean stereo = s.variants.stream().anyMatch(v -> v.channels() == 2);
+        boolean placed = s.settings.distance() != Sqda.Settings.DEFAULT.distance() || !s.triggers.isEmpty();
+        if (stereo && placed) {
+            warnings.add("it's stereo, and Minecraft plays stereo sounds the same everywhere, so \"distance\" won't make it quieter far away. Use --mono for sounds that come from a place");
+        }
+        for (Sqda.Loop l : s.loops) {
+            if (l.variant() < s.variants.size() && l.end() - l.start() < 512) {
+                warnings.add("the loop is shorter than 512 samples (about 0.01 s), so it loops the whole sound instead");
+            }
+        }
+        return warnings;
+    }
+
+    /** Every loop, cue, light and trigger, with times in seconds: what --info shows after the summary. */
+    public static String details(Sqda s) {
+        StringBuilder b = new StringBuilder();
+        String[] kinds = {"cue", "beat", "bar", "section"};
+        String[] effects = {"on", "flash", "fade", "strobe"};
+        int beats = 0;
+        for (Sqda.Cue c : s.cues) {
+            if (c.kind() == Sqda.BEAT || c.kind() == Sqda.BAR) {
+                beats++;
+                continue;
+            }
+            double rate = s.variants.get(Math.min(c.variant(), s.variants.size() - 1)).rate();
+            b.append(String.format(Locale.ROOT, "  %8.2f s  %s %s%n", c.at() / rate, c.kind() < kinds.length ? kinds[c.kind()] : "cue", c.name()));
+        }
+        if (beats > 0) b.append("  (").append(beats).append(" beat and bar cues)\n");
+        for (Sqda.Light l : s.lights) {
+            double rate = s.variants.get(Math.min(l.variant(), s.variants.size() - 1)).rate();
+            b.append(String.format(Locale.ROOT, "  %8.2f s  light %s #%06X for %.2f s%s%n", l.at() / rate,
+                    l.effect() < effects.length ? effects[l.effect()] : "?", l.color(), l.length() / rate, l.group().isEmpty() ? "" : " (" + l.group() + ")"));
+        }
+        return b.toString().stripTrailing();
     }
 
     /** A .sqda from one sound, with optional loop points (seconds), info, and beats from a tempo. */
@@ -139,7 +297,10 @@ public final class SqdaTool {
             Map<String, Object> v = Json.object(o);
             String file = text(v, "file", null);
             if (file == null) throw new IOException("a variant has no \"file\"");
-            Pcm pcm = Audio.decode(Files.readAllBytes(folder.resolve(file)));
+            Path sound = folder.resolve(file);
+            if (!Files.exists(sound)) throw new IOException("the recipe asks for " + file + ", but it isn't next to the recipe");
+            Pcm pcm = Audio.decode(Files.readAllBytes(sound));
+            if (Boolean.TRUE.equals(v.get("mono"))) pcm = toMono(pcm);
             String name = text(v, "name", s.variants.isEmpty() ? "main" : "variant" + s.variants.size());
             s.addVariant(name, (int) number(v, "weight", 1), pcm, (int) number(v, "quality", quality));
         }

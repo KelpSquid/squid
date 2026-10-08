@@ -1060,6 +1060,48 @@ public class PipelineTest {
         }
         check("300 damaged .sqda files never crash the player", crashes.stream().distinct().toList(), List.of());
 
+        // Every chunk has a check, and the file says which codec version made it
+        int infoAt = new String(sqdaBytes, java.nio.charset.StandardCharsets.ISO_8859_1).indexOf("INFO");
+        byte[] oneFlip = sqdaBytes.clone();
+        oneFlip[infoAt + 12] ^= 0x20; // a letter in the title
+        check("a damaged chunk is caught by its check", failure(() -> squid.audio.Sqda.read(oneFlip)),
+                "IllegalArgumentException: not a .sqda file Squid can read: it's damaged (the INFO chunk doesn't match its check). Download or make it again");
+        byte[] newerCodec = {'S', 'Q', 'D', 'A', 1, 'C', 'O', 'D', 'C', 0, 0, 0, 2, 1, 9};
+        check("a sound from a newer Squid Music asks for an update", failure(() -> squid.audio.Sqda.read(newerCodec)),
+                "IllegalArgumentException: not a .sqda file Squid can read: its sound uses a newer Squid Music (version 9). Update Squid");
+        // A file from before the checks (no CRCS or CODC) still plays
+        java.io.ByteArrayOutputStream oldFile = new java.io.ByteArrayOutputStream();
+        java.io.DataOutputStream old = new java.io.DataOutputStream(oldFile);
+        old.writeBytes("SQDA");
+        old.writeByte(1);
+        java.io.ByteArrayOutputStream variantBody = new java.io.ByteArrayOutputStream();
+        java.io.DataOutputStream vb = new java.io.DataOutputStream(variantBody);
+        squid.audio.Sqda.Variant main = made.variants.getFirst();
+        vb.writeUTF(main.name());
+        vb.writeShort(main.weight());
+        vb.writeInt(main.rate());
+        vb.writeByte(main.channels());
+        vb.writeLong(main.samples());
+        vb.writeInt(main.frames().size());
+        for (byte[] f : main.frames()) {
+            vb.writeShort(f.length);
+            vb.write(f);
+        }
+        old.writeBytes("VARI");
+        old.writeInt(variantBody.size());
+        variantBody.writeTo(old);
+        check("a .sqda from before the checks still plays the same", java.util.Arrays.equals(squid.audio.Sqda.read(oldFile.toByteArray()).decode(0).samples(), whole.samples()), true);
+
+        // SqdaTool: mono, notes about things that won't work as hoped, and a full --info
+        squid.audio.Pcm stereoTone = new squid.audio.Pcm(new short[] {100, 300, -100, -300}, 2, 44100);
+        check("--mono mixes both channels into one", java.util.Arrays.toString(squid.audio.SqdaTool.toMono(stereoTone).samples()), "[200, -200]");
+        squid.audio.Sqda placedStereo = squid.audio.Sqda.fromSound(new squid.audio.Pcm(new short[44100 * 2], 2, 44100), 6);
+        placedStereo.settings = new squid.audio.Sqda.Settings("", 1, 1, 48, 0);
+        check("a stereo sound with a distance gets a note", squid.audio.SqdaTool.warnings(placedStereo).size(), 1);
+        squid.audio.Sqda withCues = squid.audio.Sqda.fromSound(tone, 6);
+        withCues.cues.add(new squid.audio.Sqda.Cue(0, tone.rate(), squid.audio.Sqda.SECTION, "chorus"));
+        check("--info lists cues with their times", squid.audio.SqdaTool.details(withCues).strip(), "1.00 s  section chorus");
+
         // Squid Net: Squid's messages ride in Minecraft's own custom payload packets, both ways, through the real
         // packet code. Minecraft throws away channels it doesn't know; Squid keeps its own.
         List<URL> netUrls = new ArrayList<>(urls);
