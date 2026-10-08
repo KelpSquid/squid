@@ -99,11 +99,15 @@ final class ModListScreen extends Screen {
         int y = 36;
         if (mods.isEmpty()) g.centeredText(font, Lang.t("No mods yet. Add some in Kelp, or from the Store!"), width / 2, height / 2 - 10, 0xFFA0A0A0);
         for (ModFiles.ModFile mod : mods.subList(page * perPage(), Math.min(mods.size(), (page + 1) * perPage()))) {
+            // Its icon, if it has one, then its name and what it's doing
+            net.minecraft.resources.Identifier icon = mod.squid() ? ModIcons.of(mod) : null;
+            if (icon != null) g.blit(icon, x, y + 1, x + 20, y + 21, 0, 1, 0, 1);
+            int textX = x + 24;
             String title = mod.version().isEmpty() ? mod.name() : mod.name() + " " + mod.version();
-            g.text(font, font.plainSubstrByWidth(title, 180), x, y + 1, mod.enabled() ? 0xFFFFFFFF : 0xFF808080);
+            g.text(font, font.plainSubstrByWidth(title, 160), textX, y + 1, mod.enabled() ? 0xFFFFFFFF : 0xFF808080);
             String note = !mod.squid() ? Lang.t("Not a Squid mod") : !mod.enabled() ? Lang.t("Off")
                     : running(mod) ? mod.description() : mod.fromCode() ? Lang.t("Starting...") : Lang.t("Starts when the game restarts");
-            g.text(font, font.plainSubstrByWidth(note, 180), x, y + 12, 0xFF808080);
+            g.text(font, font.plainSubstrByWidth(note, 160), textX, y + 12, 0xFF808080);
             y += ROW;
         }
         if (message != null) g.centeredText(font, font.plainSubstrByWidth(message, width - 20), width / 2, height - 64, messageColor);

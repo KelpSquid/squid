@@ -48,8 +48,8 @@ public final class ModFiles {
                     if (Files.exists(file.resolve("squid.json")) || Files.isDirectory(file.resolve("src"))) mod = project(file, plain, enabled);
                 } else if (plain.endsWith(".java")) {
                     String className = plain.substring(0, plain.length() - ".java".length());
-                    // the same id Squid gives a .java mod
-                    mod = new ModFile(file, className.toLowerCase(Locale.ROOT).replace('_', '-'), spaced(className), "", "", enabled, true, true);
+                    // the same id Squid gives a .java mod (and a project or .squid with that name): MegaMod is mega-mod
+                    mod = new ModFile(file, idFrom(className), spaced(className), "", "", enabled, true, true);
                 } else if (plain.endsWith(".jar") || plain.endsWith(".squid")) {
                     mod = packed(file, plain, enabled);
                 }
