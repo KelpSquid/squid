@@ -121,6 +121,12 @@ public final class Main {
             System.out.println("[Squid] Squid " + VERSION + " found " + found.mods().size() + " mod(s) in " + modsFolder);
             // Squid's own parts, like the Store, come with Squid in its builtin folder. They aren't counted as mods.
             List<ModInfo> builtIn = Mods.find(builtInFolder(), minecraftVersion).mods();
+            // Squid's speed test with only some of Squid's other parts (or none), to see what each costs
+            String benchParts = Boolean.getBoolean("squid.bench.bare") ? "" : System.getProperty("squid.bench.parts");
+            if (benchParts != null) {
+                List<String> keep = List.of(("squid-speed," + benchParts).split(","));
+                builtIn = builtIn.stream().filter(m -> keep.contains(m.id())).toList();
+            }
 
             if (FastBoot.active()) {
                 // Fast boot: Kelp put Minecraft (already patched), the libraries and the mods on Java's own classpath

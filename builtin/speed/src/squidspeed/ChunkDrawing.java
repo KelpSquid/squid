@@ -1,0 +1,51 @@
+package squidspeed;
+
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import squid.api.Squid;
+
+/**
+ * Faster chunk drawing. Every frame, for every chunk piece on screen (thousands of them), Minecraft looks up where its
+ * blocks sit on the graphics card in a HashMap, twice per layer. With a big render distance that lookup alone was a
+ * quarter of the game's main thread in Squid's speed test.
+ *
+ * The keys are the chunk pieces' meshes, which are only ever equal to themselves, so an identity map finds exactly the
+ * same things. fastutil's (which Minecraft already uses) keeps keys and values side by side in two arrays instead of
+ * a node per entry, so a lookup touches one or two spots in memory instead of chasing pointers.
+ */
+final class ChunkDrawing {
+    private static final String BUFFER = "com.mojang.blaze3d.vertex.UberGpuBuffer";
+    private static final String FAST_MAP = "it/unimi/dsi/fastutil/objects/Reference2ObjectOpenHashMap";
+
+    private ChunkDrawing() {
+    }
+
+    static void install(Squid squid) {
+        squid.patch(BUFFER, node -> {
+            boolean done = false;
+            for (MethodNode method : node.methods) {
+                if (!method.name.equals("<init>")) continue;
+                TypeInsnNode made = null;
+                for (AbstractInsnNode insn : method.instructions) {
+                    // new HashMap(256), put in the allocationMap field: the map the lookups use
+                    if (insn instanceof TypeInsnNode type && type.getOpcode() == Opcodes.NEW) {
+                        made = type.desc.equals("java/util/HashMap") ? type : null;
+                    } else if (made != null && insn instanceof MethodInsnNode init && init.owner.equals("java/util/HashMap")
+                            && init.name.equals("<init>") && (init.desc.equals("()V") || init.desc.equals("(I)V"))) {
+                        if (init.getNext() instanceof FieldInsnNode field && field.name.equals("allocationMap")) {
+                            made.desc = FAST_MAP;
+                            init.owner = FAST_MAP;
+                            done = true;
+                        }
+                        made = null;
+                    }
+                }
+            }
+            if (!done) System.out.println("[Squid Speed] Minecraft's chunk buffers changed; faster chunk drawing is off.");
+        });
+    }
+}

@@ -186,6 +186,10 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
   off), with an effect if you like: Chipmunk, Giant, Robot, Echo or Backwards. Music discs and the game's music take
   whole songs (up to 8 minutes), so you can make a disc of your favorite song. It goes in the same pack as a `.sqda`, so Squid plays it in its place (only Squid players hear swapped
   sounds).
+- **Speed:** makes the game run faster and cooler, with a switch for each part in Squid > Mods > Squid Speed.
+  **Faster chunk drawing** fixes a slow lookup Minecraft does for every piece of every chunk on screen, every frame
+  (switching it changes it when the game next starts). **Frames in the background** keeps the game to 30 frames a second while another
+  window is in front (Minecraft only slowed down when minimized), so it doesn't heat the computer for nobody.
 - **120 languages:** Squid's own texts follow Minecraft's language setting (BETA, not checked yet).
 
 ## How it works
@@ -205,6 +209,24 @@ build.bat         builds build/squid.jar, the built-in parts, the example mods a
 build.bat test    also runs the tests (they load real Minecraft classes without opening the game, and build every
                   example with just the Squid library)
 ```
+
+### The speed test
+
+To see what a change does to the frame rate, start the game with `-Dsquid.bench=results.json` and a world to open
+(Kelp's Play World adds `--quickPlaySingleplayer`). Squid flies the same path every time while it times every frame,
+writes the results and closes the game. The window stays hidden, so it can run in the background.
+
+| Setting | What it does |
+| --- | --- |
+| `-Dsquid.bench.seconds=60` | how long it measures |
+| `-Dsquid.bench.warmup=20` | seconds of flying first, so chunks load and Java warms up |
+| `-Dsquid.bench.path=line` | fly straight into new chunks (loading them) instead of circling over loaded ones |
+| `-Dsquid.bench.bare=true` | none of Squid's other parts; `-Dsquid.bench.parts=squid-clips,...` for only some |
+| `-Dsquid.bench.clip=true` | press F8 at the end and wait for the clip to save, to check Clips |
+
+The results have the frames a second, the slowest 1% of frames, garbage collections, CPU time and every frame over
+50 ms. Windows holds back a hidden window's frames for about half a second now and then; the `clean` numbers leave
+those frames out, and are what a visible window gets.
 
 ## The Store
 

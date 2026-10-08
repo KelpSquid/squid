@@ -1,0 +1,8 @@
+{
+    "id": "squid-speed",
+    "name": "Squid Speed",
+    "version": "1.0.0",
+    "description": "Makes the game run faster and cooler, with switches for each part in its settings.",
+    "authors": ["Samuel"],
+    "main": "squidspeed.Speed"
+}
