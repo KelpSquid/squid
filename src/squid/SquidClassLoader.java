@@ -20,6 +20,24 @@ final class SquidClassLoader extends URLClassLoader {
 
     private final ClassLoader squidLoader = SquidClassLoader.class.getClassLoader();
 
+    /**
+     * The packages Java's own classes are in. Asking Java first for every class meant Java looked for each of
+     * Minecraft's thousands of classes, failed, and made an exception (with its whole stack) for each before Squid
+     * found it, which slowed the start. Only classes in these packages can be Java's.
+     */
+    private static final java.util.Set<String> JAVA_PACKAGES = javaPackages();
+
+    private static java.util.Set<String> javaPackages() {
+        java.util.Set<String> packages = new java.util.HashSet<>();
+        for (Module module : ModuleLayer.boot().modules()) packages.addAll(module.getPackages());
+        return packages;
+    }
+
+    private static boolean couldBeJava(String className) {
+        int lastDot = className.lastIndexOf('.');
+        return lastDot < 0 || JAVA_PACKAGES.contains(className.substring(0, lastDot));
+    }
+
     SquidClassLoader(URL[] urls) {
         super("squid", urls, ClassLoader.getPlatformClassLoader()); // the platform loader has Java's own classes
     }
@@ -31,13 +49,14 @@ final class SquidClassLoader extends URLClassLoader {
         }
         synchronized (getClassLoadingLock(name)) {
             Class<?> c = findLoadedClass(name);
-            if (c == null) {
+            if (c == null && couldBeJava(name)) {
                 try {
                     c = getParent().loadClass(name); // Java's own classes, like java.lang.String
                 } catch (ClassNotFoundException notJava) {
-                    c = findClass(name); // Minecraft, a library, or a mod
+                    // a library class in a package named like one of Java's
                 }
             }
+            if (c == null) c = findClass(name); // Minecraft, a library, or a mod
             if (resolve) resolveClass(c);
             return c;
         }
