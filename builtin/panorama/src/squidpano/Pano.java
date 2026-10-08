@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Panorama;
 import net.minecraft.client.renderer.texture.TextureContents;
+import net.minecraft.client.renderer.texture.CubeMapTexture;
 import net.minecraft.resources.Identifier;
 import squid.Lang;
 import squid.api.Squid;
@@ -105,10 +106,17 @@ public class Pano implements SquidMod {
         }
     }
 
-    /** Loads the panorama's pictures again, so a newly picked one shows right away. */
+    /** The title screen's panorama pictures (Minecraft adds _0 to _5 for the six sides). */
+    private static final Identifier PANORAMA = Identifier.withDefaultNamespace("textures/gui/title/background/panorama");
+
+    /**
+     * Loads the panorama's pictures again, so a newly picked one shows right away. They're loaded first and only
+     * then swapped in: Minecraft's own re-register leaves loading for the next resource reload, and the title screen
+     * would try to draw pictures that aren't there yet (and crash).
+     */
     static void apply() {
         Minecraft minecraft = Minecraft.getInstance();
-        minecraft.gameRenderer.registerPanoramaTextures(minecraft.getTextureManager());
+        minecraft.getTextureManager().registerAndLoad(PANORAMA, new CubeMapTexture(PANORAMA));
     }
 
     private static float spinOf(Panorama panorama) {
