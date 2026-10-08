@@ -43,6 +43,7 @@ final class BlockPaintScreen extends Screen {
     private boolean painting;
     private String message;
     private int messageColor;
+    private boolean canSave; // false when the texture couldn't be read, so Save can't wipe it out
 
     BlockPaintScreen(BlockPickScreen parent, Identifier texture) {
         super(Component.literal(Lang.t("Block Painter")));
@@ -51,7 +52,10 @@ final class BlockPaintScreen extends Screen {
         load(Paint.current(texture));
     }
 
-    /** Reads a texture's pixels. Big ones (over 64) and animated strips are refused, so the painter stays simple. */
+    /**
+     * Reads a texture's pixels. Big ones (over 64 x 64) are refused, so the painter stays simple. An animated texture
+     * (like magma) is a strip of frames one under the other, painted as a whole.
+     */
     private void load(byte[] png) {
         BufferedImage image = null;
         try {
@@ -59,11 +63,12 @@ final class BlockPaintScreen extends Screen {
         } catch (IOException ignored) {
             // shown as a problem below
         }
-        if (image == null || image.getWidth() > 64 || image.getHeight() > 64) {
+        canSave = image != null && image.getWidth() <= 64 && image.getHeight() <= 64;
+        if (!canSave) {
             w = 16;
             h = 16;
             pixels = new int[w * h];
-            say(image == null ? Lang.t("Couldn't read this texture, so you're starting blank.")
+            say(image == null ? Lang.t("Couldn't read this texture, so it can't be painted.")
                     : Lang.t("This texture is too big to paint here (the most is 64 x 64)."), 0xFFFF5555);
         } else {
             w = image.getWidth();
@@ -114,7 +119,8 @@ final class BlockPaintScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Undo")), b -> {
             if (!undo.isEmpty()) System.arraycopy(undo.pop(), 0, pixels, 0, pixels.length);
         }).bounds(x, y, 98, 20).build());
-        addRenderableWidget(Button.builder(Component.literal(Lang.t("Save")), b -> save()).bounds(x, y + 24, 98, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Save")), b -> save()).bounds(x, y + 24, 98, 20).build())
+                .active = canSave;
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Reset")), b -> reset()).bounds(x, y + 48, 98, 20).build())
                 .active = Paint.painted(texture);
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Back")), b -> onClose()).bounds(x, y + 72, 98, 20).build());
@@ -128,9 +134,14 @@ final class BlockPaintScreen extends Screen {
         BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
         image.setRGB(0, 0, w, h, pixels, 0, w);
         try {
+            Paint.pack();
             Path file = Paint.file(texture);
             Files.createDirectories(file.getParent());
             ImageIO.write(image, "png", file.toFile());
+            // Minecraft's settings for it (animation, how it looks far away) only count from the same pack
+            byte[] settings = Paint.originalSettings(texture);
+            if (settings != null) Files.write(Paint.settingsFile(texture), settings);
+            else Files.deleteIfExists(Paint.settingsFile(texture));
             say(Lang.t("Saved! Reloading so it shows in the world..."), 0xFF55FF55);
             Paint.apply();
         } catch (IOException e) {
@@ -142,6 +153,7 @@ final class BlockPaintScreen extends Screen {
     private void reset() {
         try {
             Files.deleteIfExists(Paint.file(texture));
+            Files.deleteIfExists(Paint.settingsFile(texture));
             load(Paint.original(texture));
             undo.clear();
             say(Lang.t("Back to Minecraft's own texture."), 0xFF55FF55);

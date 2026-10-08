@@ -285,7 +285,7 @@ public class PipelineTest {
         ((SquidMod) new ModClassLoader(allCommands.jar(), chatLoader).loadClass("AllCommands").getDeclaredConstructor().newInstance())
                 .init(new Squid(allCommands));
         check("chat commands and onChat hook into Minecraft's chat classes", Class.forName("net.minecraft.client.multiplayer.ClientPacketListener", false, chatLoader).getClassLoader() == chatLoader
-                && Class.forName("net.minecraft.client.multiplayer.chat.ChatListener", false, chatLoader).getClassLoader() == chatLoader, true);
+                && Class.forName("net.minecraft.client.gui.components.ChatComponent", false, chatLoader).getClassLoader() == chatLoader, true);
 
 
         // Projects: a folder with many files and resources, and the same thing packed into one .squid file

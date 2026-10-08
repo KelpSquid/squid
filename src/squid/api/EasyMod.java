@@ -48,6 +48,9 @@ public abstract class EasyMod implements SquidMod {
     }
 
     /** Something the mod asked to run later. If it keeps going wrong, it's switched off so the game stays fine. */
+    /** Chat commands like "!dance", and the mod that has each one. */
+    private static final java.util.Map<String, String> COMMANDS = new java.util.concurrent.ConcurrentHashMap<>();
+
     private final class Action {
         private final String what;
         private final Runnable run;
@@ -160,6 +163,11 @@ public abstract class EasyMod implements SquidMod {
     protected void onCommand(String name, java.util.function.Consumer<String> action) {
         if (!starting) throw new IllegalStateException(Lang.t("onCommand only works inside start()"));
         String command = "!" + name.toLowerCase(java.util.Locale.ROOT).replaceFirst("^!", "");
+        // The first mod to claim a command gets it (the message stops there), so a second one is told why it's quiet
+        String owner = COMMANDS.putIfAbsent(command, squid.mod().id());
+        if (owner != null && !owner.equals(squid.mod().id())) {
+            problem(Lang.t("{0} is already a command in {1}, so this one won't run. Pick another name.", command, owner));
+        }
         String[] words = {""}; // what was typed after the command, handed to the action
         Action run = new Action("onCommand(\"" + name + "\")", () -> action.accept(words[0]));
         squid.atStart("net.minecraft.client.multiplayer.ClientPacketListener", "sendChat", call -> {
@@ -174,19 +182,17 @@ public abstract class EasyMod implements SquidMod {
 
     /**
      * Runs for every chat message you see: other players' ("<Name> hi!") and the game's ("Steve joined the game").
-     * Messages from mods (like say()) aren't included, so a mod can answer without hearing itself.
+     * Messages from mods (like say()) aren't included, so a mod can answer without hearing itself. Messages from
+     * players you've blocked never show, so they don't count either.
      */
     protected void onChat(java.util.function.Consumer<String> action) {
         if (!starting) throw new IllegalStateException(Lang.t("onChat only works inside start()"));
         String[] text = {""};
         Action run = new Action("onChat", () -> action.accept(text[0]));
-        squid.atEnd("net.minecraft.client.multiplayer.chat.ChatListener", "handleSystemMessage", call -> {
-            if (Game.saying || Boolean.TRUE.equals(call.args()[1])) return; // a mod talking, or the bar above the hotbar
+        // Every message the chat box shows ends up here, just as it's shown: players', the server's, /say...
+        squid.atEnd("net.minecraft.client.gui.components.ChatComponent", "addMessage", call -> {
+            if (Game.saying) return; // a mod talking
             text[0] = Game.plain(call.args()[0]);
-            run.run();
-        });
-        squid.atEnd("net.minecraft.client.multiplayer.chat.ChatListener", "handlePlayerChatMessage", call -> {
-            text[0] = Game.playerChat(call.args()[0], call.args()[1]);
             run.run();
         });
     }

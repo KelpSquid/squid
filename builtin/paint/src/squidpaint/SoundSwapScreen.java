@@ -7,6 +7,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Util;
 import squid.Lang;
 import squid.audio.Audio;
 import squid.audio.Pcm;
@@ -35,6 +36,7 @@ final class SoundSwapScreen extends Screen {
     private String filter = "";
     private int page;
     private Identifier picked;
+    private volatile boolean working; // a dropped file is being squeezed in the background
     private String message;
     private int messageColor;
 
@@ -60,16 +62,12 @@ final class SoundSwapScreen extends Screen {
     }
 
     /** Where the swapped sound goes in the pack: the same name, so it's played in place of Minecraft's. */
-    static Path file(Identifier sound) throws IOException {
-        return Paint.pack().resolve("assets").resolve(sound.getNamespace()).resolve(sound.getPath());
+    static Path file(Identifier sound) {
+        return Paint.folder().resolve("assets").resolve(sound.getNamespace()).resolve(sound.getPath());
     }
 
     static boolean swapped(Identifier sound) {
-        try {
-            return Files.exists(file(sound));
-        } catch (IOException e) {
-            return false;
-        }
+        return Files.exists(file(sound));
     }
 
     @Override
@@ -135,31 +133,57 @@ final class SoundSwapScreen extends Screen {
         return all.stream().filter(s -> s.getPath().contains(wanted)).toList();
     }
 
-    /** A sound file dropped onto the window takes the picked sound's place. */
+    /**
+     * A sound file dropped onto the window takes the picked sound's place. It's squeezed in the background, so the
+     * game doesn't freeze on a long file.
+     */
     @Override
     public void onFilesDrop(List<Path> files) {
-        if (picked == null || files.isEmpty()) return;
-        try {
-            Pcm pcm = Audio.decode(Files.readAllBytes(files.getFirst()));
-            pcm = SqdaTool.toMono(pcm); // Minecraft only places mono sounds in the world
-            if (pcm.seconds() > 60) {
-                say(Lang.t("That's {0} seconds long. Sounds can be a minute at most.", (int) pcm.seconds()), 0xFFFF5555);
-                return;
+        if (picked == null || files.isEmpty() || working) return;
+        Path dropped = files.getFirst();
+        Identifier sound = picked;
+        working = true;
+        say(Lang.t("Squeezing it in..."), 0xFFA0A0A0);
+        Util.backgroundExecutor().execute(() -> {
+            String problem = null;
+            try {
+                // A minute of the biggest sound file there is (a WAV) is about 20 MB, so anything far past that is
+                // too long; this is checked before reading it all
+                if (Files.size(dropped) > 64L << 20) {
+                    problem = Lang.t("That file is too big. Sounds can be a minute at most.");
+                } else {
+                    Pcm pcm = Audio.decode(Files.readAllBytes(dropped));
+                    pcm = SqdaTool.toMono(pcm); // Minecraft only places mono sounds in the world
+                    if (pcm.seconds() > 60) {
+                        problem = Lang.t("That's {0} seconds long. Sounds can be a minute at most.", (int) pcm.seconds());
+                    } else {
+                        Sqda sqda = Sqda.fromSound(pcm, 6);
+                        sqda.info.put("title", dropped.getFileName().toString());
+                        Paint.pack();
+                        Path target = file(sound);
+                        Files.createDirectories(target.getParent());
+                        Files.write(target, sqda.write());
+                    }
+                }
+            } catch (IOException | RuntimeException e) {
+                problem = Lang.t("Couldn't use that file: {0}", e.getMessage());
             }
-            Sqda sqda = Sqda.fromSound(pcm, 6);
-            sqda.info.put("title", files.getFirst().getFileName().toString());
-            Path target = file(picked);
-            Files.createDirectories(target.getParent());
-            Files.write(target, sqda.write());
-            say(Lang.t("Swapped! Reloading so you can hear it..."), 0xFF55FF55);
-            Paint.apply();
-            rebuildWidgets();
-        } catch (IOException | RuntimeException e) {
-            say(Lang.t("Couldn't use that file: {0}", e.getMessage()), 0xFFFF5555);
-        }
+            String failed = problem;
+            minecraft.execute(() -> {
+                working = false;
+                if (failed != null) {
+                    say(failed, 0xFFFF5555);
+                    return;
+                }
+                say(Lang.t("Swapped! Reloading so you can hear it..."), 0xFF55FF55);
+                Paint.apply();
+                rebuildWidgets();
+            });
+        });
     }
 
     private void reset() {
+        if (working) return;
         try {
             Files.deleteIfExists(file(picked));
             say(Lang.t("Minecraft's own sound is back."), 0xFF55FF55);

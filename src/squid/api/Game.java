@@ -138,17 +138,6 @@ public final class Game {
         return component == null ? "" : (String) call(component, "getString");
     }
 
-    /** A player's chat message as "<Name> words". */
-    static String playerChat(Object message, Object profile) {
-        String words = plain(call(message, "decoratedContent"));
-        String name;
-        try {
-            name = (String) call(profile, "name");
-        } catch (IllegalStateException e) {
-            name = (String) call(profile, "getName");
-        }
-        return "<" + name + "> " + words;
-    }
 
     static void overlay(String message) {
         call(chatListener(), "handleOverlay", text(message, "WHITE"));
