@@ -167,6 +167,31 @@ public final class FastBoot {
         }
     }
 
+    /**
+     * Reads class files for patching ahead of time, with jars of its own. A normal URLClassLoader hands out streams from
+     * Java's one shared copy of each jar, and closing the loader closes that shared copy, so a stream the game itself was
+     * reading from Minecraft's jar at that moment (it reads version.json as it starts) broke with "Stream closed" and
+     * the game didn't open. This happened now and then, more often on a busy computer.
+     */
+    static final class PrivateReader extends URLClassLoader {
+        PrivateReader(URL[] urls) {
+            super(urls, ClassLoader.getPlatformClassLoader());
+        }
+
+        @Override
+        public InputStream getResourceAsStream(String name) {
+            URL url = findResource(name);
+            if (url == null) return getParent().getResourceAsStream(name); // Java's own classes
+            try {
+                java.net.URLConnection connection = url.openConnection();
+                connection.setUseCaches(false); // a jar of its own, closed with the stream
+                return connection.getInputStream();
+            } catch (IOException e) {
+                return null;
+            }
+        }
+    }
+
     static void write(Path dir, Path gameFolder, String gameClasspath, String mainClass, List<ModInfo> builtIn, List<ModInfo> mods) throws IOException {
         List<String> game = List.of(gameClasspath.split(java.io.File.pathSeparator));
         List<Path> modJars = new ArrayList<>();
@@ -194,7 +219,7 @@ public final class FastBoot {
         for (String entry : game) urls.add(Path.of(entry).toUri().toURL());
         for (Path p : modJars) urls.add(p.toUri().toURL());
         Map<String, byte[]> patched = new java.util.TreeMap<>();
-        try (URLClassLoader sources = new URLClassLoader(urls.toArray(URL[]::new), ClassLoader.getPlatformClassLoader())) {
+        try (URLClassLoader sources = new PrivateReader(urls.toArray(URL[]::new))) {
             for (String className : Transformers.patchedClasses()) {
                 try (InputStream in = sources.getResourceAsStream(className.replace('.', '/') + ".class")) {
                     if (in == null) continue; // a class from a version this mod wasn't made for

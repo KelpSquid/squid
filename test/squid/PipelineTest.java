@@ -2352,6 +2352,23 @@ public class PipelineTest {
         }
         check("starting every built-in part loads nothing that's hooked (" + builtInParts.size() + " parts)", loadedBeforeHooked, List.of());
 
+        // Fast boot reading classes ahead of time must not close the game's own copy of Minecraft's jar: a stream the
+        // game is reading (version.json as it starts) broke with "Stream closed" when it did
+        URL minecraftJar = urls.stream().filter(u -> u.toString().endsWith("26.3.jar")).findFirst().orElse(urls.get(0));
+        String fastBootRace;
+        try (java.net.URLClassLoader gameSide = new java.net.URLClassLoader(new URL[] {minecraftJar}, ClassLoader.getPlatformClassLoader())) {
+            java.io.InputStream reading = gameSide.getResourceAsStream("version.json");
+            reading.read();
+            try (java.net.URLClassLoader prepare = new FastBoot.PrivateReader(new URL[] {minecraftJar})) {
+                try (java.io.InputStream other = prepare.getResourceAsStream("version.json")) {
+                    other.readAllBytes();
+                }
+            }
+            fastBootRace = failure(reading::readAllBytes);
+            reading.close();
+        }
+        check("fast boot reading Minecraft's jar leaves the game's reading alone", fastBootRace, "");
+
         // Squid Speed's faster chunk drawing: Minecraft's chunk buffers get the quicker map, and the changed class still
         // passes Java's checks as it loads
         String uberName = "com.mojang.blaze3d.vertex.UberGpuBuffer";
