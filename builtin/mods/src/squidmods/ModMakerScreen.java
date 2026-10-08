@@ -64,7 +64,11 @@ final class ModMakerScreen extends Screen {
         for (int i = 0; i < onPage.size(); i++) {
             Path file = onPage.get(i);
             String shown = file.getFileName().toString();
-            addRenderableWidget(Button.builder(Component.literal(font.plainSubstrByWidth(shown, 140)),
+            // A mod whose last save had a mistake is red, so it's easy to find again
+            squid.LiveReload.Result last = squid.LiveReload.last(file);
+            Component label = Component.literal(font.plainSubstrByWidth(shown, 140));
+            if (last != null && !last.worked()) label = label.copy().withStyle(net.minecraft.ChatFormatting.RED);
+            addRenderableWidget(Button.builder(label,
                     b -> minecraft.setScreenAndShow(new CodeScreen(this, file))).bounds(x + (i % columns) * 152, 86 + (i / columns) * 22, 148, 20).build());
         }
         if (pages > 1) {
@@ -77,7 +81,16 @@ final class ModMakerScreen extends Screen {
                 rebuildWidgets();
             }).bounds(width / 2 + 104, height - 28, 20, 20).build());
         }
-        addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
+        // The mods folder, to open a mod in a code editor like VS Code
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Open Folder")), b -> {
+            try {
+                java.nio.file.Files.createDirectories(modsFolder());
+                com.mojang.blaze3d.Blaze3D.openPath(modsFolder());
+            } catch (java.io.IOException | RuntimeException e) {
+                problem = Lang.t("Couldn't open the folder: {0}", e.getMessage());
+            }
+        }).bounds(width / 2 - 100, height - 28, 98, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 + 2, height - 28, 98, 20).build());
     }
 
     private void make() {
