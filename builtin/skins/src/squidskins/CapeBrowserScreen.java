@@ -186,7 +186,8 @@ final class CapeBrowserScreen extends Screen {
     private void download(Entry entry) {
         String hash = entry.official().hash();
         if (!downloading.add(hash)) return;
-        say(Lang.t("Downloading {0} from Mojang...", entry.name()), 0xFFA0A0A0);
+        say(entry.official().fromMojang() ? Lang.t("Downloading {0} from Mojang...", entry.name())
+                : Lang.t("Downloading {0} from the Minecraft Wiki...", entry.name()), 0xFFA0A0A0);
         Thread thread = new Thread(() -> {
             String done;
             int color;
@@ -350,7 +351,7 @@ final class CapeBrowserScreen extends Screen {
         String hint = switch (tab) {
             case OFFICIAL -> hoveredOfficial(mouseX, mouseY) instanceof Entry over
                     ? (over.official().group().isEmpty() ? over.name() : over.name() + " (" + Lang.t(over.official().group()) + ")")
-                    : Lang.t("Every vanilla cape. Download gets it from Mojang. Wearing one you don't own shows a tag by your name.");
+                    : Lang.t("Every official cape. Download gets its picture. Wearing one you don't own shows a tag by your name.");
             case COMMUNITY -> community == null ? (loadProblem != null ? Lang.t("Couldn't load them: {0}", loadProblem) : Lang.t("Loading the Store..."))
                     : community.isEmpty() ? Lang.t("No community capes yet.") : Lang.t("Approved capes from the Squid Store. Click one to get it and wear it.");
             case YOURS -> Lang.t("Yours: drop pictures on the wardrobe, or paint one.");

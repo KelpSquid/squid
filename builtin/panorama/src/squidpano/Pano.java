@@ -36,7 +36,8 @@ public class Pano implements SquidMod {
         squid.atStart("net.minecraft.client.renderer.texture.TextureContents", "load", call -> {
             Identifier id = (Identifier) call.args()[1];
             String path = id.getPath();
-            if (!path.startsWith("textures/gui/title/background/panorama_") || !path.endsWith(".png")) return;
+            // Only the six sides (panorama_0 to panorama_5), not other title pictures like panorama_overlay
+            if (!path.matches("textures/gui/title/background/panorama_[0-5]\\.png")) return;
             String active = store.active();
             if (active == null) return;
             try {

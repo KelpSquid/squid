@@ -1,5 +1,5 @@
 {
-    "note": "Every vanilla Java cape, as links to Mojang's own texture server (textures.minecraft.net). Squid never includes or hosts the pictures: each one is downloaded from Mojang when a player presses Download. Wearing one you don't own shows a tag next to your name. Hashes from minecraft.wiki's cape pages, each checked on Mojang's server.",
+    "note": "Every vanilla Java cape, as links to Mojang's own texture server (textures.minecraft.net), plus capes Mojang's Java server doesn't have (Bedrock and console capes, old holiday capes, skin pack capes) as links to the Minecraft Wiki's copy, each with a fingerprint of its pixels so nothing else can be sent instead. Squid never includes or hosts the pictures: each one is downloaded when a player presses Download. Wearing one you don't own shows a tag next to your name.",
     "capes": [
         {
             "id": "pan",
@@ -138,6 +138,34 @@
             "name": "Moonlight Trail",
             "group": "Event & Bonus",
             "texture": "https://textures.minecraft.net/texture/fe8a02dfe9e390e44ff33d69feef9d3943f76d3901015bbd50f0b67722d288bd"
+        },
+        {
+            "id": "xbox",
+            "name": "Xbox",
+            "group": "Bedrock & Console",
+            "texture": "https://minecraft.wiki/images/MicrosoftXbox360_CapeT.png?c5a49",
+            "pixels": "e0bf32c66da8c3e45699381ca8226fe49e67ceba"
+        },
+        {
+            "id": "xbox-1st-birthday",
+            "name": "Xbox 1st Birthday",
+            "group": "Bedrock & Console",
+            "texture": "https://minecraft.wiki/images/Xbox_1st_Birthday_Cape_%28texture%29.png?75a6c",
+            "pixels": "ba8aa62c055f19bc9e46ad9d72e05cd860623cab"
+        },
+        {
+            "id": "4j-studios",
+            "name": "4J Studios",
+            "group": "Bedrock & Console",
+            "texture": "https://minecraft.wiki/images/4J_Studios_Cape_%28texture%29.png?ed09f",
+            "pixels": "a04d562970bad7dec834b6e0ea01f9557da47825"
+        },
+        {
+            "id": "progress-pride",
+            "name": "Progress Pride",
+            "group": "Bedrock & Console",
+            "texture": "https://minecraft.wiki/images/Progress_Pride_Cape_%28texture%29_rv4.png?325fa",
+            "pixels": "fbd575afd1b52cb7d778348dd9880b48bd309b2b"
         },
         {
             "id": "minecon-2011",
@@ -294,6 +322,594 @@
             "name": "Valentine",
             "group": "Classic & Rare",
             "texture": "https://textures.minecraft.net/texture/e578ef995fabcf0a94768f9651ac3aaba30c59ef85d2438e9b3e0cc1d810652b"
+        },
+        {
+            "id": "christmas-2010",
+            "name": "Christmas 2010",
+            "group": "Classic & Rare",
+            "texture": "https://minecraft.wiki/images/Christmas_2010_Cape_%28texture%29.png?78498",
+            "pixels": "a205a49b996671150c5ce631034820f2745fde13"
+        },
+        {
+            "id": "new-years-2011",
+            "name": "New Year's 2011",
+            "group": "Classic & Rare",
+            "texture": "https://minecraft.wiki/images/New_Years_2011_Cape_%28texture%29.png?0e12b",
+            "pixels": "d8836f238fa106bab62673cb20f3a6c0ba5cd8e6"
+        },
+        {
+            "id": "1st-birthday-skin-pack-ender-dragon-wings",
+            "name": "Ender dragon wings",
+            "group": "1st Birthday Skin Pack",
+            "texture": "https://minecraft.wiki/images/EnderDragonCape.png?00678",
+            "pixels": "7d3bd7de664813f1261b31459fdd38deffd7fd12"
+        },
+        {
+            "id": "2nd-birthday-skin-pack-party-robed-figure-red",
+            "name": "Party Robed Figure-Red",
+            "group": "2nd Birthday Skin Pack",
+            "texture": "https://minecraft.wiki/images/RobedFigure-RedCape.png?1ee08",
+            "pixels": "8555febcdae98b08e4bca32b4cac86fea8321a6e"
+        },
+        {
+            "id": "2nd-birthday-skin-pack-party-robed-figure-white",
+            "name": "Party Robed Figure-White",
+            "group": "2nd Birthday Skin Pack",
+            "texture": "https://minecraft.wiki/images/RobedFigure-WhiteCape.png?c09a4",
+            "pixels": "2190b2c190d14d9796d12b709e14a022035fd894"
+        },
+        {
+            "id": "3rd-birthday-skin-pack-jens",
+            "name": "Jens",
+            "group": "3rd Birthday Skin Pack",
+            "texture": "https://minecraft.wiki/images/JensCape.png?3f7a7",
+            "pixels": "4a9f338130bea41a705bdd89190f881b185dca71"
+        },
+        {
+            "id": "adventure-time-mash-up-pack-huntress-wizard",
+            "name": "Huntress Wizard",
+            "group": "Adventure Time Mash-Up Pack",
+            "texture": "https://minecraft.wiki/images/HuntressWizardCape.png?5a8e5",
+            "pixels": "216f04656fb3ed1e8e6b7943a3b215dabecd6629"
+        },
+        {
+            "id": "battle-beasts-skin-pack-male-spartan",
+            "name": "Male Spartan",
+            "group": "Battle & Beasts Skin Pack",
+            "texture": "https://minecraft.wiki/images/SpartanCape.png?43cd8",
+            "pixels": "2b5a8db658cbc30e5c40b99e796321be87adb5ad"
+        },
+        {
+            "id": "battle-beasts-skin-pack-female-spartan",
+            "name": "Female Spartan",
+            "group": "Battle & Beasts Skin Pack",
+            "texture": "https://minecraft.wiki/images/SpartanV2Cape.png?e3afe",
+            "pixels": "dbbb99c846aaff64d2485070b3d32a96e5cc4b96"
+        },
+        {
+            "id": "battle-beasts-skin-pack-arabian",
+            "name": "Arabian",
+            "group": "Battle & Beasts Skin Pack",
+            "texture": "https://minecraft.wiki/images/Arabian.png?c7d42",
+            "pixels": "fec25e1d7a9749db64d0e0dfe1066c91fc1e5258"
+        },
+        {
+            "id": "battle-beasts-skin-pack-maori",
+            "name": "Maori",
+            "group": "Battle & Beasts Skin Pack",
+            "texture": "https://minecraft.wiki/images/MaoriCape.png?9af98",
+            "pixels": "098a0bfa23d8294f5587d478ec3ee1cfc98e028e"
+        },
+        {
+            "id": "doctor-who-skins-volume-i-ice-lord",
+            "name": "Ice Lord",
+            "group": "Doctor Who Skins Volume I",
+            "texture": "https://minecraft.wiki/images/IceLordCape.png?257d7",
+            "pixels": "8122ebe10b02e27ddd00b66af944aee181db530a"
+        },
+        {
+            "id": "doctor-who-skins-volume-i-liz-10",
+            "name": "Liz 10",
+            "group": "Doctor Who Skins Volume I",
+            "texture": "https://minecraft.wiki/images/Liz10Cape.png?d914c",
+            "pixels": "6b36ce69192a42c1ad09a3647bfaadebe9f918a6"
+        },
+        {
+            "id": "doctor-who-skins-volume-i-roman-rory-williams",
+            "name": "Roman Rory Williams",
+            "group": "Doctor Who Skins Volume I",
+            "texture": "https://minecraft.wiki/images/RomanRoryWilliamsCape.png?74d28",
+            "pixels": "77c3067b7d6b9c6a565cff99f51c4b72c691ebb7"
+        },
+        {
+            "id": "doctor-who-skins-volume-ii-sycorax",
+            "name": "Sycorax",
+            "group": "Doctor Who Skins Volume II",
+            "texture": "https://minecraft.wiki/images/SycoraxCape.png?8c79d",
+            "pixels": "f36226ed86cfb7c5acb9119471755438757c4bcb"
+        },
+        {
+            "id": "doctor-who-skins-volume-ii-the-third-doctor",
+            "name": "The Third Doctor",
+            "group": "Doctor Who Skins Volume II",
+            "texture": "https://minecraft.wiki/images/TheThirdDoctorCape.png?bbde4",
+            "pixels": "2dd2688ff83b3e41701a6618453a0f275ec7d796"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-apollo",
+            "name": "Apollo",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/ApolloCape.png?71d48",
+            "pixels": "ec375a10c49005f0e800cb5a5e69950b9ffd2b83"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-artemis",
+            "name": "Artemis",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/ArtemisCape.png?45732",
+            "pixels": "c5eba1191a6720419c3a8bc60ca31a2214b4979e"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-atlanta",
+            "name": "Atlanta",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/AtalantaCape.png?4da18",
+            "pixels": "e23b8e5bbae1df76e23db934681ee5aa3b08b21d"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-athena",
+            "name": "Athena",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/AthenaCape.png?92ddd",
+            "pixels": "44b53e15af5926061619ef9d2f1987b3725a61f6"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-cadmus",
+            "name": "Cadmus",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/CadmusCape.png?c3571",
+            "pixels": "95e04f3c0132819eb6c0aedf058857f7824748a0"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-dryad",
+            "name": "Dryad",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/DryadCape.png?21b76",
+            "pixels": "de167eabf0005c6aa741ccc1dd66045ceca87a56"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-erinyes",
+            "name": "Erinyes",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/ErinyesCape.png?e8507",
+            "pixels": "39de2c6492e4125c0223f88b7303bdf2b4c672ee"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-hades",
+            "name": "Hades",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/HadesCape.png?d682d",
+            "pixels": "0c8bbde38b9b24fe93acc5d19f84d083585d9e72"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-hephaestus",
+            "name": "Hephaestus",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/HephaestusCape.png?f0ef1",
+            "pixels": "66f54a8a28f1a0a1639c38386752a09377f58087"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-heracles",
+            "name": "Heracles",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/HeraclesCape.png?354d3",
+            "pixels": "34728b314961d1cec65da33e3581dc61ab7a9ea1"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-perseus",
+            "name": "Perseus",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/PerseusCape.png?323ed",
+            "pixels": "3790daca6420ed8420091355539f96f278a5cf56"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-poseidon",
+            "name": "Poseidon",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/PoseidonCape.png?6f70d",
+            "pixels": "1dc0b539b9a4a88723c4996df49079e6141413a6"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-prometheus",
+            "name": "Prometheus",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/PrometheusCape.png?60b1b",
+            "pixels": "f08d4b1bb4fa58a29c3a6f0bdf6584cf7932f4f4"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-spartoi",
+            "name": "Spartoi",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/SpartoiCape.png?aa9e3",
+            "pixels": "ca1bddfa2a489bb656cd2a7426e9ac07e6df5ed9"
+        },
+        {
+            "id": "greek-mythology-mash-up-pack-zeus",
+            "name": "Zeus",
+            "group": "Greek Mythology Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/ZuesCape.png?3ab49",
+            "pixels": "6ce9ab5dbf26148e28789b849b9c067dcb082c34"
+        },
+        {
+            "id": "halloween-charity-skin-pack-captain-zombie",
+            "name": "Captain Zombie",
+            "group": "Halloween Charity Skin Pack",
+            "texture": "https://minecraft.wiki/images/CaptainZombieCape.png?f1d46",
+            "pixels": "f44df3541138aa6a6caaa67ea505728a5defe1de"
+        },
+        {
+            "id": "halloween-charity-skin-pack-headless-horseman",
+            "name": "Headless Horseman",
+            "group": "Halloween Charity Skin Pack",
+            "texture": "https://minecraft.wiki/images/HeadlessHorsemanCape.png?0cef5",
+            "pixels": "3fa639af4a906cc1bc181e8605d3e2a51218df4f"
+        },
+        {
+            "id": "halloween-mash-up-pack-bride-of-frankenstein",
+            "name": "Bride of Frankenstein",
+            "group": "Halloween Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/BrideCape.png?aff10",
+            "pixels": "76a47dca84c6539672bf5745e29ec33bb09779e8"
+        },
+        {
+            "id": "halloween-mash-up-pack-devil",
+            "name": "Devil",
+            "group": "Halloween Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/DevilCape.png?23cc1",
+            "pixels": "65a7f87478ebbae8ddc8954649a7f3bdb0028dd9"
+        },
+        {
+            "id": "halloween-mash-up-pack-dracula",
+            "name": "Dracula",
+            "group": "Halloween Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/DraculaCape.png?d5801",
+            "pixels": "7858270bf090997a30a797c24ec15397c9687bb6"
+        },
+        {
+            "id": "halloween-mash-up-pack-evil-wizard",
+            "name": "Evil Wizard",
+            "group": "Halloween Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/EvilWizardCape.png?b0243",
+            "pixels": "2c0530a487915767cfd48b6fcefca835ea0a4cf3"
+        },
+        {
+            "id": "halloween-mash-up-pack-maman-brigitte",
+            "name": "Maman Brigitte",
+            "group": "Halloween Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/MamanBrigitteCape.png?19fb7",
+            "pixels": "da00f7096c68690e7fa7d1215bc0e3a7621d0bee"
+        },
+        {
+            "id": "halloween-mash-up-pack-the-grim-reaper",
+            "name": "The Grim Reaper",
+            "group": "Halloween Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/ReaperCape.png?446f3",
+            "pixels": "ddda622c52c6435cf2f4a55a7c826f39b34bb59d"
+        },
+        {
+            "id": "halloween-mash-up-pack-wicked-witch",
+            "name": "Wicked Witch",
+            "group": "Halloween Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/WickedWitchCapeP.png?d546a",
+            "pixels": "880c79c2df52b2159e23eb6a3b287bcdbb4cf250"
+        },
+        {
+            "id": "halo-mash-up-pack-halo-drone",
+            "name": "Halo Drone",
+            "group": "Halo Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/HaloDroneCape.png?70bd7",
+            "pixels": "910d2a2e43625e583efff9ce327f754bc83d27a7"
+        },
+        {
+            "id": "littlebigplanet-mash-up-pack-bride-sackgirl",
+            "name": "Bride Sackgirl",
+            "group": "LittleBigPlanet Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/BrideSackgirlCape.png?79507",
+            "pixels": "d7db25f8cdaa717d7d46e52109d634b699982434"
+        },
+        {
+            "id": "littlebigplanet-mash-up-pack-dragon-sackboy",
+            "name": "Dragon Sackboy",
+            "group": "LittleBigPlanet Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/DragonSackboyCape.png?77b53",
+            "pixels": "34e3fedb0d6ae22c6d5bd8686a0a7f848091faa8"
+        },
+        {
+            "id": "littlebigplanet-mash-up-pack-fairy-sackgirl",
+            "name": "Fairy Sackgirl",
+            "group": "LittleBigPlanet Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/FairySackgirlCape.png?03fbc",
+            "pixels": "eebac576fb611aaa64c451c3e497599386663179"
+        },
+        {
+            "id": "littlebigplanet-mash-up-pack-newton-evil",
+            "name": "Newton Evil",
+            "group": "LittleBigPlanet Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/TheNewtonEvilCape.png?1f414",
+            "pixels": "476a4fcee757e2817a1440c2f3434af351ad07c8"
+        },
+        {
+            "id": "marvel-avengers-skin-pack-black-panther",
+            "name": "Black Panther",
+            "group": "Marvel Avengers Skin Pack",
+            "texture": "https://minecraft.wiki/images/BlackPantherCape.png?0ee82",
+            "pixels": "7a9c44c61f49df5f541cf71cb03458e6ae86821a"
+        },
+        {
+            "id": "marvel-avengers-skin-pack-captain-america",
+            "name": "Captain America",
+            "group": "Marvel Avengers Skin Pack",
+            "texture": "https://minecraft.wiki/images/CaptainAmericaCape.png?c37de",
+            "pixels": "5e295874db198aa39372c103b1959824bdb011d5"
+        },
+        {
+            "id": "marvel-avengers-skin-pack-falcon",
+            "name": "Falcon",
+            "group": "Marvel Avengers Skin Pack",
+            "texture": "https://minecraft.wiki/images/FalconCape.png?fc8ea",
+            "pixels": "ddce21d519fdca90786f77ffe91b64d92cd614a0"
+        },
+        {
+            "id": "marvel-avengers-skin-pack-loki",
+            "name": "Loki",
+            "group": "Marvel Avengers Skin Pack",
+            "texture": "https://minecraft.wiki/images/LokiCape.png?50545",
+            "pixels": "4f99283418fa6abbc8615fba57d5e66a2fecfcbf"
+        },
+        {
+            "id": "marvel-avengers-skin-pack-moon-knight",
+            "name": "Moon Knight",
+            "group": "Marvel Avengers Skin Pack",
+            "texture": "https://minecraft.wiki/images/MoonKnightCape.png?2b7bd",
+            "pixels": "fef8358630a6e9bcdbe3bf3c897a9101219a8ed5"
+        },
+        {
+            "id": "marvel-avengers-skin-pack-taskmaster",
+            "name": "Taskmaster",
+            "group": "Marvel Avengers Skin Pack",
+            "texture": "https://minecraft.wiki/images/TaskmasterCape.png?b49d7",
+            "pixels": "3a6011fc2607183fcaa2132964012857d7a606b6"
+        },
+        {
+            "id": "marvel-avengers-skin-pack-vision",
+            "name": "Vision",
+            "group": "Marvel Avengers Skin Pack",
+            "texture": "https://minecraft.wiki/images/VisionCape.png?c6018",
+            "pixels": "910e5ec993befd5b9c7fa25d52352101f3d19698"
+        },
+        {
+            "id": "marvel-avengers-skin-pack-wasp",
+            "name": "Wasp",
+            "group": "Marvel Avengers Skin Pack",
+            "texture": "https://minecraft.wiki/images/WaspCape.png?8fbb5",
+            "pixels": "7b258acb09af7ed55a738ecb252c08878cf5ca82"
+        },
+        {
+            "id": "marvel-guardians-of-the-galaxy-skin-pack-adam-warlock",
+            "name": "Adam Warlock",
+            "group": "Marvel Guardians of the Galaxy Skin Pack",
+            "texture": "https://minecraft.wiki/images/AdamWarlockCape.png?768cb",
+            "pixels": "7d6b52b242ab1f9dccf1a27aafd4b31a93d61c6e"
+        },
+        {
+            "id": "marvel-guardians-of-the-galaxy-skin-pack-angela",
+            "name": "Angela",
+            "group": "Marvel Guardians of the Galaxy Skin Pack",
+            "texture": "https://minecraft.wiki/images/AngelaCape.png?8e89d",
+            "pixels": "4f48f6eca155e0c02eff32ab3f6e62ac2d1f0809"
+        },
+        {
+            "id": "marvel-guardians-of-the-galaxy-skin-pack-major-victory",
+            "name": "Major Victory",
+            "group": "Marvel Guardians of the Galaxy Skin Pack",
+            "texture": "https://minecraft.wiki/images/MajorVictoryCape.png?4bd3d",
+            "pixels": "13604245d1a3ce4ccfde299180938c96729a620f"
+        },
+        {
+            "id": "marvel-guardians-of-the-galaxy-skin-pack-quasar",
+            "name": "Quasar",
+            "group": "Marvel Guardians of the Galaxy Skin Pack",
+            "texture": "https://minecraft.wiki/images/QuasarCape.png?ee6b2",
+            "pixels": "a58c40d99e09a24ae83593ccbc3df2be18f0bf86"
+        },
+        {
+            "id": "marvel-guardians-of-the-galaxy-skin-pack-ronan-the-accuser",
+            "name": "Ronan The Accuser",
+            "group": "Marvel Guardians of the Galaxy Skin Pack",
+            "texture": "https://minecraft.wiki/images/RonanTheAccuserCape.png?35949",
+            "pixels": "f3d8bd51bb932a1d2d60e43df9af7711994a539e"
+        },
+        {
+            "id": "marvel-guardians-of-the-galaxy-skin-pack-the-collector",
+            "name": "The Collector",
+            "group": "Marvel Guardians of the Galaxy Skin Pack",
+            "texture": "https://minecraft.wiki/images/TheCollectorCape.png?dd98c",
+            "pixels": "a9a402fbe89221128f6c6fadea371c6f1672a700"
+        },
+        {
+            "id": "marvel-guardians-of-the-galaxy-skin-pack-wraith",
+            "name": "Wraith",
+            "group": "Marvel Guardians of the Galaxy Skin Pack",
+            "texture": "https://minecraft.wiki/images/WraithCape.png?a950f",
+            "pixels": "1fbe1ac303c8cf416a59a12b526f547a26006d6e"
+        },
+        {
+            "id": "marvel-spider-man-skin-pack-kraven",
+            "name": "Kraven",
+            "group": "Marvel Spider-Man Skin Pack",
+            "texture": "https://minecraft.wiki/images/KravenCape.png?bea9b",
+            "pixels": "74cbef31e73641d635aefd61ca4515bd6f555109"
+        },
+        {
+            "id": "marvel-spider-man-skin-pack-menace",
+            "name": "Menace",
+            "group": "Marvel Spider-Man Skin Pack",
+            "texture": "https://minecraft.wiki/images/MenaceCape.png?7fbeb",
+            "pixels": "ed830b29ecd8e626e1b1b65eb327569cee4f98ba"
+        },
+        {
+            "id": "marvel-spider-man-skin-pack-morbius",
+            "name": "Morbius",
+            "group": "Marvel Spider-Man Skin Pack",
+            "texture": "https://minecraft.wiki/images/MorbiusCape.png?38be7",
+            "pixels": "dba54f337b09e0393c42de11e66124d5809b8950"
+        },
+        {
+            "id": "marvel-spider-man-skin-pack-mysterio",
+            "name": "Mysterio",
+            "group": "Marvel Spider-Man Skin Pack",
+            "texture": "https://minecraft.wiki/images/MysterioCape.png?3221c",
+            "pixels": "4c0d12ef6eafd2335770fe6c83bbc2282a0a7e03"
+        },
+        {
+            "id": "marvel-spider-man-skin-pack-spiderman-2099",
+            "name": "Spiderman 2099",
+            "group": "Marvel Spider-Man Skin Pack",
+            "texture": "https://minecraft.wiki/images/Spiderman2099Cape.png?4bf97",
+            "pixels": "1455f5f5dea5f8376a33b517e83c82e397f88589"
+        },
+        {
+            "id": "marvel-spider-man-skin-pack-vulture",
+            "name": "Vulture",
+            "group": "Marvel Spider-Man Skin Pack",
+            "texture": "https://minecraft.wiki/images/VultureCape.png?9ce1e",
+            "pixels": "23e449556d838ce71658b60a2f526470ce5be71b"
+        },
+        {
+            "id": "skin-pack-3-playstation-jak",
+            "name": "Jak",
+            "group": "Skin Pack 3 (PlayStation)",
+            "texture": "https://minecraft.wiki/images/JakCape.png?b4aed",
+            "pixels": "e47d0b41e1b7b7779a47de16fc65209e37a53f8e"
+        },
+        {
+            "id": "skin-pack-4-ezio",
+            "name": "Ezio",
+            "group": "Skin Pack 4",
+            "texture": "https://minecraft.wiki/images/EzioCape.png?1617d",
+            "pixels": "5bcbc2853f0a7577381bc8358f29d98cf3e7d0c9"
+        },
+        {
+            "id": "skin-pack-4-knight-1",
+            "name": "Knight 1",
+            "group": "Skin Pack 4",
+            "texture": "https://minecraft.wiki/images/Knight1Cape.png?7df3c",
+            "pixels": "8645ce037e3cdf241c7e156b863f16e9ceae9718"
+        },
+        {
+            "id": "skin-pack-4-knight-2",
+            "name": "Knight 2",
+            "group": "Skin Pack 4",
+            "texture": "https://minecraft.wiki/images/Knight2Cape.png?85e47",
+            "pixels": "5487ce07df7e1f7665e3836f7ede027e7d734e8f"
+        },
+        {
+            "id": "skin-pack-4-knight-3",
+            "name": "Knight 3",
+            "group": "Skin Pack 4",
+            "texture": "https://minecraft.wiki/images/Knight3Cape.png?07205",
+            "pixels": "ea8121113148f34f0bd9f671b251e8952fb35c33"
+        },
+        {
+            "id": "skin-pack-4-knight-4",
+            "name": "Knight 4",
+            "group": "Skin Pack 4",
+            "texture": "https://minecraft.wiki/images/Knight4Cape.png?a0dbf",
+            "pixels": "e6a224a7ca426a55e291e2ee19c3071823a49cc9"
+        },
+        {
+            "id": "skin-pack-6-shieldy-blockerson",
+            "name": "Shieldy Blockerson",
+            "group": "Skin Pack 6",
+            "texture": "https://minecraft.wiki/images/ShieldyBlockersonCape.png?aa6c5",
+            "pixels": "94e30a7586d1725c2179ea37e570bc5424faba47"
+        },
+        {
+            "id": "skyrim-mash-up-pack-skyrim-nazir",
+            "name": "Skyrim Nazir",
+            "group": "Skyrim Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/NazirCape.png?f4ddb",
+            "pixels": "d080268a35279117405ef01dc15d3a4fa6927e44"
+        },
+        {
+            "id": "skyrim-mash-up-pack-skyrim-vampire-lord",
+            "name": "Skyrim Vampire Lord",
+            "group": "Skyrim Mash-up Pack",
+            "texture": "https://minecraft.wiki/images/VampireL_Cape.png?9fdf5",
+            "pixels": "c5d928fb1e9b059426eea3e3ddc636eea0bfcc52"
+        },
+        {
+            "id": "star-wars-classic-skin-pack-lando-calrissian",
+            "name": "Lando Calrissian",
+            "group": "Star Wars Classic Skin Pack",
+            "texture": "https://minecraft.wiki/images/LandoCalrissianCape.png?5fee0",
+            "pixels": "96e71873c611b35e317b8467ad13ad4a12427ab5"
+        },
+        {
+            "id": "star-wars-prequel-skin-pack-boss-nass",
+            "name": "Boss Nass",
+            "group": "Star Wars Prequel Skin Pack",
+            "texture": "https://minecraft.wiki/images/NassCape.png?1c56b",
+            "pixels": "8e87c046dadd7a36c0e9a168280d7900da0d39be"
+        },
+        {
+            "id": "star-wars-prequel-skin-pack-count-dooku",
+            "name": "Count Dooku",
+            "group": "Star Wars Prequel Skin Pack",
+            "texture": "https://minecraft.wiki/images/DookuCape.png?8f1f6",
+            "pixels": "09698d36b0a48a59bbdf99efc60baddc2a3328d6"
+        },
+        {
+            "id": "star-wars-prequel-skin-pack-general-grievous",
+            "name": "General Grievous",
+            "group": "Star Wars Prequel Skin Pack",
+            "texture": "https://minecraft.wiki/images/GrievousCape.png?6082f",
+            "pixels": "7322d810cfcef7053465ec993194357681f3771a"
+        },
+        {
+            "id": "star-wars-prequel-skin-pack-mas-amedda",
+            "name": "Mas Amedda",
+            "group": "Star Wars Prequel Skin Pack",
+            "texture": "https://minecraft.wiki/images/AmeddaCape.png?6e889",
+            "pixels": "7cb7c1db06eec87cdce4c2fb8f37b1c7f57e9859"
+        },
+        {
+            "id": "star-wars-prequel-skin-pack-padm-amidala",
+            "name": "Padmé Amidala",
+            "group": "Star Wars Prequel Skin Pack",
+            "texture": "https://minecraft.wiki/images/PadmeCape.png?b316b",
+            "pixels": "f25f699ccdfedac10487870c4f17bba72f95e67e"
+        },
+        {
+            "id": "star-wars-prequel-skin-pack-palpatine",
+            "name": "Palpatine",
+            "group": "Star Wars Prequel Skin Pack",
+            "texture": "https://minecraft.wiki/images/PalpatineCape.png?00b4c",
+            "pixels": "d167efea7a311bfa589b449e2ca2ba63bc63eaa6"
+        },
+        {
+            "id": "star-wars-prequel-skin-pack-poggle-the-lesser",
+            "name": "Poggle the Lesser",
+            "group": "Star Wars Prequel Skin Pack",
+            "texture": "https://minecraft.wiki/images/PogCape.png?3dbd7",
+            "pixels": "4963ece2073edfad52aa30abb4d742069b3e81bc"
+        },
+        {
+            "id": "the-simpsons-skin-pack-sherri",
+            "name": "Sherri",
+            "group": "The Simpsons Skin Pack",
+            "texture": "https://minecraft.wiki/images/SherriCape.png?371d5",
+            "pixels": "0f3bc68488a32c4bd2b80ba86ea5d75fe8e63008"
         }
     ]
 }

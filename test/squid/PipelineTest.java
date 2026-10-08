@@ -628,8 +628,21 @@ public class PipelineTest {
                 "[Migrator official:2340c0e]");
         // Squid comes with a slot for every vanilla cape, as links only (no pictures), so they're there without internet
         List<squidskins.OfficialCapes.Cape> slots = squidskins.OfficialCapes.bundled();
-        check("Squid comes with a slot for every vanilla cape", slots.size() + " " + slots.stream().map(squidskins.OfficialCapes.Cape::id)
-                .filter(List.of("migrator", "minecon-2011", "mojang", "classic-mojang", "twisted", "aurora")::contains).count(), "49 6");
+        check("Squid comes with a slot for every official cape", slots.size() + " " + slots.stream().map(squidskins.OfficialCapes.Cape::id)
+                .filter(List.of("migrator", "minecon-2011", "mojang", "classic-mojang", "twisted", "aurora", "xbox", "4j-studios")::contains).count()
+                + " " + slots.stream().filter(squidskins.OfficialCapes.Cape::fromMojang).count(), "137 8 49");
+        // Capes Mojang's Java server doesn't have come from the wiki, only with a fingerprint of their pixels
+        List<squidskins.OfficialCapes.Cape> wikiCapes = squidskins.OfficialCapes.parse("{\"capes\": ["
+                + "{\"id\": \"a\", \"name\": \"A\", \"texture\": \"https://minecraft.wiki/images/A.png\", \"pixels\": \"0123456789abcdef0123456789abcdef01234567\"},"
+                + "{\"id\": \"b\", \"name\": \"B\", \"texture\": \"https://minecraft.wiki/images/B.png\"},"
+                + "{\"id\": \"c\", \"name\": \"C\", \"texture\": \"https://example.com/images/C.png\", \"pixels\": \"0123456789abcdef0123456789abcdef01234567\"}]}");
+        check("wiki capes need a fingerprint, and only the wiki counts", wikiCapes.stream().map(c -> c.name() + " " + c.fromMojang()).toList().toString(), "[A false]");
+        java.awt.image.BufferedImage twoPixels = new java.awt.image.BufferedImage(2, 1, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        twoPixels.setRGB(0, 0, 0xFF102030);
+        twoPixels.setRGB(1, 0, 0x00FFFFFF); // see-through: its colour doesn't count
+        java.lang.reflect.Method pixelsOf = squidskins.OfficialCapes.class.getDeclaredMethod("pixels", java.awt.image.BufferedImage.class);
+        pixelsOf.setAccessible(true);
+        check("a picture's pixel fingerprint (the same one the cape list was made with)", pixelsOf.invoke(null, twoPixels), "8f3be8e6dc6a8ee0a97006fff621db2e4a075ae4");
         check("each slot is in a group, and none is in twice", slots.stream().filter(c -> c.group().isEmpty()).count() + " "
                 + (slots.size() - slots.stream().map(squidskins.OfficialCapes.Cape::hash).distinct().count()), "0 0");
         check("an official cape on the list is found by its choice", String.valueOf(squidskins.OfficialCapes.named(slots.get(0).choice())), slots.get(0).toString());
