@@ -9,19 +9,23 @@ import squid.api.EasyMod;
 public class WhereIDied extends EasyMod {
     private int[] spot; // where you died (x, y, z), until you get back there
     private int place;  // which world and dimension that was (their names' hash, since remember keeps numbers)
+    private boolean oldPlace; // place is from an older version: just the dimension
 
     void start() {
         if (remembered("waiting", 0) == 1) {
             spot = new int[] {remembered("x", 0), remembered("y", 0), remembered("z", 0)};
-            place = remembered("dimension", 0);
+            // Saved by 1.0.1 or older (just the dimension): that's checked the old way until the next death
+            oldPlace = remembered("place", 0) == 0 && remembered("dimension", 0) != 0;
+            place = oldPlace ? remembered("dimension", 0) : remembered("place", 0);
         }
         onDeath(() -> {
             spot = new int[] {x(), y(), z()};
             place = placeNow();
+            oldPlace = false;
             remember("x", spot[0]);
             remember("y", spot[1]);
             remember("z", spot[2]);
-            remember("dimension", place);
+            remember("place", place);
             remember("waiting", 1);
             say("You died at " + spot[0] + ", " + spot[1] + ", " + spot[2] + ". Your things are there!");
         });
@@ -40,7 +44,7 @@ public class WhereIDied extends EasyMod {
 
     /** Whether there's a spot to go back to, in the dimension you're in. */
     private boolean here() {
-        return spot != null && placeNow() == place;
+        return spot != null && (oldPlace ? dimension().hashCode() : placeNow()) == place;
     }
 
     /** The world and dimension you're in now, as a number. */

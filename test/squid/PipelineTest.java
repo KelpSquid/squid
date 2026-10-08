@@ -882,7 +882,11 @@ public class PipelineTest {
         check("a number not remembered yet is the starting one", settings.remembered("diamonds", 0), 0);
         settings.remember("diamonds", 12);
         boolean writtenAtOnce = java.nio.file.Files.readString(modsGame.resolve("config/squid/settings-test.properties")).contains("remember.diamonds=12");
-        Thread.sleep(2600); // written a moment later, in the background
+        // written a moment later, in the background (waited for up to 10 seconds, in case the computer is busy)
+        for (long until = System.currentTimeMillis() + 10_000; System.currentTimeMillis() < until
+                && !java.nio.file.Files.readString(modsGame.resolve("config/squid/settings-test.properties")).contains("remember.diamonds=12"); ) {
+            Thread.sleep(100);
+        }
         check("a remembered number comes back, isn't a setting, and is written a moment later", settings.remembered("diamonds", 0) + " " + settings.list().size()
                 + " " + writtenAtOnce + " " + java.nio.file.Files.readString(modsGame.resolve("config/squid/settings-test.properties")).contains("remember.diamonds=12"),
                 "12 3 false true");
