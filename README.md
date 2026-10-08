@@ -165,7 +165,8 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
 - **Jukebox:** your own music in the game. Put songs (MP3, M4A, FLAC, WAV, Ogg or `.sqda`) in the `music` folder in
   Kelp's folder, or drop them onto Squid > Jukebox. Play, pause, skip, shuffle and repeat; Minecraft's own music
   waits while a song plays, a Now Playing card shows the title and artist from the file's tags, and it follows the
-  Music volume slider. Mods can move with it through `SquidAudio.level()`.
+  Music volume slider. Mods can move with it through `SquidAudio.level()`. A song with an .lrc lyrics file next to it
+  (same name) shows its words above the hotbar as they're sung, karaoke style.
 - **Block Painter:** Squid > Block Painter: pick any block, repaint its texture pixel by pixel (with the block's own
   colors at hand, a Fill bucket and a 3 x 3 preview), or drop any picture on it to turn it into pixel art, and Save.
   Squid keeps your paintings in a "Squid Paint" resource pack it makes and switches on for you, so the world changes

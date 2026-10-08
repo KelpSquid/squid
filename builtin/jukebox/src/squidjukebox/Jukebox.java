@@ -46,6 +46,8 @@ public class Jukebox implements SquidMod {
     /** Songs that couldn't play since one last did. Once every song is in here, the Jukebox stops instead of trying forever. */
     private final java.util.Set<Path> failed = new java.util.HashSet<>();
     private volatile long shownAt;
+    /** The playing song's lyrics with their times, from its .lrc file (empty if it has none). */
+    private volatile List<Lyrics.Line> lyrics = List.of();
     private boolean gameMusicStopped;
     private final Random random = new Random();
     private final Map<String, Song> tagCache = new ConcurrentHashMap<>();
@@ -67,6 +69,7 @@ public class Jukebox implements SquidMod {
         pauseGameMusic();
         showNowPlaying();
         musicBars();
+        showLyrics();
         // Minecraft's own music waits while a song plays
         squid.atStart("net.minecraft.client.sounds.MusicManager", "tick", call -> {
             if (player != null && pauseGameMusic()) call.cancel();
@@ -98,6 +101,10 @@ public class Jukebox implements SquidMod {
 
     boolean musicBars() {
         return settings.toggle("Music bars", false);
+    }
+
+    boolean showLyrics() {
+        return settings.toggle("Lyrics", true);
     }
 
     void setShuffle(boolean on) {
@@ -195,6 +202,7 @@ public class Jukebox implements SquidMod {
         SongPlayer old = player;
         if (old != null) old.stop();
         current = song;
+        lyrics = Lyrics.forSong(song.file());
         SongPlayer[] self = new SongPlayer[1];
         SongPlayer next = new SongPlayer(song.file(), ONE.equals(repeat()), () -> ended = self[0]);
         self[0] = next;
@@ -210,6 +218,7 @@ public class Jukebox implements SquidMod {
         if (old != null) old.stop();
         player = null;
         current = null;
+        lyrics = List.of();
     }
 
     void togglePause() {
@@ -331,6 +340,25 @@ public class Jukebox implements SquidMod {
         return System.currentTimeMillis() - problemAt < 8000 ? problem : null;
     }
 
+    /**
+     * Karaoke: the line being sung, above the hotbar, with the next one under it in grey. It follows what's coming
+     * out of the speakers, so the words land on the beat.
+     */
+    private void drawLyrics(Hud hud, SongPlayer p) {
+        List<Lyrics.Line> lines = lyrics;
+        if (lines.isEmpty()) return;
+        int now = Lyrics.current(lines, p.heardSeconds());
+        String line = now >= 0 ? lines.get(now).text() : "";
+        String next = now + 1 < lines.size() ? lines.get(now + 1).text() : "";
+        int y = hud.height() - 96;
+        if (!line.isEmpty()) {
+            int width = hud.textWidth(line) + 8;
+            hud.box((hud.width() - width) / 2, y - 2, width, 12, 0x90000000);
+            hud.centeredText(line, hud.width() / 2, y, p.paused ? 0xFFA0A0A0 : 0xFFFFFF55);
+        }
+        if (!next.isEmpty()) hud.centeredText(next, hud.width() / 2, y + 12, 0xFF909090);
+    }
+
     /** What the bars show: they jump up with the music and fall back gently. */
     private final float[] shownBars = new float[8];
 
@@ -342,6 +370,7 @@ public class Jukebox implements SquidMod {
         if (song == null) return;
         long age = System.currentTimeMillis() - shownAt;
         SongPlayer p = player;
+        if (p != null && showLyrics()) drawLyrics(hud, p);
         if (musicBars() && p != null) {
             float[] target = p.paused ? new float[8] : p.bars;
             int top = showNowPlaying() && age <= 6000 ? 32 : 4;

@@ -1390,6 +1390,17 @@ public class PipelineTest {
         check("Minecraft's sound classes load with Squid Sounds' .sqda hooks", soundsLoad, true);
         // The Jukebox's hook goes into Minecraft's music manager (so the game's music waits while a song plays)
         ((SquidMod) netLoader.loadClass("squidjukebox.Jukebox").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-jukebox")));
+        // Karaoke lyrics from an .lrc file: times in any order, a line sung twice, an offset, word times left out
+        Class<?> lyricsClass = netLoader.loadClass("squidjukebox.Lyrics");
+        java.lang.reflect.Method parseLyrics = lyricsClass.getDeclaredMethod("parse", String.class);
+        java.lang.reflect.Method currentLyric = lyricsClass.getDeclaredMethod("current", List.class, double.class);
+        parseLyrics.setAccessible(true);
+        currentLyric.setAccessible(true);
+        List<?> sung = (List<?>) parseLyrics.invoke(null, "[ar:Someone]\n[offset:+500]\n[00:12.50]Second <00:13.00>line\r\n[00:05.00][00:20.00]Chorus!\nno time here\n[01:02:25]Last");
+        check("lyrics from an .lrc file, in the order they're sung", sung.toString().replaceAll("Line\\[at=|, text=|]", " ").replaceAll("\\s+", " ").strip(),
+                "[ 4.5 Chorus! , 12.0 Second line , 19.5 Chorus! , 61.75 Last");
+        check("the line being sung at a time", currentLyric.invoke(null, sung, 3.0) + " " + currentLyric.invoke(null, sung, 12.0) + " "
+                + currentLyric.invoke(null, sung, 15.0) + " " + currentLyric.invoke(null, sung, 999.0), "-1 1 1 3");
         // The Block Painter starts, and its screens load against Minecraft's classes
         ((SquidMod) netLoader.loadClass("squidpaint.Paint").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-paint")));
         check("the Block Painter's and Sound Swapper's screens load", Class.forName("squidpaint.BlockPaintScreen", true, netLoader).getSimpleName() + " "

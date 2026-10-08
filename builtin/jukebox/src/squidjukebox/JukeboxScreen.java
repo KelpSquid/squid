@@ -136,18 +136,23 @@ final class JukeboxScreen extends Screen {
     @Override
     public void onFilesDrop(List<Path> files) {
         int added = 0;
+        int lyricsAdded = 0;
         try {
             Files.createDirectories(Jukebox.folder());
             for (Path file : files) {
-                if (!Jukebox.isSong(file)) continue;
+                // Lyrics (.lrc) come along with their song, and with it dropped on its own later
+                boolean lyrics = file.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".lrc");
+                if (!Jukebox.isSong(file) && !lyrics) continue;
                 Files.copy(file, Jukebox.folder().resolve(file.getFileName().toString()), StandardCopyOption.REPLACE_EXISTING);
-                added++;
+                if (!lyrics) added++;
+                else lyricsAdded++;
             }
         } catch (IOException e) {
             say(Lang.t("Couldn't add it: {0}", e.getMessage()), 0xFFFF5555);
             return;
         }
-        if (added == 0) say(Lang.t("Songs are .mp3, .m4a, .flac, .wav, .ogg or .sqda files."), 0xFFFF5555);
+        if (added == 0 && lyricsAdded > 0) say(Lang.t("Added the lyrics! They show while their song plays."), 0xFF55FF55);
+        else if (added == 0) say(Lang.t("Songs are .mp3, .m4a, .flac, .wav, .ogg or .sqda files."), 0xFFFF5555);
         else say(added == 1 ? Lang.t("Added 1 song!") : Lang.t("Added {0} songs!", added), 0xFF55FF55);
         rebuildWidgets();
     }
