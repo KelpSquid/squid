@@ -66,6 +66,7 @@ public class Jukebox implements SquidMod {
         repeat();
         pauseGameMusic();
         showNowPlaying();
+        musicBars();
         // Minecraft's own music waits while a song plays
         squid.atStart("net.minecraft.client.sounds.MusicManager", "tick", call -> {
             if (player != null && pauseGameMusic()) call.cancel();
@@ -93,6 +94,10 @@ public class Jukebox implements SquidMod {
 
     boolean showNowPlaying() {
         return settings.toggle("Show Now Playing", true);
+    }
+
+    boolean musicBars() {
+        return settings.toggle("Music bars", false);
     }
 
     void setShuffle(boolean on) {
@@ -301,14 +306,28 @@ public class Jukebox implements SquidMod {
         return System.currentTimeMillis() - problemAt < 8000 ? problem : null;
     }
 
-    /** The Now Playing card, top right, for a few seconds after a song starts. */
+    /** What the bars show: they jump up with the music and fall back gently. */
+    private final float[] shownBars = new float[8];
+
+    /** The Now Playing card, top right, for a few seconds after a song starts, and the music bars if they're on. */
     private void hud(Hud hud) {
         String trouble = problem();
         if (trouble != null) hud.text(trouble, 4, hud.height() - 34, 0xFFFF7777);
         Song song = current;
-        if (song == null || !showNowPlaying()) return;
+        if (song == null) return;
         long age = System.currentTimeMillis() - shownAt;
-        if (age > 6000) return;
+        SongPlayer p = player;
+        if (musicBars() && p != null) {
+            float[] target = p.paused ? new float[8] : p.bars;
+            int top = showNowPlaying() && age <= 6000 ? 32 : 4;
+            for (int i = 0; i < shownBars.length; i++) {
+                shownBars[i] = Math.max(i < target.length ? target[i] : 0, shownBars[i] * 0.85f);
+                int height = Math.max(1, Math.round(shownBars[i] * 16));
+                int x = hud.width() - 4 - (shownBars.length - i) * 4;
+                hud.box(x, top + 16 - height, 3, height, i < 3 ? 0xFF55FFFF : i < 6 ? 0xFF55FF55 : 0xFFFFFF55);
+            }
+        }
+        if (!showNowPlaying() || age > 6000) return;
         String heading = Lang.t("Now Playing");
         int width = Math.max(hud.textWidth(heading), hud.textWidth(song.shown())) + 22;
         // Slides in from the right, and back out at the end

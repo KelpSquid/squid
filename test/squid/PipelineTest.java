@@ -1200,6 +1200,17 @@ public class PipelineTest {
         System.arraycopy("C418".getBytes(), 0, oldTag, 33, 4);
         check("an MP3's old ID3v1 tag at the end works too", squid.audio.Tags.readEnd(oldTag).toString(), "{title=Sweden, artist=C418}");
 
+        // Music bars: a deep tone lights the bass bars, a high one the treble bars
+        short[] lowTone = new short[2048];
+        short[] highTone = new short[2048];
+        for (int i = 0; i < 2048; i++) {
+            lowTone[i] = (short) (Math.sin(2 * Math.PI * 80 * i / 44100.0) * 20000);
+            highTone[i] = (short) (Math.sin(2 * Math.PI * 8000 * i / 44100.0) * 20000);
+        }
+        float[] lowBars = squid.audio.Analysis.bands(lowTone, 1, 44100, 8);
+        float[] highBars = squid.audio.Analysis.bands(highTone, 1, 44100, 8);
+        check("music bars: a deep tone lights the bass, a high tone the treble", (lowBars[0] > lowBars[7] + 0.3) + " " + (highBars[7] > highBars[0] + 0.3), "true true");
+
         // SqdaTool: mono, notes about things that won't work as hoped, and a full --info
         squid.audio.Pcm stereoTone = new squid.audio.Pcm(new short[] {100, 300, -100, -300}, 2, 44100);
         check("--mono mixes both channels into one", java.util.Arrays.toString(squid.audio.SqdaTool.toMono(stereoTone).samples()), "[200, -200]");

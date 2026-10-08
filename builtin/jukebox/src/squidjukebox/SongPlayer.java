@@ -33,6 +33,8 @@ final class SongPlayer {
     volatile String problem;
     /** Whether any sound reached the speakers: a song that did isn't a failure, even if it ends early. */
     volatile boolean started;
+    /** The music bars: how loud each of 8 bands is right now, bass to treble, 0 to 1. */
+    volatile float[] bars = new float[8];
 
     SongPlayer(Path file, boolean repeat, Runnable ended) {
         this.file = file;
@@ -198,6 +200,7 @@ final class SongPlayer {
                 // Loudness for mods: how loud the song itself is (not the volume slider), smoothed a little
                 float rms = (float) Math.sqrt(sum / (double) Math.max(1, chunk.length)) / 32768f;
                 level = level * 0.6f + Math.min(1, rms * 3) * 0.4f;
+                bars = squid.audio.Analysis.bands(chunk, source.channels(), source.rate(), 8);
                 line.write(out, 0, chunk.length * 2);
                 started = true;
                 position = source.position();
@@ -215,6 +218,7 @@ final class SongPlayer {
                 line.close();
             }
             level = 0;
+            bars = new float[8];
         }
         if (!stopped) ended.run();
     }

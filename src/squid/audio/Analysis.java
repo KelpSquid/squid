@@ -285,6 +285,38 @@ public final class Analysis {
         return bestEnd;
     }
 
+    // ---- Music bars ----
+
+    /**
+     * How loud a moment of sound is in `count` bands from deep bass to treble, each 0 to 1: the bars of a music
+     * visualizer. Looks at up to 1024 moments from the start of `samples` (channel after channel).
+     */
+    public static float[] bands(short[] samples, int channels, int rate, int count) {
+        float[] out = new float[count];
+        int frames = Math.min(WINDOW, samples.length / Math.max(1, channels));
+        if (frames < 64 || count <= 0) return out;
+        double[] re = new double[WINDOW];
+        double[] im = new double[WINDOW];
+        for (int i = 0; i < frames; i++) {
+            double sum = 0;
+            for (int c = 0; c < channels; c++) sum += samples[i * channels + c];
+            re[i] = sum / (channels * 32768.0) * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / frames));
+        }
+        fft(re, im);
+        double binHz = rate / (double) WINDOW;
+        for (int b = 0; b < count; b++) {
+            double low = 60 * Math.pow(12000 / 60.0, b / (double) count);
+            double high = 60 * Math.pow(12000 / 60.0, (b + 1) / (double) count);
+            int from = Math.max(1, (int) (low / binHz));
+            int to = Math.min(WINDOW / 2, Math.max(from + 1, (int) (high / binHz)));
+            double energy = 0;
+            for (int k = from; k < to; k++) energy += re[k] * re[k] + im[k] * im[k];
+            double db = 10 * Math.log10(energy + 1e-9);
+            out[b] = (float) Math.clamp((db + 10) / 55, 0, 1);
+        }
+        return out;
+    }
+
     // ---- Slices ----
 
     static Features features(Pcm pcm) {
