@@ -1,9 +1,10 @@
 {
     "id": "minimap",
     "name": "Minimap",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A map of the world around you in the top-left corner. C makes it bigger, M opens the full map. Inspired by Xaero's Minimap.",
     "authors": ["Samuel"],
     "minecraft": "26.3.x",
+    "icon": "icon.png",
     "main": "minimap.Minimap"
 }

@@ -171,12 +171,16 @@ final class StoreScreen extends Screen {
             String empty = tab == Tab.PICKS ? Lang.t("No dev picks yet.") : Lang.t("Nothing here yet. Check back soon!");
             g.centeredText(font, empty, width / 2, height / 2 - 4, 0xFFA0A0A0);
         }
-        int left = width / 2 - 155;
-        int textWidth = 235; // up to the Install button
+        int rowLeft = width / 2 - 155;
         int y = TOP;
         for (int i = page * perPage(); i < Math.min(list.size(), (page + 1) * perPage()); i++) {
             Catalog.Item item = list.get(i);
-            g.fill(left - 4, y, width / 2 + 159, y + ROW - 4, 0x60000000);
+            g.fill(rowLeft - 4, y, width / 2 + 159, y + ROW - 4, 0x60000000);
+            // Its icon on the left, when it has one; the words move over to make room
+            net.minecraft.resources.Identifier icon = StoreIcons.of(item);
+            int left = icon != null ? rowLeft + 24 : rowLeft;
+            int textWidth = icon != null ? 211 : 235; // up to the Install button
+            if (icon != null) g.blit(icon, rowLeft, y + 3, rowLeft + 20, y + 23, 0, 1, 0, 1);
             // The spaces stay outside the translations (language files trim them)
             String kind = tab == Tab.PICKS ? " " + (item.isMod() ? Lang.t("[Mod]") : item.isCape() ? Lang.t("[Cape]") : Lang.t("[Pack]")) : "";
             String named = item.name() + kind;

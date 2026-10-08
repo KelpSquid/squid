@@ -269,7 +269,15 @@ public class Build {
                         .append(", \"file\": ").append(quote(fileName))
                         .append(",\n         \"url\": ").append(quote(STORE_FILES + fileName))
                         .append(",\n         \"sha256\": ").append(quote(sha256(jar)))
-                        .append(", \"size\": ").append(Files.size(jar)).append("}");
+                        .append(", \"size\": ").append(Files.size(jar));
+                // Its icon goes up too (just the picture), so the Store can show it without downloading the mod
+                Path icon = example.resolve("resources").resolve("icon.png");
+                if (Files.exists(icon)) {
+                    Files.createDirectories(files.resolve("icons"));
+                    Files.copy(icon, files.resolve("icons").resolve(id + ".png"), StandardCopyOption.REPLACE_EXISTING);
+                    json.append(",\n         \"icon\": ").append(quote(STORE_FILES + "icons/" + id + ".png"));
+                }
+                json.append("}");
             }
         }
         json.append("\n    ]\n}\n");

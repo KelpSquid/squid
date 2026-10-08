@@ -1,9 +1,10 @@
 {
     "id": "zoom",
     "name": "Zoom",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Hold Z to zoom in like a spyglass. Change the key in Controls.",
     "authors": ["Samuel"],
     "minecraft": "26.3.x",
+    "icon": "icon.png",
     "main": "zoom.Zoom"
 }

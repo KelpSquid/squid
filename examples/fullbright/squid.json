@@ -1,9 +1,10 @@
 {
     "id": "fullbright",
     "name": "Fullbright",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Press B to see in the dark, like night vision without the potion. Change the key in Controls.",
     "authors": ["Samuel"],
     "minecraft": "26.3.x",
+    "icon": "icon.png",
     "main": "fullbright.Fullbright"
 }

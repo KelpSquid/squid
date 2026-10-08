@@ -400,6 +400,10 @@ public class PipelineTest {
                 + "{\"id\": \"old\", \"type\": \"resourcepack\", \"name\": \"Old Pack\", \"minecraft\": [\"1.20.x\"], \"file\": \"old.zip\", \"url\": \"u\", \"sha256\": \"a\"}]}";
         List<squidstore.Catalog.Item> storeItems = squidstore.Catalog.parse(storeList);
         check("the store list keeps safe items only", storeItems.stream().map(squidstore.Catalog.Item::id).toList().toString(), "[xray, old]");
+        check("a store item's icon is an https link (or nothing)", squidstore.Catalog.parse("{\"items\": [{\"id\": \"a\", \"type\": \"mod\", \"name\": \"A\","
+                + " \"file\": \"a.jar\", \"url\": \"u\", \"sha256\": \"a\", \"icon\": \"https://example.com/a.png\"},"
+                + " {\"id\": \"b\", \"type\": \"mod\", \"name\": \"B\", \"file\": \"b.jar\", \"url\": \"u\", \"sha256\": \"a\", \"icon\": \"http://x/b.png\"}]}")
+                .stream().map(squidstore.Catalog.Item::icon).toList().toString(), "[https://example.com/a.png, ]");
         List<squidstore.Catalog.Item> capeItems = squidstore.Catalog.parse("{\"items\": ["
                 + "{\"id\": \"wave\", \"type\": \"cape\", \"name\": \"Wave\", \"file\": \"wave.png\", \"url\": \"u\", \"sha256\": \"a\"},"
                 + "{\"id\": \"notpng\", \"type\": \"cape\", \"name\": \"Bad\", \"file\": \"cape.jar\", \"url\": \"u\", \"sha256\": \"a\"}]}");
@@ -420,7 +424,7 @@ public class PipelineTest {
         java.nio.file.Files.write(hosted.resolve("fun.jar"), modBytes);
         String goodHash = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(modBytes));
         squidstore.Catalog.Item fun = new squidstore.Catalog.Item("fun", "mod", "Fun", "Sam", "", List.of(), false, "fun-1.0.jar",
-                hosted.resolve("fun.jar").toUri().toString(), goodHash, modBytes.length, "1.0");
+                hosted.resolve("fun.jar").toUri().toString(), goodHash, modBytes.length, "1.0", "");
         check("not installed yet", squidstore.Installer.installed(fun, storeGame), false);
         java.nio.file.Files.createDirectories(storeGame.resolve("mods"));
         modJar(storeGame.resolve("mods/my-old-fun.jar"), "{\"id\": \"fun\", \"name\": \"Fun\", \"version\": \"0.9\", \"main\": \"x\"}");
@@ -436,7 +440,7 @@ public class PipelineTest {
         check("installing puts a mod in mods/", java.nio.file.Files.readString(storeGame.resolve("mods/fun-1.0.jar")) + " "
                 + squidstore.Installer.installed(fun, storeGame), "pretend mod true");
         squidstore.Catalog.Item swapped = new squidstore.Catalog.Item("swapped", "resourcepack", "Swapped", "", "", List.of(), false,
-                "swapped.zip", hosted.resolve("fun.jar").toUri().toString(), "0".repeat(64), -1, "");
+                "swapped.zip", hosted.resolve("fun.jar").toUri().toString(), "0".repeat(64), -1, "", "");
         String swapProblem;
         try {
             squidstore.Installer.install(swapped, storeGame);

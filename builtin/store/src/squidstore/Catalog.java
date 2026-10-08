@@ -22,7 +22,7 @@ import java.util.Map;
  * <pre>
  * {"items": [{"id": "xray", "type": "mod", "name": "X-Ray", "version": "1.0.0", "author": "Samuel", "description": "...",
  *             "minecraft": ["26.3.x"], "devPicked": true, "file": "xray-1.0.0.jar",
- *             "url": "https://...", "sha256": "...", "size": 3558}]}
+ *             "url": "https://...", "sha256": "...", "size": 3558, "icon": "https://.../icons/xray.png"}]}
  * </pre>
  */
 public final class Catalog {
@@ -32,9 +32,9 @@ public final class Catalog {
 
     static final String USER_AGENT = "KelpSquid/squid/0.1 (squid@kelplauncher.org)";
 
-    /** One thing in the store. type is "mod", "resourcepack" or "cape". */
+    /** One thing in the store. type is "mod", "resourcepack" or "cape". icon is a link to a small picture, or "". */
     public record Item(String id, String type, String name, String author, String description, List<String> minecraft,
-                       boolean devPicked, String file, String url, String sha256, long size, String version) {
+                       boolean devPicked, String file, String url, String sha256, long size, String version, String icon) {
         public boolean isMod() {
             return "mod".equals(type);
         }
@@ -80,7 +80,8 @@ public final class Catalog {
             else if (it.get("minecraft") != null) for (Object v : Json.array(it.get("minecraft"))) minecraft.add(String.valueOf(v));
             items.add(new Item(string(it, "id"), type, string(it, "name"), string(it, "author"), string(it, "description"),
                     List.copyOf(minecraft), Boolean.TRUE.equals(it.get("devPicked")), file, string(it, "url"),
-                    string(it, "sha256").toLowerCase(), it.get("size") instanceof Double d ? d.longValue() : -1, string(it, "version")));
+                    string(it, "sha256").toLowerCase(), it.get("size") instanceof Double d ? d.longValue() : -1, string(it, "version"),
+                    iconLink(string(it, "icon"))));
         }
         return items;
     }
@@ -97,6 +98,11 @@ public final class Catalog {
             case "cape" -> file.endsWith(".png");
             default -> false;
         };
+    }
+
+    /** An icon's link, if it's one the store may load: https (or a file, for test lists). */
+    static String iconLink(String link) {
+        return link.startsWith("https://") || link.startsWith("file:") ? link : "";
     }
 
     private static String string(Map<String, Object> json, String key) {
