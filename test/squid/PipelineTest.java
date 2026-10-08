@@ -808,6 +808,13 @@ public class PipelineTest {
         check("making one that's there opens it instead", squidmods.ModMaker.create(makerMods, "hello maker") + " " + squidmods.ModMaker.read(makerMade),
                 makerMade + " // mine\n    public class HelloMaker {}");
         check("the Mod Maker lists easy mods", squidmods.ModMaker.easyMods(makerMods).size(), 1);
+        // Every line in the Mod Maker's Commands list works, all together in one mod
+        StringBuilder allSnippets = new StringBuilder("public class AllSnippets extends EasyMod {\n    void start() {\n");
+        for (String[] snippet : squidmods.ModMaker.SNIPPETS) allSnippets.append("        ").append(snippet[1]).append('\n');
+        allSnippets.append("    }\n}\n");
+        Path snippetsFile = java.nio.file.Files.createTempDirectory("squid-snippets").resolve("AllSnippets.java");
+        java.nio.file.Files.writeString(snippetsFile, allSnippets);
+        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 24");
 
         Main.setGameFolder(modsGame);
         squid.api.ModSettings settings = squid.api.ModSettings.of("settings-test");

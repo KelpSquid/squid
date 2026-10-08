@@ -17,6 +17,36 @@ public final class ModMaker {
     private ModMaker() {
     }
 
+    /**
+     * The Mod Maker's Commands list: what each easy mod command is called, and a line of code that uses it, which is
+     * typed in where the cursor is.
+     */
+    public static final List<String[]> SNIPPETS = List.of(
+            new String[] {"say", "say(\"Hi!\");"},
+            new String[] {"title", "title(\"Boss!\", \"Good luck\");"},
+            new String[] {"showText", "showText(\"Above the hotbar\");"},
+            new String[] {"onJoin", "onJoin(() -> say(\"Welcome!\"));"},
+            new String[] {"onKey", "onKey(\"R\", () -> boost(1.2));"},
+            new String[] {"every", "every(10, () -> particles(\"heart\", 5));"},
+            new String[] {"after", "after(3, () -> say(\"Boom!\"));"},
+            new String[] {"onBreak", "onBreak(block -> say(\"You broke \" + block));"},
+            new String[] {"onAttack", "onAttack(mob -> particles(\"crit\", 5));"},
+            new String[] {"onHurt", "onHurt(() -> playSound(\"entity.villager.no\"));"},
+            new String[] {"onDeath", "onDeath(() -> title(\"Oops!\", \"Try again\"));"},
+            new String[] {"onCommand", "onCommand(\"dance\", () -> particles(\"note\", 10));"},
+            new String[] {"onChat", "onChat(text -> { if (text.contains(\"hi\")) say(\"Hello!\"); });"},
+            new String[] {"keepShowing", "keepShowing(() -> \"Health: \" + health());"},
+            new String[] {"playSound", "playSound(\"entity.experience_orb.pickup\");"},
+            new String[] {"particles", "particles(\"flame\", 10);"},
+            new String[] {"boost", "boost(1.2);"},
+            new String[] {"dash", "dash(2);"},
+            new String[] {"giveItem", "giveItem(\"diamond\", 3);"},
+            new String[] {"command", "command(\"time set day\");"},
+            new String[] {"remember", "remember(\"score\", remembered(\"score\", 0) + 1);"},
+            new String[] {"nearby", "if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");"},
+            new String[] {"isNight", "if (isNight()) say(\"It's night!\");"},
+            new String[] {"random", "if (random(1, 6) == 6) say(\"You rolled a 6!\");"});
+
     /** Every easy mod in the folder, by name. */
     public static List<Path> easyMods(Path mods) {
         List<Path> found = new ArrayList<>();
