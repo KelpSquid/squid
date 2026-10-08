@@ -367,6 +367,9 @@ public class PipelineTest {
                 "These mods need each other in a loop, so none of them can start first: loop-a -> loop-b -> loop-a | it needs Loop A, which was skipped too.");
         check("a mod can't take Squid's own id", oddSkipped.get("Squid"), "its id \"squid\" belongs to Squid itself. Give the mod another name.");
         check("of two copies, the newer version wins", oddSkipped.get("Old Version"), "it's another copy of NewVersion. You can delete OldVersion.");
+        check("versions compare part by part: 1.10 after 1.9, 1.0 the same as 1.0.0, a beta before its release",
+                Mods.compareVersions("1.10", "1.9") + " " + Mods.compareVersions("1.0", "1.0.0") + " " + Mods.compareVersions("1.0", "1.0.0-beta")
+                        + " " + Mods.compareVersions("2.0-beta", "2.0"), "1 0 1 -1");
         check("squid.json keys that look like typos get a \"did you mean\"", Mods.unknownKeys(Json.object(Json.parse("{\"author\": 1, \"Name\": 2, \"color\": 3}"))).toString(),
                 "[squid.json has \"author\". Did you mean \"authors\"?, squid.json has \"Name\". Did you mean \"name\"?, squid.json has \"color\", which Squid doesn't use.]");
         check("\">=26.2\" works on 26.3 and 26.10 but not 26.1", new ModInfo("x", "x", "1", "", List.of(), List.of(), List.of(">=26.2"), "x", odd).worksOn("26.3")
@@ -1038,6 +1041,8 @@ public class PipelineTest {
         tiny.loops.add(new squid.audio.Sqda.Loop(0, 1000, 1600));
         squid.audio.Sqda.Player tinyLoop = squid.audio.Sqda.read(tiny.write()).play(0, true);
         short[] second = tinyLoop.read(44100);
+        squid.audio.Sqda.Player emptyLoop = squid.audio.Sqda.read(squid.audio.Sqda.fromSound(new squid.audio.Pcm(new short[0], 1, 44100), 6).write()).play(0, true);
+        check("a looping sound with nothing in it ends instead of looping forever", emptyLoop.read(4410) == null, true);
         check("a loop shorter than one read fills the read and stays inside the loop", second.length / ch + " " + (tinyLoop.loops() >= 70)
                 + " " + (tinyLoop.position() >= 1000 && tinyLoop.position() <= 1600), "44100 true true");
 

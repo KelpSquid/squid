@@ -551,6 +551,7 @@ public final class Sqda {
                 if (filled < n) return filled == 0 ? null : java.util.Arrays.copyOf(out, filled * ch);
                 return out;
             }
+            if (loopEnd <= loopStart) return null; // nothing to loop (an empty sound)
             short[] out = new short[count * ch];
             int done = 0;
             int stuck = 0;

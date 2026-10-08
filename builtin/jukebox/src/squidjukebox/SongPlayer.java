@@ -31,6 +31,8 @@ final class SongPlayer {
     volatile int rate = 1;
     /** What went wrong, in words, or null. */
     volatile String problem;
+    /** Whether any sound reached the speakers: a song that did isn't a failure, even if it ends early. */
+    volatile boolean started;
 
     SongPlayer(Path file, boolean repeat, Runnable ended) {
         this.file = file;
@@ -197,6 +199,7 @@ final class SongPlayer {
                 float rms = (float) Math.sqrt(sum / (double) Math.max(1, chunk.length)) / 32768f;
                 level = level * 0.6f + Math.min(1, rms * 3) * 0.4f;
                 line.write(out, 0, chunk.length * 2);
+                started = true;
                 position = source.position();
             }
             if (!stopped) line.drain();

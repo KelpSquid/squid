@@ -156,10 +156,15 @@ final class SourceMods {
                 Path target = unpacked.resolve(name).normalize();
                 if (!target.startsWith(unpacked)) throw new IOException(Lang.t("it has a file that tries to leave its folder, so Squid won't open it."));
                 Files.createDirectories(target.getParent());
-                try (InputStream in = zip.getInputStream(entry)) {
-                    total += Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                try (InputStream in = zip.getInputStream(entry); var out = Files.newOutputStream(target)) {
+                    byte[] buffer = new byte[65536];
+                    int read;
+                    while ((read = in.read(buffer)) > 0) {
+                        total += read;
+                        if (total > MAX_UNPACKED) throw new IOException(Lang.t("it's far too big inside, so Squid won't open it."));
+                        out.write(buffer, 0, read);
+                    }
                 }
-                if (total > MAX_UNPACKED) throw new IOException(Lang.t("it's far too big inside, so Squid won't open it."));
             }
         } catch (java.util.zip.ZipException e) {
             throw new IOException(Lang.t("it's damaged, so Squid can't open it. Download or pack it again."));

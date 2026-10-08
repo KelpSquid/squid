@@ -169,5 +169,7 @@ So a damaged or made-up file can't freeze the game or take its memory:
 - a variant's `frames` must match its `samples`, its `rate` must be 8000 to 192000, and
   `samples * channels` at most 2^27
 - a volume track's `count` can't be more than its chunk
-- settings that aren't real numbers go back to normal
-- texts are at most 21845 characters, so they always fit their 65535-byte limit
+- settings that aren't real numbers go back to normal; volume is kept between 0 and 10, pitch between 0.05 and 10,
+  and distance between 1 and 1024 blocks
+
+Writers keep every text to at most 21845 characters, so it always fits its 65535-byte limit.

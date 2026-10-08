@@ -74,7 +74,7 @@ public final class ModFiles {
         Map<String, Object> json = Map.of();
         try {
             Path file = folder.resolve("squid.json");
-            if (Files.exists(file)) json = Json.object(Json.parse(Files.readString(file, StandardCharsets.UTF_8)));
+            if (Files.exists(file) && Json.parse(Packed.text(Files.readAllBytes(file))) instanceof Map<?, ?> found) json = Json.object(found);
         } catch (IOException | RuntimeException e) {
             // a broken squid.json: still listed, by its folder's name
         }
@@ -87,9 +87,11 @@ public final class ModFiles {
         boolean fromCode = plain.endsWith(".squid");
         String base = plain.substring(0, plain.lastIndexOf('.'));
         try (ZipFile zip = new ZipFile(file.toFile())) {
-            ZipEntry entry = zip.getEntry("squid.json");
+            String root = fromCode ? Packed.root(zip) : "";
+            ZipEntry entry = root == null ? null : fromCode ? Packed.entry(zip, root + "squid.json") : zip.getEntry("squid.json");
             if (entry == null) return new ModFile(file, base, base, "", "", enabled, false, false);
-            Map<String, Object> json = Json.object(Json.parse(new String(zip.getInputStream(entry).readAllBytes(), StandardCharsets.UTF_8)));
+            Object parsed = Json.parse(Packed.text(zip.getInputStream(entry).readAllBytes()));
+            Map<String, Object> json = parsed instanceof Map<?, ?> ? Json.object(parsed) : Map.of();
             String className = base.replaceAll("[^A-Za-z0-9_]", "");
             return new ModFile(file, text(json, "id", idFrom(className)), text(json, "name", spaced(className)), text(json, "version", ""),
                     text(json, "description", ""), enabled, fromCode, true);

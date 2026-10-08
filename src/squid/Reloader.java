@@ -170,6 +170,7 @@ final class Reloader {
             Hooks.turnOff(info.id());
             Events.remove(info.id());
             Slots.endReload(info.id());
+            Main.removeMod(info.id()); // it isn't running now, so saving the old code again starts it again
             tell(Lang.t("{0} broke while reloading: {1}", info.name(), Mistakes.explain(problem, main)), "RED");
             problem.printStackTrace(System.out);
         }

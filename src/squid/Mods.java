@@ -239,8 +239,15 @@ final class Mods {
         for (int i = 0; i < Math.max(x.length, y.length); i++) {
             String p = i < x.length ? x[i] : null;
             String q = i < y.length ? y[i] : null;
-            if (p == null) return number(q) && Long.parseLong(q) == 0 ? 0 : number(q) ? -1 : 1;
-            if (q == null) return number(p) && Long.parseLong(p) == 0 ? 0 : number(p) ? 1 : -1;
+            // A missing part counts as 0 ("1.0" is "1.0.0"); a word after it ("1.0.0-beta") comes before the release
+            if (p == null) {
+                if (number(q) && Long.parseLong(q) == 0) continue;
+                return number(q) ? -1 : 1;
+            }
+            if (q == null) {
+                if (number(p) && Long.parseLong(p) == 0) continue;
+                return number(p) ? 1 : -1;
+            }
             int c = number(p) && number(q) ? Long.compare(Long.parseLong(p), Long.parseLong(q))
                     : number(p) ? 1 : number(q) ? -1 : p.compareTo(q);
             if (c != 0) return c;

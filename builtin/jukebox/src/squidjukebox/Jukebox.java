@@ -41,7 +41,10 @@ public class Jukebox implements SquidMod {
     private ModSettings settings;
     private volatile SongPlayer player;
     private volatile Song current;
-    private volatile boolean endedByItself;
+    /** The player whose song just ended by itself (finished, or couldn't play), for the game thread to move on. */
+    private volatile SongPlayer ended;
+    /** Songs in a row that couldn't play. Once every song has failed, the Jukebox stops instead of trying forever. */
+    private int failures;
     private volatile long shownAt;
     private boolean gameMusicStopped;
     private final Random random = new Random();
@@ -187,7 +190,9 @@ public class Jukebox implements SquidMod {
         SongPlayer old = player;
         if (old != null) old.stop();
         current = song;
-        SongPlayer next = new SongPlayer(song.file(), ONE.equals(repeat()), () -> endedByItself = true);
+        SongPlayer[] self = new SongPlayer[1];
+        SongPlayer next = new SongPlayer(song.file(), ONE.equals(repeat()), () -> ended = self[0]);
+        self[0] = next;
         next.volume = gain();
         player = next;
         shownAt = System.currentTimeMillis();
@@ -255,15 +260,25 @@ public class Jukebox implements SquidMod {
     }
 
     private void tick() {
-        if (endedByItself) {
-            endedByItself = false;
-            SongPlayer p = player;
-            if (p != null && p.problem != null) {
-                // A song that can't play: shown for a moment, then on to the next one
-                problem = Lang.t("Couldn't play {0}: {1}", current == null ? "?" : current.shown(), p.problem);
-                problemAt = System.currentTimeMillis();
+        SongPlayer finished = ended;
+        if (finished != null) {
+            ended = null;
+            // Only the song that's playing now moves things on (not one you'd already skipped)
+            if (finished == player) {
+                if (finished.problem != null && !finished.started) {
+                    // A song that can't play: shown for a moment, then on to the next one, unless they all fail
+                    problem = Lang.t("Couldn't play {0}: {1}", current == null ? "?" : current.shown(), finished.problem);
+                    problemAt = System.currentTimeMillis();
+                    if (++failures >= Math.max(1, songs().size())) {
+                        failures = 0;
+                        stop();
+                        return;
+                    }
+                } else {
+                    failures = 0;
+                }
+                next();
             }
-            next();
         }
         SongPlayer p = player;
         Song song = current;

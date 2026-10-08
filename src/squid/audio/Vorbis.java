@@ -385,6 +385,7 @@ public final class Vorbis {
         long total = finished;
         if (lastGranule[0] >= 0 && lastGranule[0] < total) total = lastGranule[0]; // the last page says the real length
         short[] samples = new short[(int) total * channels];
+        out = wavOrder(out, channels);
         for (int i = 0; i < total; i++) {
             for (int c = 0; c < channels; c++) {
                 int v = Math.round(out[c][i] * 32768);
@@ -392,6 +393,26 @@ public final class Vorbis {
             }
         }
         return new Pcm(samples, channels, rate);
+    }
+
+    /**
+     * Vorbis puts the center right after front left (L C R, and 5.1 is FL C FR RL RR LFE). WAV and FLAC put both
+     * fronts first, then the center and the bass (FL FR C LFE ...). Squid works in WAV's order, so the channels are
+     * moved into it.
+     */
+    static float[][] wavOrder(float[][] channels, int count) {
+        int[] from = switch (count) {
+            case 3 -> new int[] {0, 2, 1};
+            case 5 -> new int[] {0, 2, 1, 3, 4};
+            case 6 -> new int[] {0, 2, 1, 5, 3, 4};
+            case 7 -> new int[] {0, 2, 1, 6, 5, 3, 4};
+            case 8 -> new int[] {0, 2, 1, 7, 5, 6, 3, 4};
+            default -> null;
+        };
+        if (from == null) return channels;
+        float[][] ordered = new float[count][];
+        for (int c = 0; c < count; c++) ordered[c] = channels[from[c]];
+        return ordered;
     }
 
     private static boolean vorbisWord(Reader r) {

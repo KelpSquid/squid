@@ -163,7 +163,12 @@ public class Sounds implements SquidMod {
     /** The file to decode ourselves for a sound Minecraft wants, or null to let Minecraft load its .ogg as usual. */
     private byte[] ours(Identifier path) {
         if (plainOgg.contains(path)) return null;
-        return files.computeIfAbsent(path, p -> Optional.ofNullable(find(p))).orElse(null);
+        Optional<byte[]> known = files.get(path);
+        if (known != null) return known.orElse(null);
+        byte[] found = find(path);
+        // Short sounds are kept (they play again and again); songs are read again when they play, not held in memory
+        if (found == null || found.length < 1 << 20) files.put(path, Optional.ofNullable(found));
+        return found;
     }
 
     private byte[] find(Identifier path) {
