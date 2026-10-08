@@ -150,6 +150,8 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
 - **Mod Maker:** Squid > Mod Maker: make an easy mod from a name, or change one, right in the game. Save (or Ctrl+S)
   runs it a second later, and the editor says "Reloaded!" or which line has a mistake. Its Commands list types in
   any command with an example, so you can make a mod without knowing them by heart.
+- **Voice chat:** on servers with Squid, talk to players near you or in your group (push to talk, or always on),
+  with a voice changer: Robot, Chipmunk, Giant or Echo.
 - **Skins and capes:** Options > Skin Customization > Squid Skin & Cape: wear your own skin and cape, a Store cape,
   or a Mojang cape (shown from Mojang's own servers, with a tag if you don't own it), with animated effects.
 - **Squid Count:** points for every advancement, like gamerscore.

@@ -100,6 +100,15 @@ public class Voice implements SquidMod {
         return settings.number("Mic volume", 100, 0, 200);
     }
 
+    /** The voice changer for your mic: None, Robot, Chipmunk, Giant or Echo. */
+    String voiceEffect() {
+        return settings.choice("Voice effect", VoiceEffect.NONE, VoiceEffect.ALL);
+    }
+
+    void setVoiceEffect(String effect) {
+        settings.set("Voice effect", effect);
+    }
+
     boolean showTalking() {
         return settings.toggle("Show who's talking", true);
     }
@@ -149,6 +158,7 @@ public class Voice implements SquidMod {
         if (!micWanted && mic.isOpen()) mic.close();
         mic.set(talkKey.isDown(), // (never down while a menu or the chat is open)
                 ALWAYS.equals(talk()), micVolume());
+        mic.setEffect(voiceEffect());
         // A little click when you start and stop talking with the key, so you know it's on
         boolean talking = mic.talking();
         if (talking != wasTalking && !ALWAYS.equals(talk())) {

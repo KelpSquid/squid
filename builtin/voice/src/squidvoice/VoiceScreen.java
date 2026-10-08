@@ -44,6 +44,14 @@ final class VoiceScreen extends Screen {
             v.setTalk(now.equals(Voice.PUSH) ? Voice.ALWAYS : now.equals(Voice.ALWAYS) ? Voice.LISTEN : Voice.PUSH);
             rebuildWidgets();
         }).bounds(x, y, 200, 20).build());
+        y += 24;
+        // A voice changer for your mic; pressing it goes to the next one
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Voice effect: {0}", Lang.t(v.voiceEffect()))), b -> {
+            String[] all = VoiceEffect.ALL;
+            int now = java.util.Arrays.asList(all).indexOf(v.voiceEffect());
+            v.setVoiceEffect(all[(now + 1) % all.length]);
+            rebuildWidgets();
+        }).bounds(x, y, 200, 20).build());
         y += 30;
         if (v.config != null && v.config.groups()) {
             groupBox = new EditBox(font, x, y, 128, 20, Component.literal(Lang.t("Group")));

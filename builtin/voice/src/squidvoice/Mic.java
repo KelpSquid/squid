@@ -25,6 +25,7 @@ final class Mic {
     private volatile boolean pushed;
     private volatile boolean alwaysOn;
     private volatile int gain = 100;
+    private volatile String effect = VoiceEffect.NONE; // the voice changer (Robot, Chipmunk...)
     private volatile boolean talking;
     private volatile float level;
     private volatile String problem;
@@ -61,6 +62,11 @@ final class Mic {
         this.gain = gain;
     }
 
+    /** The voice changer to use, one of VoiceEffect.ALL. */
+    void setEffect(String effect) {
+        this.effect = effect;
+    }
+
     /** Whether your voice is being sent right now. */
     boolean talking() {
         return talking;
@@ -91,6 +97,7 @@ final class Mic {
         byte[] bytes = new byte[VoiceCodec.FRAME * 2];
         short[] frame = new short[VoiceCodec.FRAME];
         VoiceCodec.Encoder encoder = null;
+        VoiceEffect changer = null;
         int sequence = 0;
         int hold = 0;
         try {
@@ -118,6 +125,9 @@ final class Mic {
                 if (!now) encoder = null;
                 talking = now;
                 if (now) {
+                    String wanted = effect;
+                    if (changer == null || !changer.kind().equals(wanted)) changer = new VoiceEffect(wanted, VoiceCodec.RATE);
+                    changer.process(frame); // after the level is read, so talking is noticed the same with any effect
                     byte[] packet = encoder.encode(frame);
                     byte[] message = new byte[2 + packet.length];
                     message[0] = (byte) (sequence >> 8);

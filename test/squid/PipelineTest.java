@@ -1390,6 +1390,43 @@ public class PipelineTest {
         check("Minecraft's sound classes load with Squid Sounds' .sqda hooks", soundsLoad, true);
         // The Jukebox's hook goes into Minecraft's music manager (so the game's music waits while a song plays)
         ((SquidMod) netLoader.loadClass("squidjukebox.Jukebox").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-jukebox")));
+        // The voice changer: Chipmunk is higher and Giant deeper (counted by how often the sound crosses zero), at the
+        // same speed; Robot changes the sound; Echo keeps going after you stop
+        Class<?> voiceEffect = netLoader.loadClass("squidvoice.VoiceEffect");
+        java.lang.reflect.Constructor<?> makeEffect = voiceEffect.getDeclaredConstructor(String.class, int.class);
+        makeEffect.setAccessible(true);
+        java.lang.reflect.Method processVoice = voiceEffect.getDeclaredMethod("process", short[].class);
+        processVoice.setAccessible(true);
+        StringBuilder changerPitches = new StringBuilder();
+        for (String changerKind : new String[] {"None", "Chipmunk", "Giant"}) {
+            Object changer = makeEffect.newInstance(changerKind, 16000);
+            int changerCrossings = 0;
+            short changerLast = 0;
+            for (int f = 0; f < 50; f++) { // a second of a 400 Hz tone, 20 ms at a time
+                short[] frame = new short[320];
+                for (int i = 0; i < 320; i++) frame[i] = (short) (Math.sin(2 * Math.PI * 400 * (f * 320 + i) / 16000.0) * 8000);
+                processVoice.invoke(changer, (Object) frame);
+                if (f >= 10) for (short v : frame) {
+                    if ((changerLast < 0) != (v < 0)) changerCrossings++;
+                    changerLast = v;
+                }
+            }
+            changerPitches.append(Math.round(changerCrossings / 2.0 / 0.8 / 50) * 50).append(' '); // in Hz, to the nearest 50
+        }
+        Object robotChanger = makeEffect.newInstance("Robot", 16000);
+        short[] robotFrame = new short[320];
+        java.util.Arrays.fill(robotFrame, (short) 1000);
+        processVoice.invoke(robotChanger, (Object) robotFrame);
+        Object echoChanger = makeEffect.newInstance("Echo", 16000);
+        short[] echoLoud = new short[320];
+        java.util.Arrays.fill(echoLoud, (short) 10000);
+        processVoice.invoke(echoChanger, (Object) echoLoud);
+        short[] echoQuiet = new short[320];
+        for (int f = 0; f < 12; f++) processVoice.invoke(echoChanger, (Object) (echoQuiet = new short[320])); // 240 ms of silence
+        short[] echoAfter = new short[320];
+        processVoice.invoke(echoChanger, (Object) echoAfter);
+        check("the voice changer: higher, deeper, robot and echo", changerPitches.toString().strip() + " " + (robotFrame[100] != 1000) + " " + (echoAfter[100] != 0),
+                "400 600 300 true true");
         // Karaoke lyrics from an .lrc file: times in any order, a line sung twice, an offset, word times left out
         Class<?> lyricsClass = netLoader.loadClass("squidjukebox.Lyrics");
         java.lang.reflect.Method parseLyrics = lyricsClass.getDeclaredMethod("parse", String.class);
