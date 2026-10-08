@@ -1255,6 +1255,14 @@ public class PipelineTest {
         System.arraycopy(new byte[] {'f', 'L', 'a', 'C', (byte) 0x80, 0, 0, 34}, 0, liar, 0, 8);
         System.arraycopy(infoBytes, Math.max(0, infoBytes.length - 34), liar, 8 + Math.max(0, 34 - infoBytes.length), Math.min(34, infoBytes.length));
         check("a tiny FLAC that claims hours of sound doesn't take the memory", failure(() -> squid.audio.Audio.decode(liar)).contains("OutOfMemory"), false);
+        // An Ogg Vorbis file whose few setup bytes claim a codebook of 16 million codes (it would need gigabytes)
+        byte[] vorbisId = {1, 'v', 'o', 'r', 'b', 'i', 's', 0, 0, 0, 0, 1, 0x44, (byte) 0xAC, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (byte) 0xB8, 1};
+        byte[] vorbisComments = {3, 'v', 'o', 'r', 'b', 'i', 's', 0, 0, 0, 0, 0, 0, 0, 0, 1};
+        byte[] hugeBook = bitsLsbFirst(new long[][] {{5, 8}, {'v', 8}, {'o', 8}, {'r', 8}, {'b', 8}, {'i', 8}, {'s', 8}, {0, 8},
+                {0x564342, 24}, {1, 16}, {0xFFFFFF, 24}, {1, 1}, {23, 5}, {0xFFFFFF, 24}, {0, 4}});
+        check("an Ogg file can't claim a codebook that would fill the memory",
+                failure(() -> squid.audio.Audio.decode(ogg(vorbisId, vorbisComments, hugeBook))),
+                "IllegalArgumentException: the Vorbis codebooks are far too big");
         squid.audio.Sqda.Variant real = tiny.variants.getFirst();
         squid.audio.Sqda bigClaim = squid.audio.Sqda.fromSound(tone, 6);
         bigClaim.variants.set(0, new squid.audio.Sqda.Variant(real.name(), real.weight(), real.rate(), real.channels(), 1L << 40, real.frames()));
@@ -1755,6 +1763,44 @@ public class PipelineTest {
         } catch (Throwable e) {
             return e.getClass().getSimpleName() + ": " + e.getMessage();
         }
+    }
+
+    /** Numbers packed into bits the way Vorbis packs them: {value, how many bits}, lowest bit first. */
+    static byte[] bitsLsbFirst(long[][] fields) {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        int current = 0;
+        int used = 0;
+        for (long[] field : fields) {
+            for (int i = 0; i < field[1]; i++) {
+                current |= (int) ((field[0] >>> i) & 1) << used;
+                if (++used == 8) {
+                    out.write(current);
+                    current = 0;
+                    used = 0;
+                }
+            }
+        }
+        if (used > 0) out.write(current);
+        return out.toByteArray();
+    }
+
+    /** An Ogg file with each packet on a page of its own (Squid doesn't check the pages' CRCs, so they're left 0). */
+    static byte[] ogg(byte[]... packets) {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        for (int p = 0; p < packets.length; p++) {
+            byte[] packet = packets[p];
+            out.writeBytes(new byte[] {'O', 'g', 'g', 'S', 0, (byte) (p == 0 ? 2 : 0)});
+            out.writeBytes(new byte[8]); // granule
+            out.writeBytes(new byte[] {1, 0, 0, 0}); // serial
+            out.writeBytes(new byte[] {(byte) p, 0, 0, 0}); // page number
+            out.writeBytes(new byte[4]); // CRC
+            int laces = packet.length / 255 + 1;
+            out.write(laces);
+            for (int i = 0; i < laces - 1; i++) out.write(255);
+            out.write(packet.length % 255);
+            out.writeBytes(packet);
+        }
+        return out.toByteArray();
     }
 
     /** A WAV file's bytes: format 1 is plain samples, 3 decimals, 7 mu-law. */

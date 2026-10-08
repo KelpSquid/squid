@@ -128,11 +128,18 @@ public final class Vorbis {
         int[] tree;
         float[][] vectors; // the numbers each entry stands for, or null for scalar-only books
 
-        static Codebook read(Reader r) {
+        /** The most entries all of a file's codebooks can have together. Real files have a few thousand. */
+        static final int MAX_ENTRIES = 1 << 21;
+
+        /** Reads a codebook. budget is how many entries the file's codebooks can still have. */
+        static Codebook read(Reader r, int budget) {
             if (r.read(24) != 0x564342) throw new IllegalArgumentException("bad codebook");
             Codebook b = new Codebook();
             b.dimensions = r.read(16);
             b.entries = r.read(24);
+            // A few bytes can claim 16 million entries, each needing its own code and a place in the tree: checked
+            // before anything that big is made, so a made-up file can't fill the memory
+            if (b.entries > budget) throw new IllegalArgumentException("the Vorbis codebooks are far too big");
             b.lengths = new int[b.entries];
             if (r.read(1) == 0) {
                 boolean sparse = r.read(1) == 1;
@@ -314,7 +321,11 @@ public final class Vorbis {
         Reader s = new Reader(packets.get(2));
         if (s.read(8) != 5 || !vorbisWord(s)) throw new IllegalArgumentException("the Vorbis setup header is missing");
         Codebook[] books = new Codebook[s.read(8) + 1];
-        for (int i = 0; i < books.length; i++) books[i] = Codebook.read(s);
+        int budget = Codebook.MAX_ENTRIES;
+        for (int i = 0; i < books.length; i++) {
+            books[i] = Codebook.read(s, budget);
+            budget -= books[i].entries;
+        }
         int times = s.read(6) + 1;
         for (int i = 0; i < times; i++) s.read(16);
         Floor[] floors = new Floor[s.read(6) + 1];
