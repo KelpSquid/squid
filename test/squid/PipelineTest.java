@@ -841,6 +841,14 @@ public class PipelineTest {
         check("names Java uses get My in front, and quotes and backslashes in a name can't break the code",
                 squidmods.ModMaker.className("Easy Mod") + " " + (sources.compile(squidmods.ModMaker.create(oddMaker, "Oops \\u0022 \"hi\" \\")).id() != null),
                 "MyEasyMod true");
+        // Every starter mod the Mod Maker can start from compiles (they're the same as Kelp's)
+        Path startersFolder = java.nio.file.Files.createTempDirectory("squid-maker-starters");
+        List<String> startersBuilt = new ArrayList<>();
+        for (squidmods.ModStarters.Starter starterMod : squidmods.ModStarters.ALL) {
+            Path starterMade = squidmods.ModMaker.create(startersFolder, "My " + starterMod.name(), starterMod);
+            startersBuilt.add(sources.compile(starterMade).id());
+        }
+        check("every Mod Maker starter compiles", startersBuilt.size() + " " + startersBuilt.contains("my-rocket-boots"), squidmods.ModStarters.ALL.size() + " true");
         // Every line in the Mod Maker's Commands list works, all together in one mod
         StringBuilder allSnippets = new StringBuilder("public class AllSnippets extends EasyMod {\n    void start() {\n");
         for (String[] snippet : squidmods.ModMaker.SNIPPETS) allSnippets.append("        ").append(snippet[1]).append('\n');

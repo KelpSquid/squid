@@ -22,6 +22,7 @@ final class ModMakerScreen extends Screen {
     private String typed = "";
     private int page;
     private String problem;
+    private int starter = -1; // which starter mod a new one starts from, or -1 for the hello one
     private List<Path> mods = List.of();
 
     ModMakerScreen(Screen parent) {
@@ -43,10 +44,19 @@ final class ModMakerScreen extends Screen {
         name.setResponder(text -> typed = text);
         addRenderableWidget(name);
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Make it")), b -> make()).bounds(x + 232, 30, 68, 20).build());
+        // What a new mod starts as: the hello one, or a starter that already does something (Rocket Boots...)
+        String from = starter < 0 ? Lang.t("Blank") : Lang.t(ModStarters.ALL.get(starter).name());
+        Button startFrom = addRenderableWidget(Button.builder(Component.literal(Lang.t("Start from: {0}", from)), b -> {
+            starter = starter + 1 >= ModStarters.ALL.size() ? -1 : starter + 1;
+            rebuildWidgets();
+        }).bounds(x, 54, 300, 20).build());
+        if (starter >= 0) {
+            startFrom.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(Lang.t(ModStarters.ALL.get(starter).about()))));
+        }
 
         mods = ModMaker.easyMods(modsFolder()); // looked at once here, not every frame
         int columns = 2;
-        int rows = Math.max(1, (height - 120) / 22);
+        int rows = Math.max(1, (height - 144) / 22);
         int perPage = columns * rows;
         int pages = Math.max(1, (mods.size() + perPage - 1) / perPage);
         page = Math.min(page, pages - 1);
@@ -55,7 +65,7 @@ final class ModMakerScreen extends Screen {
             Path file = onPage.get(i);
             String shown = file.getFileName().toString();
             addRenderableWidget(Button.builder(Component.literal(font.plainSubstrByWidth(shown, 140)),
-                    b -> minecraft.setScreenAndShow(new CodeScreen(this, file))).bounds(x + (i % columns) * 152, 62 + (i / columns) * 22, 148, 20).build());
+                    b -> minecraft.setScreenAndShow(new CodeScreen(this, file))).bounds(x + (i % columns) * 152, 86 + (i / columns) * 22, 148, 20).build());
         }
         if (pages > 1) {
             addRenderableWidget(Button.builder(Component.literal("<"), b -> {
@@ -76,7 +86,7 @@ final class ModMakerScreen extends Screen {
             return;
         }
         try {
-            Path file = ModMaker.create(modsFolder(), typed);
+            Path file = ModMaker.create(modsFolder(), typed, starter < 0 ? null : ModStarters.ALL.get(starter));
             typed = "";
             minecraft.setScreenAndShow(new CodeScreen(this, file));
         } catch (IOException e) {

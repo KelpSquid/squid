@@ -111,12 +111,25 @@ public final class ModMaker {
      * given back as it is (nothing is overwritten).
      */
     public static Path create(Path mods, String name) throws IOException {
+        return create(mods, name, null);
+    }
+
+    /** Like create(mods, name), starting from one of the starter mods (or the hello template when it's null). */
+    public static Path create(Path mods, String name, ModStarters.Starter starter) throws IOException {
         String className = className(name);
         Path file = mods.resolve(className + ".java");
         if (Files.exists(file)) return file;
         Files.createDirectories(mods);
-        Files.writeString(file, template(name, className), StandardCharsets.UTF_8);
+        String code = starter == null ? template(name, className)
+                : "import squid.api.*;\n\n" + starter.code().formatted(shownName(name, className), className);
+        Files.writeString(file, code, StandardCharsets.UTF_8);
         return file;
+    }
+
+    /** The name as it's shown in the code: no quotes or backslashes, which would break it. */
+    static String shownName(String name, String className) {
+        String shown = name.strip().replace("\"", "'").replace("\\", "");
+        return shown.isEmpty() ? className : shown;
     }
 
     /** A file's code with Windows line endings made plain, for the editor. */
