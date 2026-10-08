@@ -67,6 +67,11 @@ public final class Main {
     }
 
     /** Whether Squid is running a Minecraft server (started by {@link ServerLauncher}) rather than the game. */
+    /** Safe mode: the game starts with no mods (only Squid's own parts), so a broken mod can't stop it. */
+    public static boolean safeMode() {
+        return Boolean.getBoolean("squid.safeMode");
+    }
+
     public static boolean isServer() {
         return "server".equals(System.getProperty("squid.side"));
     }
@@ -111,7 +116,8 @@ public final class Main {
             // .java mods can use Squid (on the normal classpath) and Minecraft
             SourceMods sources = new SourceMods(modsFolder.resolve(".squid-cache"),
                     System.getProperty("java.class.path") + File.pathSeparator + gameClasspath);
-            Mods.Found found = Mods.find(modsFolder, minecraftVersion, sources);
+            // Safe mode (Kelp's Play Without Mods, after a crash): no mods this time, only Squid's own parts
+            Mods.Found found = safeMode() ? new Mods.Found(List.of(), List.of()) : Mods.find(modsFolder, minecraftVersion, sources);
             System.out.println("[Squid] Squid " + VERSION + " found " + found.mods().size() + " mod(s) in " + modsFolder);
             // Squid's own parts, like the Store, come with Squid in its builtin folder. They aren't counted as mods.
             List<ModInfo> builtIn = Mods.find(builtInFolder(), minecraftVersion).mods();
@@ -135,10 +141,10 @@ public final class Main {
             if (FastBoot.active()) {
                 FastBoot.check(); // the pre-patched classes must match the hooks the mods just asked for
                 if (FastBoot.training()) FastBoot.train(loader);
-            } else if (!isServer()) {
+            } else if (!isServer() && !safeMode()) {
                 FastBoot.prepare(gameFolder, gameClasspath, mainClass, builtIn, found.mods());
             }
-            Reloader.watch(modsFolder, sources, loader, minecraftVersion); // saving a mod's code reloads it while playing
+            if (!safeMode()) Reloader.watch(modsFolder, sources, loader, minecraftVersion); // saving a mod's code reloads it while playing
             skipped = List.copyOf(notStarted);
             report.skipped(skipped);
         } catch (Throwable problem) {
@@ -227,6 +233,10 @@ public final class Main {
         int y = hud.height() - 20;
         String version = minecraftVersion != null ? " - Minecraft " + minecraftVersion : "";
         hud.text("Squid" + version, 2, y, 0xFF55FFFF);
+        if (safeMode()) {
+            y -= 10;
+            hud.text(fit(hud, Lang.t("Safe mode: your mods are off this time. Play from Kelp again to have them back."), hud.width() - 170), 2, y, 0xFFFFFF55);
+        }
         List<Mods.Skipped> problems = skipped;
         int maxWidth = hud.width() - 170; // leave room for Mojang's copyright line on the right
         int shown = Math.min(3, problems.size());
