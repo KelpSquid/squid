@@ -10,6 +10,7 @@ import net.minecraft.client.multiplayer.ClientAdvancements;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundUpdateAdvancementsPacket;
 import net.minecraft.resources.Identifier;
+import squid.Events;
 import squid.Lang;
 import squid.Main;
 import squid.api.Hud;
@@ -40,6 +41,8 @@ public class SquidCount implements SquidMod {
         celebrations();
         squid.onHud(this::hud);
         squid.onTick(this::tick);
+        // Squid's own achievements, for making things: other parts of Squid say when one happens
+        Events.on("achievement", squid.mod().id(), id -> Minecraft.getInstance().execute(() -> achieved(String.valueOf(id))));
 
         // The game tells itself about advancements in batches. The first batch when you join a world (a "reset")
         // is everything already done there, so it's skipped: only ones that become done while you play count.
@@ -85,6 +88,46 @@ public class SquidCount implements SquidMod {
             } catch (Exception e) {
                 System.out.println("[Squid Count] Couldn't save: " + e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Squid's own achievements: making things with Squid, not just playing. Each one counts once ever, like an
+     * advancement: its id (what the part of Squid that noticed it says), its name, and its points.
+     */
+    static final String[][] ACHIEVEMENTS = {
+            {"paint", "Artist", "25"},           // painted a block, item, painting or mob in the Block Painter
+            {"sound", "Sound Designer", "25"},   // swapped a sound in the Sound Swapper
+            {"record", "Voice Actor", "25"},     // recorded your own sound
+            {"mod", "Modder", "50"},             // made a mod in the Mod Maker that ran
+            {"emote", "Hello There", "10"},      // sent an emote
+            {"song", "DJ", "10"},                // played your own song in the Jukebox
+            {"karaoke", "Karaoke Star", "25"}};  // played a song with lyrics
+
+    /** An achievement happened: its points (the first time only), with its name above the hotbar. */
+    private void achieved(String id) {
+        String[] achievement = null;
+        for (String[] a : ACHIEVEMENTS) if (a[0].equals(id)) achievement = a;
+        if (achievement == null) return;
+        Minecraft minecraft = Minecraft.getInstance();
+        String uuid = minecraft.getUser().getProfileId().toString().replace("-", "");
+        String name = minecraft.getUser().getName();
+        int before = count.player(uuid).points;
+        int points = count.earn(uuid, name, "squid:" + id, Integer.parseInt(achievement[2]));
+        if (points <= 0) return;
+        int total = count.player(uuid).points;
+        int milestone = milestoneBetween(before, total);
+        if (milestone > 0 && celebrations()) celebrate(milestone);
+        minecraft.gui.chatListener().handleOverlay(Component.literal(Lang.t("{0}! +{1} Squid Count  ({2} total)",
+                Lang.t(achievement[1]), points, total)).withStyle(ChatFormatting.GOLD));
+        if (milestone == 0) {
+            minecraft.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+                    net.minecraft.sounds.SoundEvents.PLAYER_LEVELUP, 1.4f, 0.6f));
+        }
+        try {
+            count.save();
+        } catch (Exception e) {
+            System.out.println("[Squid Count] Couldn't save: " + e.getMessage());
         }
     }
 

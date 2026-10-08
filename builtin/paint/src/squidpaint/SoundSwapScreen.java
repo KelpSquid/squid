@@ -195,6 +195,7 @@ final class SoundSwapScreen extends Screen {
                 rebuildWidgets();
                 return;
             }
+            squid.Events.fire("achievement", "record");
             swapIn(sound, () -> new Pcm(samples, 1, Recorder.RATE), Lang.t("Recorded in Squid"));
         }), problem -> minecraft.execute(() -> {
             if (id != recordingId) return;
@@ -313,6 +314,7 @@ final class SoundSwapScreen extends Screen {
                     return;
                 }
                 say(Lang.t("Swapped! Reloading so you can hear it..."), 0xFF55FF55);
+                squid.Events.fire("achievement", "sound");
                 Paint.apply();
                 rebuildWidgets();
             });

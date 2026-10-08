@@ -35,6 +35,7 @@ final class CodeScreen extends Screen {
     private long savedFileTime; // the file's time after the last Save, to know which live reload result is about it
     private long savedAt;
     private String problem;
+    private boolean madeIt; // a save of this mod ran, for Squid Count's Modder achievement
     private boolean warnedEmpty; // Back was pressed with all the code gone, and it said so
     private boolean showCommands;
     private int commandPage;
@@ -178,6 +179,10 @@ final class CodeScreen extends Screen {
         } else if (result != null && result.fileTime() >= savedFileTime) {
             status = result.message();
             color = result.worked() ? 0xFF55FF55 : 0xFFFF5555;
+            if (result.worked() && !madeIt) {
+                madeIt = true;
+                squid.Events.fire("achievement", "mod"); // a mod you made in the game, running
+            }
         } else if (System.currentTimeMillis() - savedAt < 15_000) {
             status = Lang.t("Saved. Squid is building it...");
             color = 0xFFA0A0A0;

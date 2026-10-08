@@ -50,6 +50,7 @@ final class EmotesClient {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) return;
         show(minecraft.player.getUUID(), emote, minecraft.player.getName().getString());
+        squid.Events.fire("achievement", "emote");
         if (NetClient.serverHasSquid()) NetClient.toServer("emote", new byte[] {(byte) emote});
     }
 

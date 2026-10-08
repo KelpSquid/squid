@@ -157,6 +157,7 @@ final class BlockPaintScreen extends Screen {
             if (settings != null) Files.write(Paint.settingsFile(texture), settings);
             else Files.deleteIfExists(Paint.settingsFile(texture));
             say(Lang.t("Saved! Reloading so it shows in the world..."), 0xFF55FF55);
+            squid.Events.fire("achievement", "paint");
             Paint.apply();
         } catch (IOException e) {
             say(Lang.t("Couldn't save: {0}", e.getMessage()), 0xFFFF5555);

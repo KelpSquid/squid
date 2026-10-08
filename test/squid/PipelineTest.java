@@ -1454,6 +1454,16 @@ public class PipelineTest {
                 + emoteAllowed.invoke(null, emoteTimes, waver, 11_000L), "true false true");
         check("the emote wheel loads", Class.forName("squidemotes.EmoteScreen", true, netLoader).getSimpleName() + " "
                 + Class.forName("squidemotes.EmotesClient", true, netLoader).getSimpleName(), "EmoteScreen EmotesClient");
+        // Squid's own achievements: each one is reported by a part of Squid, and counts once
+        List<Object> achievementsHeard = new ArrayList<>();
+        Events.on("achievement", "achievement-test", achievementsHeard::add);
+        Events.fire("achievement", "paint");
+        Events.remove("achievement-test");
+        Path achievementCount = java.nio.file.Files.createTempDirectory("squid-count").resolve("squid-count.json");
+        squidcount.CountFile achievementFile = squidcount.CountFile.load(achievementCount);
+        int firstTime = achievementFile.earn("abc", "Sam", "squid:paint", 25);
+        int secondTime = achievementFile.earn("abc", "Sam", "squid:paint", 25);
+        check("an achievement reaches Squid Count, and counts once ever", achievementsHeard + " " + firstTime + " " + secondTime, "[paint] 25 0");
         // Karaoke lyrics from an .lrc file: times in any order, a line sung twice, an offset, word times left out
         Class<?> lyricsClass = netLoader.loadClass("squidjukebox.Lyrics");
         java.lang.reflect.Method parseLyrics = lyricsClass.getDeclaredMethod("parse", String.class);

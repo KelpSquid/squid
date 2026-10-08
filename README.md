@@ -156,7 +156,8 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
   head, with particles, for everyone near you with Squid. Always one of the eight, never typed words.
 - **Skins and capes:** Options > Skin Customization > Squid Skin & Cape: wear your own skin and cape, a Store cape,
   or a Mojang cape (shown from Mojang's own servers, with a tag if you don't own it), with animated effects.
-- **Squid Count:** points for every advancement, like gamerscore.
+- **Squid Count:** points for every advancement, like gamerscore. Making things counts too: your first painting, swapped
+  sound, recording, Mod Maker mod, emote, song and karaoke song each earn points once.
 - **Panorama:** capture a spinning title-screen background where you stand, and set its speed and direction.
 - **Clips:** F8 saves the last 30 seconds as a video, with sound, which shows in Kelp's Gallery.
 - **Replay:** F9 rewinds the last few minutes, Skate 3 style: watch it from any angle with Free, Follow, Tripod

@@ -209,6 +209,8 @@ public class Jukebox implements SquidMod {
         if (old != null) old.stop();
         current = song;
         lyrics = Lyrics.forSong(song.file());
+        squid.Events.fire("achievement", "song");
+        if (!lyrics.isEmpty()) squid.Events.fire("achievement", "karaoke");
         SongPlayer[] self = new SongPlayer[1];
         SongPlayer next = new SongPlayer(song.file(), ONE.equals(repeat()), () -> ended = self[0]);
         self[0] = next;
