@@ -876,8 +876,11 @@ public class PipelineTest {
         // remember() keeps a number for next time, without it showing up as a setting
         check("a number not remembered yet is the starting one", settings.remembered("diamonds", 0), 0);
         settings.remember("diamonds", 12);
-        check("a remembered number comes back, and isn't a setting", settings.remembered("diamonds", 0) + " " + settings.list().size()
-                + " " + java.nio.file.Files.readString(modsGame.resolve("config/squid/settings-test.properties")).contains("remember.diamonds=12"), "12 3 true");
+        boolean writtenAtOnce = java.nio.file.Files.readString(modsGame.resolve("config/squid/settings-test.properties")).contains("remember.diamonds=12");
+        Thread.sleep(2600); // written a moment later, in the background
+        check("a remembered number comes back, isn't a setting, and is written a moment later", settings.remembered("diamonds", 0) + " " + settings.list().size()
+                + " " + writtenAtOnce + " " + java.nio.file.Files.readString(modsGame.resolve("config/squid/settings-test.properties")).contains("remember.diamonds=12"),
+                "12 3 false true");
         Main.setGameFolder(Path.of("."));
 
         // Panoramas: captured ones are kept with their six pictures, and the one in use and its spin are remembered

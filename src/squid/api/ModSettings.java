@@ -105,7 +105,33 @@ public final class ModSettings {
     /** Keeps a number for next time. The file is only written when the number changes. */
     public synchronized void remember(String name, int value) {
         if (String.valueOf(value).equals(value("remember." + name, null))) return;
-        set("remember." + name, value);
+        values.setProperty("remember." + name, String.valueOf(value));
+        // Written a moment later in the background (a mod can change a number every tick), and when the game closes
+        if (!writeWaiting) {
+            writeWaiting = true;
+            LATER.schedule(this::writeNow, 2, java.util.concurrent.TimeUnit.SECONDS);
+        }
+    }
+
+    /** Writes the file now, if remember() left a change waiting. */
+    private synchronized void writeNow() {
+        if (!writeWaiting) return;
+        writeWaiting = false;
+        write();
+    }
+
+    /** Remembered numbers waiting to be written (see remember()). */
+    private boolean writeWaiting;
+
+    private static final java.util.concurrent.ScheduledExecutorService LATER = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "Squid settings writer");
+        t.setDaemon(true);
+        return t;
+    });
+
+    static {
+        // Numbers remembered in the last two seconds before the game closes are written too
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> ALL.values().forEach(ModSettings::writeNow), "Squid settings on exit"));
     }
 
     /** The current value of a setting, as text (for the settings screen). */
@@ -118,6 +144,11 @@ public final class ModSettings {
     public synchronized void set(String name, Object value) {
         load();
         values.setProperty(name, String.valueOf(value));
+        writeWaiting = false; // written now, remembered numbers included
+        write();
+    }
+
+    private void write() {
         try {
             // Written next to it first, then swapped in, so a crash halfway never leaves a half-written file
             Path file = file();
