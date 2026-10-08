@@ -52,6 +52,8 @@ public class Sounds implements SquidMod {
     /** Each sound file's bytes, read from the resource packs once instead of on every play. Empty: Minecraft's own. */
     private final Map<Identifier, Optional<byte[]>> files = new ConcurrentHashMap<>();
     private final Map<Identifier, Sqda> sqdas = new ConcurrentHashMap<>();
+    /** .sqda files that turned out to be damaged, so they're only reported once. */
+    private final Set<Identifier> broken = ConcurrentHashMap.newKeySet();
     private final Map<Identifier, Optional<Sqda>> headers = new ConcurrentHashMap<>();
     private final Map<String, CompletableFuture<SoundBuffer>> buffers = new ConcurrentHashMap<>();
     private final Random random = new Random();
@@ -72,6 +74,7 @@ public class Sounds implements SquidMod {
             }
             byte[] data = ours(path);
             if (data == null) return;
+            if (Sqda.is(data) && sqda(path, data) == null) return; // damaged: Minecraft says the sound is missing
             int variant = Sqda.is(data) ? variantFor(asked, path, data) : 0;
             call.cancel(buffers.computeIfAbsent(path + "#" + variant, key -> CompletableFuture.supplyAsync(() -> {
                 Pcm pcm = Sqda.is(data) ? sqda(path, data).decode(variant) : Audio.decode(data); // kept as a buffer, below
@@ -86,6 +89,7 @@ public class Sounds implements SquidMod {
             byte[] data = ours(path);
             if (data == null) return;
             if (Sqda.is(data)) {
+                if (sqda(path, data) == null) return;
                 int variant = variantFor(asked, path, data);
                 call.cancel(CompletableFuture.supplyAsync(() -> {
                     Sqda file = sqda(path, data);
@@ -105,6 +109,7 @@ public class Sounds implements SquidMod {
             plainOgg.clear();
             files.clear();
             sqdas.clear();
+            broken.clear();
             headers.clear();
         });
         // A .sqda's own sound settings, on top of sounds.json's
@@ -256,8 +261,21 @@ public class Sounds implements SquidMod {
         }
     }
 
+    /**
+     * The .sqda, read once, or null if it's damaged. A damaged file is said once in the log and then left to
+     * Minecraft (which calls it a missing sound): failing inside the hook every time it plays would count against
+     * Squid Sounds' hooks, and after a few failures they'd be turned off for every sound, not just this one.
+     */
     private Sqda sqda(Identifier path, byte[] data) {
-        return sqdas.computeIfAbsent(path, p -> Sqda.read(data));
+        Sqda known = sqdas.get(path);
+        if (known != null) return known;
+        if (broken.contains(path)) return null;
+        try {
+            return sqdas.computeIfAbsent(path, p -> Sqda.read(data));
+        } catch (RuntimeException damaged) {
+            if (broken.add(path)) System.out.println("[Squid Sounds] Couldn't play " + path + ": " + damaged.getMessage());
+            return null;
+        }
     }
 
     static AudioFormat format(Pcm pcm) {

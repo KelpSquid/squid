@@ -1462,6 +1462,18 @@ public class PipelineTest {
             soundsLoad &= Class.forName(name, true, netLoader).getClassLoader() == netLoader;
         }
         check("Minecraft's sound classes load with Squid Sounds' .sqda hooks", soundsLoad, true);
+        // A damaged .sqda in a resource pack is said once and left to Minecraft. Failing inside the hook on every play
+        // would count against the hook, and after a few failures Squid Sounds would stop working for every sound.
+        Object soundsPart = netLoader.loadClass("squidsounds.Sounds").getDeclaredConstructor().newInstance();
+        java.lang.reflect.Method readPackSqda = soundsPart.getClass().getDeclaredMethod("sqda", identifier, byte[].class);
+        readPackSqda.setAccessible(true);
+        java.lang.reflect.Method parseId = identifier.getMethod("tryParse", String.class);
+        Object brokenPath = parseId.invoke(null, "minecraft:sounds/broken.ogg");
+        Object brokenFirst = readPackSqda.invoke(soundsPart, brokenPath, oneFlip);
+        Object brokenAgain = readPackSqda.invoke(soundsPart, brokenPath, oneFlip);
+        check("a damaged .sqda in a pack doesn't fail inside Squid Sounds' hooks, and a good one still plays",
+                brokenFirst + " " + brokenAgain + " " + (readPackSqda.invoke(soundsPart, parseId.invoke(null, "minecraft:sounds/good.ogg"), sqdaBytes) != null),
+                "null null true");
         // The Jukebox's hook goes into Minecraft's music manager (so the game's music waits while a song plays)
         ((SquidMod) netLoader.loadClass("squidjukebox.Jukebox").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-jukebox")));
         // The voice changer: Chipmunk is higher and Giant deeper (counted by how often the sound crosses zero), at the
