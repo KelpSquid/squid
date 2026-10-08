@@ -223,12 +223,25 @@ final class SoundSwapScreen extends Screen {
     public void onFilesDrop(List<Path> files) {
         if (picked == null || files.isEmpty() || working || recorder.recording()) return;
         Path dropped = files.getFirst();
+        boolean song = isSong(picked);
         swapIn(picked, () -> {
-            // A minute of the biggest sound file there is (a WAV) is about 20 MB, so anything far past that is
-            // too long; this is checked before reading it all
-            if (Files.size(dropped) > 64L << 20) throw new TooLong(Lang.t("That file is too big. Sounds can be a minute at most."));
+            // A minute of the biggest sound file there is (a WAV) is about 10 MB (8 minutes of song about 85 MB), so
+            // anything far past that is too long; this is checked before reading it all
+            if (Files.size(dropped) > (song ? 200L << 20 : 64L << 20)) {
+                throw new TooLong(song ? Lang.t("That file is too big. Songs can be 8 minutes at most.")
+                        : Lang.t("That file is too big. Sounds can be a minute at most."));
+            }
             return Audio.decode(Files.readAllBytes(dropped));
         }, dropped.getFileName().toString());
+    }
+
+    /**
+     * Music discs (sounds/records) and the game's music (sounds/music) take whole songs, up to 8 minutes, so you can
+     * make a music disc of your favorite song. The game's music stays stereo; discs play from the jukebox's spot in
+     * the world, so they're mono like other sounds.
+     */
+    static boolean isSong(Identifier sound) {
+        return sound.getPath().startsWith("sounds/records/") || sound.getPath().startsWith("sounds/music/");
     }
 
     /** Reading a sound, which might not work. */
@@ -246,16 +259,19 @@ final class SoundSwapScreen extends Screen {
     /** Squeezes a sound into the pack in place of this one, in the background, then reloads so it's heard. */
     private void swapIn(Identifier sound, SoundReader read, String title) {
         String withEffect = effect;
+        boolean song = isSong(sound);
+        boolean stereo = sound.getPath().startsWith("sounds/music/") && withEffect.equals("None"); // effects work in mono
         working = true;
         say(Lang.t("Squeezing it in..."), 0xFFA0A0A0);
         rebuildWidgets();
         Util.backgroundExecutor().execute(() -> {
             String problem = null;
             try {
-                Pcm pcm = SqdaTool.toMono(read.get()); // Minecraft only places mono sounds in the world
-                pcm = Effects.apply(withEffect, pcm);
-                if (pcm.seconds() > 60) {
-                    problem = Lang.t("That's {0} seconds long. Sounds can be a minute at most.", (int) pcm.seconds());
+                Pcm pcm = read.get();
+                if (!stereo) pcm = Effects.apply(withEffect, SqdaTool.toMono(pcm)); // Minecraft only places mono sounds in the world
+                if (pcm.seconds() > (song ? 8 * 60 : 60)) {
+                    problem = song ? Lang.t("That's {0} seconds long. Songs can be 8 minutes at most.", (int) pcm.seconds())
+                            : Lang.t("That's {0} seconds long. Sounds can be a minute at most.", (int) pcm.seconds());
                 } else {
                     Sqda sqda = Sqda.fromSound(pcm, 6);
                     sqda.info.put("title", title);
@@ -307,6 +323,9 @@ final class SoundSwapScreen extends Screen {
         g.centeredText(font, Lang.t("Sound Swapper"), width / 2, 12, 0xFFFFFFFF);
         if (picked != null) {
             g.centeredText(font, nice(picked), width / 2, height / 2 - 40, 0xFF55FFFF);
+            if (picked.getPath().startsWith("sounds/records/")) {
+                g.centeredText(font, Lang.t("A music disc: drop a whole song on it, then play the disc in a jukebox."), width / 2, height / 2 - 54, 0xFFFFFF55);
+            }
             g.centeredText(font, Lang.t("Drop a sound file here (MP3, M4A, WAV, FLAC, Ogg or .sqda) to swap it in."),
                     width / 2, height / 2 - 20, 0xFFA0A0A0);
             g.centeredText(font, Lang.t("Or press Record and make the sound yourself."), width / 2, height / 2 - 8, 0xFFA0A0A0);
