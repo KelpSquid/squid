@@ -17,6 +17,10 @@ public class Speed implements SquidMod {
         settings = squid.settings();
         if (settings.toggle("Faster chunk drawing", true)) ChunkDrawing.install(squid);
         if (settings.toggle("Faster chunk building", true)) BiomeCache.install(squid);
+        // Mods start on the game's main thread, the one that draws every frame. On a computer with few processor
+        // threads, the chunk builders and the world's own thread all want the processor at once, and frames waited
+        // their turn: big stutters while new chunks load. A bit higher priority lets frames go first.
+        if (settings.toggle("Smooth on busy computers", true)) Thread.currentThread().setPriority(Thread.NORM_PRIORITY + 3);
         // Minecraft only slows down when the window is minimized; in the background behind other windows it kept
         // drawing as fast as it could, heating the computer for nobody
         squid.atEnd("com.mojang.blaze3d.platform.FramerateLimitTracker", "getFramerateLimit", call -> {
