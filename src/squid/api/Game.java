@@ -180,4 +180,128 @@ public final class Game {
     static double health() {
         return (float) call(player(), "getHealth");
     }
+
+    // ---- More things to do and know (EasyMod's newer commands) ----
+
+    private static Object field(Object target, String name) {
+        try {
+            return target.getClass().getField(name).get(target);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(Lang.t("Squid couldn't use Minecraft's {0}", name), e);
+        }
+    }
+
+    /** A name's last part, like "creeper" for minecraft:creeper, from a registry id. */
+    private static String path(Object identifier) {
+        return identifier == null ? "" : (String) call(identifier, "getPath");
+    }
+
+    /** Big text in the middle of the screen, with smaller text under it (either can be ""). */
+    static void title(String big, String small) {
+        Object hud = field(minecraft(), "hud");
+        call(hud, "setTimes", 10, 60, 20);
+        call(hud, "setSubtitle", text(small, "WHITE"));
+        call(hud, "setTitle", text(big, "WHITE"));
+    }
+
+    /** Adds to the player's speed: x east, y up, z south (blocks per tick). */
+    static void push(double x, double y, double z) {
+        Object player = player();
+        Object speed = call(player, "getDeltaMovement");
+        call(player, "setDeltaMovement", (double) field(speed, "x") + x, (double) field(speed, "y") + y, (double) field(speed, "z") + z);
+    }
+
+    /** Which way the player looks, as a direction 1 long: x, y, z. */
+    static double[] look() {
+        Object look = call(player(), "getLookAngle");
+        return new double[] {(double) field(look, "x"), (double) field(look, "y"), (double) field(look, "z")};
+    }
+
+    /** Puts particles around the player (only this player sees them), by name like "heart" or "flame". */
+    static void particles(String name, int count) {
+        try {
+            Object id = type("net.minecraft.resources.Identifier").getMethod("tryParse", String.class).invoke(null, name);
+            Object registry = type("net.minecraft.core.registries.BuiltInRegistries").getField("PARTICLE_TYPE").get(null);
+            Object kind = id == null ? null : call(registry, "getValue", id);
+            if (kind == null || !type("net.minecraft.core.particles.ParticleOptions").isInstance(kind)) {
+                throw new IllegalArgumentException(Lang.t("Minecraft has no simple particle called \"{0}\". Try \"heart\", \"flame\", \"happy_villager\" or \"note\"", name));
+            }
+            Object level = world();
+            double px = position(0);
+            double py = position(1);
+            double pz = position(2);
+            java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+            for (int i = 0; i < Math.min(count, 200); i++) {
+                call(level, "addParticle", kind, px + random.nextDouble(-1, 1), py + random.nextDouble(0.2, 2), pz + random.nextDouble(-1, 1),
+                        random.nextDouble(-0.05, 0.05), random.nextDouble(0, 0.1), random.nextDouble(-0.05, 0.05));
+            }
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(Lang.t("Squid couldn't make the particles"), e);
+        }
+    }
+
+    /** How many mobs of a kind (like "creeper") are within this many blocks. "" counts every mob. */
+    static int nearby(String mob, double distance) {
+        try {
+            Object player = player();
+            Object box = call(call(player, "getBoundingBox"), "inflate", distance);
+            Class<?> entityType = type("net.minecraft.world.entity.EntityType");
+            java.lang.reflect.Method key = entityType.getMethod("getKey", entityType);
+            String wanted = mob.contains(":") ? mob.substring(mob.indexOf(':') + 1) : mob;
+            int count = 0;
+            for (Object entity : (java.util.List<?>) call(world(), "getEntities", player, box, (java.util.function.Predicate<Object>) e -> true)) {
+                if (!type("net.minecraft.world.entity.LivingEntity").isInstance(entity)) continue;
+                if (!wanted.isEmpty() && !path(key.invoke(null, call(entity, "getType"))).equals(wanted)) continue;
+                count++;
+            }
+            return count;
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(Lang.t("Squid couldn't look around"), e);
+        }
+    }
+
+    /** The item in the player's main hand, like "diamond_sword", or "" for an empty hand. */
+    static String holding() {
+        try {
+            Object stack = call(player(), "getMainHandItem");
+            if ((boolean) call(stack, "isEmpty")) return "";
+            Object registry = type("net.minecraft.core.registries.BuiltInRegistries").getField("ITEM").get(null);
+            return path(call(registry, "getKey", call(stack, "getItem")));
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** What the player's crosshair is on: a block like "oak_log", a mob like "cow", or "" for nothing. */
+    static String lookingAt() {
+        try {
+            Object hit = field(minecraft(), "hitResult");
+            if (hit == null) return "";
+            String kind = ((Enum<?>) call(hit, "getType")).name();
+            if (kind.equals("BLOCK")) {
+                Object state = call(world(), "getBlockState", call(hit, "getBlockPos"));
+                Object registry = type("net.minecraft.core.registries.BuiltInRegistries").getField("BLOCK").get(null);
+                return path(call(registry, "getKey", call(state, "getBlock")));
+            }
+            if (kind.equals("ENTITY")) {
+                Class<?> entityType = type("net.minecraft.world.entity.EntityType");
+                return path(entityType.getMethod("getKey", entityType).invoke(null, call(call(hit, "getEntity"), "getType")));
+            }
+            return "";
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** The biome the player is in, like "plains" or "deep_dark". */
+    static String biome() {
+        Object holder = call(world(), "getBiome", call(player(), "blockPosition"));
+        Object key = ((java.util.Optional<?>) call(holder, "unwrapKey")).orElse(null);
+        return key == null ? "" : path(call(key, "identifier"));
+    }
+
+    /** Whether it's dark outside (night, or a storm). */
+    static boolean dark() {
+        return (boolean) call(world(), "isDarkOutside");
+    }
 }

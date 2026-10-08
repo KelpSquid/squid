@@ -36,11 +36,17 @@ public class RainbowSheep extends EasyMod {
 | `giveItem("diamond", 3)` | Gives you items (cheats need to be on) |
 | `command("time set day")` | Runs a command, like typing `/time set day` |
 | `splash("Hi!")` | Changes the yellow text on the title screen |
+| `title("Boss!", "Good luck")` | Big text in the middle of the screen (the second part is smaller) |
+| `boost(1.2)`, `dash(2)` | Shoots you up, or forward the way you're looking |
+| `particles("heart", 10)` | Particles around you only you see (`"flame"`, `"note"`, `"happy_villager"`...) |
 | `onJoin(() -> { ... })` | Runs when you join a world |
 | `onKey("H", () -> { ... })` | Runs when you press a key (players can change it in Controls) |
 | `every(10, () -> { ... })` | Runs every 10 seconds |
 | `onTick(() -> { ... })` | Runs 20 times a second |
+| `onHurt(() -> { ... })`, `onDeath(() -> { ... })` | Runs when you get hurt, or die |
 | `x()`, `y()`, `z()`, `health()`, `playerName()`, `random(1, 6)` | Things to know |
+| `biome()`, `isNight()`, `holding()`, `lookingAt()` | Where you are, what's in your hand, and the block or mob you're looking at |
+| `nearby("creeper", 16)` | How many of a mob are within 16 blocks (`""` counts every mob) |
 | `setting("Show map", true)`, `setting("Zoom", 4, 1, 10)` | A setting players change in the Mods screen (top-left of the title screen and pause menu) |
 
 If there's a mistake, the game still opens. The title screen and Kelp say which line it's on and what's wrong, like *"there's a mistake on line 3: a ; is missing at the end of the line"*. A mod that goes wrong while you play says so in the chat and switches that part off.

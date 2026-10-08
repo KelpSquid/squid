@@ -31,6 +31,9 @@ public abstract class EasyMod implements SquidMod {
     private final List<Action> ticks = new ArrayList<>();
     private final List<Action> joins = new ArrayList<>();
     private final List<Action> leaves = new ArrayList<>();
+    private final List<Action> hurts = new ArrayList<>();
+    private final List<Action> deaths = new ArrayList<>();
+    private double lastHealth = -1; // health last tick, to notice getting hurt and dying
     private final List<Timer> timers = new ArrayList<>();
     private final List<KeyAction> keys = new ArrayList<>();
     private final List<String[]> waitingMessages = new ArrayList<>(); // text and color, said before joining a world
@@ -119,6 +122,16 @@ public abstract class EasyMod implements SquidMod {
         keys.add(new KeyAction(binding, new Action("onKey(\"" + key + "\")", action)));
     }
 
+    /** Runs when you get hurt (your health goes down). */
+    protected void onHurt(Runnable action) {
+        hurts.add(new Action("onHurt", action));
+    }
+
+    /** Runs when you die. */
+    protected void onDeath(Runnable action) {
+        deaths.add(new Action("onDeath", action));
+    }
+
     /** Runs 20 times a second while you're in a world. */
     protected void onTick(Runnable action) {
         ticks.add(new Action("onTick", action));
@@ -168,6 +181,33 @@ public abstract class EasyMod implements SquidMod {
         if (Game.inWorld()) Game.playSound(sound);
     }
 
+    /** Shows big text in the middle of the screen for a few seconds, like title("Level up!"). */
+    protected void title(Object text) {
+        title(text, "");
+    }
+
+    /** Big text in the middle of the screen, with smaller text under it: title("Boss fight!", "Good luck"). */
+    protected void title(Object text, Object smaller) {
+        if (Game.inWorld()) Game.title(String.valueOf(text), String.valueOf(smaller));
+    }
+
+    /** Shoots you up into the air: boost(1) is a big jump, boost(3) reaches the clouds. Falling still hurts! */
+    protected void boost(double up) {
+        if (Game.inWorld()) Game.push(0, up, 0);
+    }
+
+    /** Dashes you forward, the way you're looking: dash(1) is quick, dash(3) is very far. */
+    protected void dash(double strength) {
+        if (!Game.inWorld()) return;
+        double[] look = Game.look();
+        Game.push(look[0] * strength, look[1] * strength * 0.5, look[2] * strength);
+    }
+
+    /** Puts particles around you that only you see, like particles("heart", 10). Try "flame", "note", "happy_villager". */
+    protected void particles(String name, int count) {
+        if (Game.inWorld()) Game.particles(name, count);
+    }
+
     /** Changes the yellow text on the title screen. Use it inside start(). */
     protected void splash(String text) {
         if (!starting) throw new IllegalStateException(Lang.t("splash only works inside start()"));
@@ -209,6 +249,31 @@ public abstract class EasyMod implements SquidMod {
     /** Your health, from 0 to 20. Each heart is 2. */
     protected double health() {
         return Game.inWorld() ? Game.health() : 0;
+    }
+
+    /** How many of a mob are near you, like nearby("creeper", 16). nearby("", 16) counts every mob. */
+    protected int nearby(String mob, double distance) {
+        return Game.inWorld() ? Game.nearby(mob, distance) : 0;
+    }
+
+    /** What's in your hand, like "diamond_sword", or "" if it's empty. */
+    protected String holding() {
+        return Game.inWorld() ? Game.holding() : "";
+    }
+
+    /** What you're looking at: a block like "oak_log", a mob like "cow", or "" for nothing. */
+    protected String lookingAt() {
+        return Game.inWorld() ? Game.lookingAt() : "";
+    }
+
+    /** The biome you're in, like "plains", "desert" or "deep_dark". */
+    protected String biome() {
+        return Game.inWorld() ? Game.biome() : "";
+    }
+
+    /** Whether it's night (or dark from a storm) where you are. */
+    protected boolean isNight() {
+        return Game.inWorld() && Game.dark();
     }
 
     /** A random whole number from min to max, both included. */
@@ -255,7 +320,20 @@ public abstract class EasyMod implements SquidMod {
         for (KeyAction key : keys) {
             while (key.key().pressed()) key.action().run(); // each press counts once
         }
-        if (now == null || Game.paused()) return;
+        if (now == null) {
+            lastHealth = -1;
+            return;
+        }
+        if (Game.paused()) return;
+        // Getting hurt and dying, noticed from your health going down
+        if (!hurts.isEmpty() || !deaths.isEmpty()) {
+            double health = Game.health();
+            if (lastHealth > 0 && health < lastHealth) {
+                hurts.forEach(Action::run);
+                if (health <= 0) deaths.forEach(Action::run);
+            }
+            lastHealth = health;
+        }
         worldTicks++;
         ticks.forEach(Action::run);
         for (Timer timer : timers) {

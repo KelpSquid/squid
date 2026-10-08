@@ -256,6 +256,25 @@ public class PipelineTest {
         ModInfo again = sources.compile(easy.resolve("Hello.java"));
         check("an unchanged mod isn't compiled again", java.nio.file.Files.getLastModifiedTime(again.jar().resolve("ok")).toMillis(), compiledAt);
         check("file names become mod names", SourceMods.spaced("MyCoolMod") + " / " + SourceMods.spaced("TNT_Rain"), "My Cool Mod / TNT Rain");
+        // Every EasyMod command compiles in a mod, and the ones that look at the world are safe before you're in one
+        Path everything = java.nio.file.Files.createTempDirectory("squid-all-commands").resolve("AllCommands.java");
+        java.nio.file.Files.writeString(everything, String.join("\n",
+                "public class AllCommands extends EasyMod {",
+                "    void start() {",
+                "        onKey(\"R\", () -> boost(1.2));",
+                "        onKey(\"F\", () -> dash(2));",
+                "        onHurt(() -> particles(\"angry_villager\", 5));",
+                "        onDeath(() -> title(\"Oops!\", \"Try again\"));",
+                "        every(1, () -> {",
+                "            if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");",
+                "            showText(holding() + \" / \" + lookingAt() + \" / \" + biome() + \" / \" + (isNight() ? \"night\" : \"day\"));",
+                "            particles(\"heart\", 3);",
+                "        });",
+                "    }",
+                "}", ""));
+        ModInfo allCommands = sources.compile(everything);
+        check("every EasyMod command compiles in a mod", allCommands.id(), "all-commands");
+
 
         // Projects: a folder with many files and resources, and the same thing packed into one .squid file
         Path projects = java.nio.file.Files.createTempDirectory("squid-project-test");
