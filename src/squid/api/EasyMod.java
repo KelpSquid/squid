@@ -462,6 +462,11 @@ public abstract class EasyMod implements SquidMod {
         return Game.inWorld() && Game.dark();
     }
 
+    /** Which world you're in: a single player world's name, or a server's address. */
+    protected String worldName() {
+        return Game.inWorld() ? Game.worldName() : "";
+    }
+
     /** The dimension you're in: "overworld", "the_nether" or "the_end". */
     protected String dimension() {
         return Game.inWorld() ? Game.dimension() : "";

@@ -4,11 +4,11 @@ import squid.api.EasyMod;
 
 /**
  * When you die, this remembers where, and shows how far away your things are until you get back to them (even after
- * quitting the game). It only shows in the dimension you died in. !died says where it was.
+ * quitting the game). It only shows in the world and dimension you died in. !died says where it was.
  */
 public class WhereIDied extends EasyMod {
     private int[] spot; // where you died (x, y, z), until you get back there
-    private int place;  // which dimension that was (its name's hash, since remember keeps numbers)
+    private int place;  // which world and dimension that was (their names' hash, since remember keeps numbers)
 
     void start() {
         if (remembered("waiting", 0) == 1) {
@@ -17,7 +17,7 @@ public class WhereIDied extends EasyMod {
         }
         onDeath(() -> {
             spot = new int[] {x(), y(), z()};
-            place = dimension().hashCode();
+            place = placeNow();
             remember("x", spot[0]);
             remember("y", spot[1]);
             remember("z", spot[2]);
@@ -40,7 +40,12 @@ public class WhereIDied extends EasyMod {
 
     /** Whether there's a spot to go back to, in the dimension you're in. */
     private boolean here() {
-        return spot != null && dimension().hashCode() == place;
+        return spot != null && placeNow() == place;
+    }
+
+    /** The world and dimension you're in now, as a number. */
+    private int placeNow() {
+        return (worldName() + "/" + dimension()).hashCode();
     }
 
     private int blocksAway() {

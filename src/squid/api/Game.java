@@ -418,6 +418,21 @@ public final class Game {
         }
     }
 
+    /** Which world this is: a single player world's folder name, or a server's address. "" if it can't tell. */
+    static String worldName() {
+        Object world = world();
+        if (world != namedWorld) { // worked out once per world, since mods may ask every frame
+            String played = lastPlayed();
+            String[] lines = played == null ? new String[0] : played.split("\n");
+            worldName = lines.length > 1 ? lines[1] : "";
+            namedWorld = world;
+        }
+        return worldName;
+    }
+
+    private static Object namedWorld;
+    private static String worldName = "";
+
     /** The dimension the player is in: "overworld", "the_nether" or "the_end". */
     static String dimension() {
         return path(call(call(world(), "dimension"), "identifier"));
