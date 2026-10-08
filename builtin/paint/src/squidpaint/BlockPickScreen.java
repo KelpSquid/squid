@@ -18,6 +18,7 @@ import java.util.Locale;
 final class BlockPickScreen extends Screen {
     private final Screen back;
     private List<Identifier> all;
+    private boolean items; // blocks, or items (swords, food, tools...)
     private EditBox search;
     private String filter = "";
     private int page;
@@ -29,9 +30,15 @@ final class BlockPickScreen extends Screen {
 
     @Override
     protected void init() {
-        if (all == null) all = Paint.blockTextures();
+        if (all == null) all = items ? Paint.itemTextures() : Paint.blockTextures();
         int x = width / 2 - 150;
-        search = new EditBox(font, x, 30, 300, 20, Component.literal(Lang.t("Search")));
+        addRenderableWidget(Button.builder(Component.literal(items ? Lang.t("Items") : Lang.t("Blocks")), b -> {
+            items = !items;
+            all = null;
+            page = 0;
+            rebuildWidgets();
+        }).bounds(x, 30, 60, 20).build());
+        search = new EditBox(font, x + 64, 30, 236, 20, Component.literal(Lang.t("Search")));
         search.setHint(Component.literal(Lang.t("Search blocks, like \"diamond\" or \"oak\"")));
         search.setValue(filter);
         search.setResponder(text -> {
@@ -72,10 +79,10 @@ final class BlockPickScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
     }
 
-    /** "block/diamond_ore" is shown as "diamond ore". */
+    /** "block/diamond_ore" is shown as "diamond ore", "item/apple" as "apple". */
     static String nice(Identifier texture) {
         String path = texture.getPath();
-        String name = path.startsWith("block/") ? path.substring("block/".length()) : path;
+        String name = path.startsWith("block/") ? path.substring("block/".length()) : path.startsWith("item/") ? path.substring("item/".length()) : path;
         return name.replace('_', ' ');
     }
 
@@ -89,7 +96,7 @@ final class BlockPickScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
         g.centeredText(font, Lang.t("Block Painter"), width / 2, 12, 0xFFFFFFFF);
-        if (shown().isEmpty()) g.centeredText(font, Lang.t("No blocks with that name."), width / 2, height / 2, 0xFFA0A0A0);
+        if (shown().isEmpty()) g.centeredText(font, items ? Lang.t("No items with that name.") : Lang.t("No blocks with that name."), width / 2, height / 2, 0xFFA0A0A0);
         g.centeredText(font, Lang.t("Pick a block to paint. A * means you've painted it."), width / 2, height - 40, 0xFF808080);
     }
 

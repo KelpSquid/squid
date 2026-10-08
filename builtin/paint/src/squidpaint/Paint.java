@@ -104,9 +104,18 @@ public class Paint implements SquidMod {
 
     /** Every block texture there is, like minecraft:block/stone, by name. */
     static List<Identifier> blockTextures() {
+        return textures("block");
+    }
+
+    /** Every item texture, like minecraft:item/diamond_sword. */
+    static List<Identifier> itemTextures() {
+        return textures("item");
+    }
+
+    private static List<Identifier> textures(String kind) {
         List<Identifier> found = new ArrayList<>();
         for (Identifier id : Minecraft.getInstance().getResourceManager()
-                .listResources("textures/block", id -> id.getPath().endsWith(".png")).keySet()) {
+                .listResources("textures/" + kind, id -> id.getPath().endsWith(".png")).keySet()) {
             String path = id.getPath();
             found.add(id.withPath(path.substring("textures/".length(), path.length() - ".png".length())));
         }
