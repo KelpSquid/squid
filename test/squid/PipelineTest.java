@@ -923,6 +923,32 @@ public class PipelineTest {
         check("an Ogg Vorbis file decodes to the sound it was made from, exactly as long as it says",
                 toneOgg.channels() + " " + toneOgg.rate() + " " + toneOgg.samples().length + " " + (10 * Math.log10((double) oggSignal / oggError) > 20),
                 "2 44100 22050 true");
+        // AAC: an .m4a (its start trimmed by the edit list) and a raw .aac stream, matching ffmpeg's own decode
+        for (String aacFile : new String[] {"tone.m4a", "tone.aac"}) {
+            squid.audio.Pcm toneAac = squid.audio.Audio.decode(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("test/audio/" + aacFile)));
+            byte[] refBytes = java.nio.file.Files.readAllBytes(java.nio.file.Path.of("test/audio/" + aacFile + ".ffmpeg.raw"));
+            long aacError = 0;
+            long aacSignal = 0;
+            for (int i = 0; i < refBytes.length / 2 && i < toneAac.samples().length; i++) {
+                int ref = (short) ((refBytes[2 * i] & 0xFF) | (refBytes[2 * i + 1] << 8));
+                long d = toneAac.samples()[i] - ref;
+                aacError += d * d;
+                aacSignal += (long) ref * ref;
+            }
+            check("an AAC file (" + aacFile + ") decodes like ffmpeg does, to the sample",
+                    toneAac.channels() + " " + toneAac.rate() + " " + (toneAac.samples().length == refBytes.length / 2)
+                            + " " + (10 * Math.log10((double) aacSignal / Math.max(1, aacError)) > 80), "2 44100 true true");
+        }
+        byte[] realAac = java.nio.file.Files.readAllBytes(java.nio.file.Path.of("test/audio/tone.m4a"));
+        java.util.Random aacFlips = new java.util.Random(7);
+        List<String> aacCrashes = new ArrayList<>();
+        for (int i = 0; i < 200; i++) {
+            byte[] damaged = realAac.clone();
+            for (int k = 0; k < 4; k++) damaged[aacFlips.nextInt(damaged.length)] ^= (byte) (1 << aacFlips.nextInt(8));
+            String result = failure(() -> squid.audio.Audio.decode(damaged));
+            if (!result.isEmpty() && !result.startsWith("IllegalArgumentException")) aacCrashes.add(result);
+        }
+        check("200 damaged .m4a files never crash the decoder", aacCrashes.stream().distinct().toList(), List.of());
         check("something that isn't sound is turned away", squid.audio.Audio.canDecode("hello".getBytes()) + "", "false");
 
         // Squid Voice: our own voice codec, 24 kbps, close to the original on a voice-like sound
@@ -1198,6 +1224,8 @@ public class PipelineTest {
         byte[] oldTag = new byte[128];
         System.arraycopy("TAGSweden".getBytes(), 0, oldTag, 0, 9);
         System.arraycopy("C418".getBytes(), 0, oldTag, 33, 4);
+        check("an .m4a's iTunes tags give the title and artist", squid.audio.Tags.read(java.nio.file.Files.readAllBytes(Path.of("test", "audio", "tagged.m4a"))).toString(),
+                "{title=Test Tone, artist=Squid}");
         check("an MP3's old ID3v1 tag at the end works too", squid.audio.Tags.readEnd(oldTag).toString(), "{title=Sweden, artist=C418}");
 
         // Music bars: a deep tone lights the bass bars, a high one the treble bars

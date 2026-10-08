@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * A song's title and artist, read from the file itself: ID3 tags in MP3s (both kinds), Vorbis comments in FLAC and
- * Ogg files, the INFO list in WAVs, and a .sqda's own info. Anything the file doesn't say is left out, so the file's
+ * Ogg files, iTunes' tags in .m4a files, the INFO list in WAVs, and a .sqda's own info. Anything the file doesn't say is left out, so the file's
  * name can stand in.
  */
 public final class Tags {
@@ -32,6 +32,8 @@ public final class Tags {
                 flac(d, tags);
             } else if (d.length > 4 && d[0] == 'O' && d[1] == 'g' && d[2] == 'g' && d[3] == 'S') {
                 ogg(d, tags);
+            } else if (d.length > 8 && d[4] == 'f' && d[5] == 't' && d[6] == 'y' && d[7] == 'p') {
+                mp4(d, 0, d.length, tags, 0);
             }
             if (!tags.containsKey("title") && d.length > 128) id3v1(d, tags, d.length - 128);
         } catch (RuntimeException | java.io.IOException e) {
@@ -195,6 +197,35 @@ public final class Tags {
             };
             String value = entry.substring(eq + 1).strip();
             if (key != null && !value.isEmpty()) tags.putIfAbsent(key, value);
+        }
+    }
+
+    // ---- M4A: iTunes keeps its tags in moov > udta > meta > ilst, as boxes named ©nam, ©ART and ©alb ----
+
+    private static void mp4(byte[] d, int from, int to, Map<String, String> tags, int depth) {
+        int at = from;
+        while (at + 8 <= to && depth < 8) {
+            long size = ((d[at] & 0xFFL) << 24) | ((d[at + 1] & 0xFFL) << 16) | ((d[at + 2] & 0xFFL) << 8) | (d[at + 3] & 0xFFL);
+            if (size < 8 || at + size > to) return;
+            String type = new String(d, at + 4, 4, StandardCharsets.ISO_8859_1);
+            int body = at + 8;
+            int end = (int) (at + size);
+            switch (type) {
+                case "moov", "udta", "ilst" -> mp4(d, body, end, tags, depth + 1);
+                case "meta" -> mp4(d, body + 4, end, tags, depth + 1); // a version and flags come first
+                case "\u00a9nam", "\u00a9ART", "\u00a9alb" -> {
+                    // The item holds a "data" box: its size, "data", a type, a locale, then the text
+                    if (body + 16 <= end && d[body + 4] == 'd' && d[body + 5] == 'a' && d[body + 6] == 't' && d[body + 7] == 'a') {
+                        String text = new String(d, body + 16, end - body - 16, StandardCharsets.UTF_8).strip();
+                        String key = type.endsWith("nam") ? "title" : type.endsWith("ART") ? "artist" : "album";
+                        if (!text.isEmpty()) tags.putIfAbsent(key, text);
+                    }
+                }
+                default -> {
+                    // a box without tags in it
+                }
+            }
+            at = end;
         }
     }
 

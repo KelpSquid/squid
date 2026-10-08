@@ -147,7 +147,7 @@ final class JukeboxScreen extends Screen {
             say(Lang.t("Couldn't add it: {0}", e.getMessage()), 0xFFFF5555);
             return;
         }
-        if (added == 0) say(Lang.t("Songs are .mp3, .flac, .wav, .ogg or .sqda files."), 0xFFFF5555);
+        if (added == 0) say(Lang.t("Songs are .mp3, .m4a, .flac, .wav, .ogg or .sqda files."), 0xFFFF5555);
         else say(added == 1 ? Lang.t("Added 1 song!") : Lang.t("Added {0} songs!", added), 0xFF55FF55);
         rebuildWidgets();
     }
@@ -180,7 +180,7 @@ final class JukeboxScreen extends Screen {
             g.centeredText(font, Lang.t("Nothing playing"), width / 2, 26, 0xFFA0A0A0);
         }
         if (songs.isEmpty()) {
-            g.centeredText(font, Lang.t("No songs yet. Drop .mp3, .flac, .wav, .ogg or .sqda files here,"), width / 2, 112, 0xFFA0A0A0);
+            g.centeredText(font, Lang.t("No songs yet. Drop .mp3, .m4a, .flac, .wav, .ogg or .sqda files here,"), width / 2, 112, 0xFFA0A0A0);
             g.centeredText(font, Lang.t("or put them in the Music Folder."), width / 2, 124, 0xFFA0A0A0);
         }
         String trouble = j.problem();

@@ -145,10 +145,11 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
 - **Replay:** F9 rewinds the last few minutes, Skate 3 style: watch it from any angle with Free, Follow, Tripod
   or Path (keyframe) cameras, a lens setting, slow motion, backwards, trim, sounds and particles. Save replays to
   watch later, or export them as videos.
-- **Sounds:** resource packs can use `.wav`, `.mp3`, `.flac` and `.sqda` sounds and music, not just `.ogg`. Squid
-  has its own decoders for all of them (`squid.audio`), written from scratch. Surround files play as stereo, and a
+- **Sounds:** resource packs can use `.wav`, `.mp3`, `.flac`, `.m4a` and `.sqda` sounds and music, not just `.ogg`.
+  Squid has its own decoders for all of them (`squid.audio`), written from scratch, including AAC (the sound in
+  iTunes and phone `.m4a` files), which decodes to the sample the same as ffmpeg. Surround files play as stereo, and a
   damaged file plays what it can instead of breaking the game's sound.
-- **Jukebox:** your own music in the game. Put songs (MP3, FLAC, WAV, Ogg or `.sqda`) in the `music` folder in
+- **Jukebox:** your own music in the game. Put songs (MP3, M4A, FLAC, WAV, Ogg or `.sqda`) in the `music` folder in
   Kelp's folder, or drop them onto Squid > Jukebox. Play, pause, skip, shuffle and repeat; Minecraft's own music
   waits while a song plays, a Now Playing card shows the title and artist from the file's tags, and it follows the
   Music volume slider. Mods can move with it through `SquidAudio.level()`.

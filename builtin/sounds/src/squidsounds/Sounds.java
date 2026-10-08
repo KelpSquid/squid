@@ -44,7 +44,7 @@ import java.util.regex.Pattern;
  * (see {@link Playing}).
  */
 public class Sounds implements SquidMod {
-    private static final String[] OTHER_KINDS = {".sqda", ".wav", ".mp3", ".flac"};
+    private static final String[] OTHER_KINDS = {".sqda", ".wav", ".mp3", ".flac", ".m4a"};
     /** A trigger plays one of a file's own variants as "name.squidvariant3": the same file, variant 3. */
     static final Pattern VARIANT = Pattern.compile("^(.*)\\.squidvariant(\\d+)(\\.ogg)?$");
 

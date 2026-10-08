@@ -31,7 +31,7 @@ import java.util.stream.Stream;
  * few seconds, and mods can follow its loudness through SquidAudio. It follows Minecraft's Music volume slider.
  */
 public class Jukebox implements SquidMod {
-    static final String[] KINDS = {".mp3", ".flac", ".wav", ".ogg", ".sqda"};
+    static final String[] KINDS = {".mp3", ".m4a", ".aac", ".flac", ".wav", ".ogg", ".sqda"};
     static final String OFF = "Off";
     static final String ALL = "All";
     static final String ONE = "One";
