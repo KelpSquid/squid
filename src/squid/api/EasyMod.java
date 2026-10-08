@@ -412,6 +412,11 @@ public abstract class EasyMod implements SquidMod {
         return Game.inWorld() && Game.dark();
     }
 
+    /** Whether it's raining (or snowing) in the world right now. */
+    protected boolean isRaining() {
+        return Game.inWorld() && Game.raining();
+    }
+
     /** How loud the music playing is right now, from 0 (quiet, or none) to 1. */
     protected double musicLevel() {
         return SquidAudio.level();

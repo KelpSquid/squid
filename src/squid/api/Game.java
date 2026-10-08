@@ -351,6 +351,11 @@ public final class Game {
         return key == null ? "" : path(call(key, "identifier"));
     }
 
+    /** Whether it's raining (or snowing) in the world. */
+    static boolean raining() {
+        return (boolean) call(world(), "isRaining");
+    }
+
     /** Whether it's dark outside (night, or a storm). */
     static boolean dark() {
         return (boolean) call(world(), "isDarkOutside");

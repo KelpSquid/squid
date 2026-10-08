@@ -51,6 +51,7 @@ public final class ModMaker {
             new String[] {"remember", "remember(\"score\", remembered(\"score\", 0) + 1);"},
             new String[] {"nearby", "if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");"},
             new String[] {"isNight", "if (isNight()) say(\"It's night!\");"},
+            new String[] {"isRaining", "if (isRaining()) title(\"Rain!\", \"Get inside\");"},
             new String[] {"random", "if (random(1, 6) == 6) say(\"You rolled a 6!\");"});
 
     /** Every easy mod in the folder, by name. */

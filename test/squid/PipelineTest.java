@@ -835,7 +835,7 @@ public class PipelineTest {
         allSnippets.append("    }\n}\n");
         Path snippetsFile = java.nio.file.Files.createTempDirectory("squid-snippets").resolve("AllSnippets.java");
         java.nio.file.Files.writeString(snippetsFile, allSnippets);
-        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 25");
+        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 26");
 
         Main.setGameFolder(modsGame);
         squid.api.ModSettings settings = squid.api.ModSettings.of("settings-test");

@@ -132,9 +132,12 @@ final class BlockPaintScreen extends Screen {
         }).bounds(x + 50, y, 48, 20).build());
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Save")), b -> save()).bounds(x, y + 24, 98, 20).build())
                 .active = canSave;
-        addRenderableWidget(Button.builder(Component.literal(Lang.t("Reset")), b -> reset()).bounds(x, y + 48, 98, 20).build())
+        // Your newest screenshot (F2) as pixel art: a picture of your world, hung on the wall
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Last Screenshot")), b -> lastScreenshot()).bounds(x, y + 48, 98, 20).build())
+                .active = canSave && !reading;
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Reset")), b -> reset()).bounds(x, y + 72, 48, 20).build())
                 .active = Paint.painted(texture);
-        addRenderableWidget(Button.builder(Component.literal(Lang.t("Back")), b -> onClose()).bounds(x, y + 72, 98, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("Back")), b -> onClose()).bounds(x + 50, y + 72, 48, 20).build());
     }
 
     private int rowsOfColors() {
@@ -249,8 +252,28 @@ final class BlockPaintScreen extends Screen {
      */
     @Override
     public void onFilesDrop(List<Path> files) {
-        if (files.isEmpty() || !canSave || reading) return;
-        Path dropped = files.getFirst();
+        if (!files.isEmpty()) usePicture(files.getFirst());
+    }
+
+    /** The newest picture in the screenshots folder (the ones F2 takes), turned into pixel art. */
+    private void lastScreenshot() {
+        Path folder = minecraft.gameDirectory.toPath().resolve("screenshots");
+        Path newest = null;
+        try (java.util.stream.Stream<Path> list = Files.list(folder)) {
+            newest = list.filter(p -> p.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".png"))
+                    .max(java.util.Comparator.comparingLong(p -> p.toFile().lastModified())).orElse(null);
+        } catch (IOException e) {
+            // no screenshots folder yet
+        }
+        if (newest == null) {
+            say(Lang.t("No screenshots yet. Press F2 in the game to take one."), 0xFFFF5555);
+            return;
+        }
+        usePicture(newest);
+    }
+
+    private void usePicture(Path dropped) {
+        if (!canSave || reading) return;
         int tw = w;
         int th = h;
         int frames = frame;

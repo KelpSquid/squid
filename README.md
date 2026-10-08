@@ -55,7 +55,7 @@ public class RainbowSheep extends EasyMod {
 | `onBeat(() -> { ... })` | Runs on every beat of the music: Jukebox songs (Squid finds their beat) and `.sqda` beats |
 | `musicLevel()`, `nowPlaying()` | How loud the music is (0 to 1), and what's playing |
 | `x()`, `y()`, `z()`, `health()`, `playerName()`, `random(1, 6)` | Things to know |
-| `biome()`, `isNight()`, `holding()`, `lookingAt()` | Where you are, what's in your hand, and the block or mob you're looking at |
+| `biome()`, `isNight()`, `isRaining()`, `holding()`, `lookingAt()` | Where you are, what's in your hand, and the block or mob you're looking at |
 | `nearby("creeper", 16)` | How many of a mob are within 16 blocks (`""` counts every mob) |
 | `setting("Show map", true)`, `setting("Zoom", 4, 1, 10)` | A setting players change in the Mods screen (top-left of the title screen and pause menu) |
 
