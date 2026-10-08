@@ -2,10 +2,16 @@ package squidspeed;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
 import squid.api.Squid;
 
 /**
@@ -46,6 +52,43 @@ final class ChunkDrawing {
                 }
             }
             if (!done) System.out.println("[Squid Speed] Minecraft's chunk buffers changed; faster chunk drawing is off.");
+            oneHeapShortcut(node);
         });
+    }
+
+    /**
+     * Which graphics card buffer a chunk piece's blocks are in: Minecraft goes from the piece's own allocation to its
+     * block of memory to its heap, three objects scattered around memory for each of thousands of pieces a frame, so
+     * almost every step waits on memory. Most of the time a chunk buffer has just one heap, so the answer is that one,
+     * from the same few objects every time, which stay in the processor's cache.
+     *
+     * if (nodes.size() == 1) return nodes.get(0).getSecond().gpuBuffer;
+     */
+    private static void oneHeapShortcut(ClassNode node) {
+        String self = node.name;
+        String heap = self + "$UberGpuBufferHeap";
+        for (MethodNode method : node.methods) {
+            if (!method.name.equals("getGpuBuffer") || !method.desc.equals("(Lcom/mojang/blaze3d/vertex/TlsfAllocator$Allocation;)Lcom/mojang/renderpearl/api/buffers/GpuBuffer;")) continue;
+            boolean known = node.fields.stream().anyMatch(f -> f.name.equals("nodes") && f.desc.equals("Ljava/util/List;"));
+            if (!known) return;
+            InsnList code = new InsnList();
+            LabelNode usual = new LabelNode();
+            code.add(new VarInsnNode(Opcodes.ALOAD, 0));
+            code.add(new FieldInsnNode(Opcodes.GETFIELD, self, "nodes", "Ljava/util/List;"));
+            code.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE, "java/util/List", "size", "()I", true));
+            code.add(new InsnNode(Opcodes.ICONST_1));
+            code.add(new JumpInsnNode(Opcodes.IF_ICMPNE, usual));
+            code.add(new VarInsnNode(Opcodes.ALOAD, 0));
+            code.add(new FieldInsnNode(Opcodes.GETFIELD, self, "nodes", "Ljava/util/List;"));
+            code.add(new InsnNode(Opcodes.ICONST_0));
+            code.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE, "java/util/List", "get", "(I)Ljava/lang/Object;", true));
+            code.add(new TypeInsnNode(Opcodes.CHECKCAST, "com/mojang/datafixers/util/Pair"));
+            code.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "com/mojang/datafixers/util/Pair", "getSecond", "()Ljava/lang/Object;", false));
+            code.add(new TypeInsnNode(Opcodes.CHECKCAST, heap));
+            code.add(new FieldInsnNode(Opcodes.GETFIELD, heap, "gpuBuffer", "Lcom/mojang/renderpearl/api/buffers/GpuBuffer;"));
+            code.add(new InsnNode(Opcodes.ARETURN));
+            code.add(usual);
+            method.instructions.insert(code);
+        }
     }
 }
