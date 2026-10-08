@@ -74,7 +74,7 @@ Common keys: `title`, `artist`, `album`, `year`, `license`.
 | volume | float32 | 1 is normal. Readers keep it between 0 and 10 |
 | pitch | float32 | 1 is normal. Readers keep it between 0.05 and 10 |
 | distance | int32 | how far it's heard, in blocks (16 is Minecraft's normal) |
-| stream | uint8 | 0 Squid decides, 1 always stream, 2 never |
+| stream | uint8 | 0 Squid decides (sounds.json's setting, or streamed if it has loop points), 1 always stream, 2 never |
 
 Without `SNDS`, the settings are `"", 1, 1, 16, 0`. Minecraft only places mono sounds in the world, so
 `distance` does nothing for stereo sounds.
@@ -90,6 +90,9 @@ Without `SNDS`, the settings are `"", 1, 1, 16, 0`. Minecraft only places mono s
 A looping sound plays from the start of the variant to `end`, then jumps back to `start`, forever. If there is
 real sound after `end`, the first 256 samples after `end` fade out while the loop's start fades in, so the seam
 doesn't click. A loop shorter than 512 samples loops the whole variant instead.
+
+Loop points only work when the sound streams (Minecraft loops a whole sound buffer from its end to its start),
+so a sound with loop points streams unless `SNDS` says never.
 
 ### CUES: beats, bars, sections and named cues
 

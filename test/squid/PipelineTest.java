@@ -1568,6 +1568,18 @@ public class PipelineTest {
         java.util.regex.Pattern variantPattern = (java.util.regex.Pattern) variantName.get(null);
         check("a variant asked for by number can't be a number too big to read", variantPattern.matcher("music/x.squidvariant3.ogg").matches() + " "
                 + variantPattern.matcher("music/x.squidvariant99999999999.ogg").matches(), "true false");
+        // Loop points only work streamed (Minecraft loops a whole buffer from end to start), so a .sqda with them streams
+        java.lang.reflect.Method streams = soundsPart.getClass().getDeclaredMethod("streams", netLoader.loadClass("squid.audio.Sqda"));
+        streams.setAccessible(true);
+        java.lang.reflect.Method readInGame = netLoader.loadClass("squid.audio.Sqda").getMethod("read", byte[].class);
+        StringBuilder streamed = new StringBuilder();
+        for (int[] streamKind : new int[][] {{0, 0}, {1, 0}, {1, 2}, {0, 1}}) {
+            squid.audio.Sqda file = squid.audio.Sqda.fromSound(new squid.audio.Pcm(blip, 1, 44100), 6);
+            if (streamKind[0] == 1) file.loops.add(new squid.audio.Sqda.Loop(0, 600, 3000));
+            file.settings = new squid.audio.Sqda.Settings("", 1, 1, 16, streamKind[1]);
+            streamed.append(streams.invoke(null, readInGame.invoke(null, (Object) file.write()))).append(' ');
+        }
+        check("a .sqda with loop points streams, unless it says never", streamed.toString().strip(), "null true false true");
         // The Jukebox's hook goes into Minecraft's music manager (so the game's music waits while a song plays)
         ((SquidMod) netLoader.loadClass("squidjukebox.Jukebox").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-jukebox")));
         // The voice changer: Chipmunk is higher and Giant deeper (counted by how often the sound crosses zero), at the

@@ -137,8 +137,9 @@ public class Sounds implements SquidMod {
             if (s != null && s.distance() != Sqda.Settings.DEFAULT.distance()) call.setReturnValue(s.distance());
         });
         squid.atEnd("net.minecraft.client.resources.sounds.Sound", "shouldStream", call -> {
-            Sqda.Settings s = settingsOf((Sound) call.self());
-            if (s != null && s.stream() != 0) call.setReturnValue(s.stream() == 1);
+            Sound sound = (Sound) call.self();
+            Boolean stream = sound.getType() != Sound.Type.FILE ? null : header(basePath(sound.getPath())).map(Sounds::streams).orElse(null);
+            if (stream != null) call.setReturnValue(stream);
         });
         // A subtitle from the .sqda, when sounds.json doesn't give one
         squid.atEnd("net.minecraft.client.sounds.WeighedSoundEvents", "getSubtitle", call -> {
@@ -243,6 +244,16 @@ public class Sounds implements SquidMod {
             }
             return Optional.empty();
         });
+    }
+
+    /**
+     * Whether a .sqda should stream, or null to leave it to sounds.json. Its own setting comes first. A sound with
+     * loop points streams too: they only work streamed, since Minecraft loops a whole buffer from its end to its start
+     * (intro and all).
+     */
+    static Boolean streams(Sqda header) {
+        if (header.settings.stream() != 0) return header.settings.stream() == 1;
+        return header.loops.isEmpty() ? null : Boolean.TRUE;
     }
 
     private Sqda.Settings settingsOf(Sound sound) {
