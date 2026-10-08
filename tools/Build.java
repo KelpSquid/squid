@@ -89,24 +89,32 @@ public class Build {
         // 5. The store folder: store.json plus the files, ready to upload to the squid-store repo as they are
         storeFolder(examplesFolder);
 
-        // 6. Put Squid where Kelp looks for it
+        // 6. Put Squid where Kelp looks for it. While Minecraft is open its files are in use, so then it's skipped
+        //    (and the tests still run); the next build puts it in.
         Path installed = KELP.resolve("squid");
-        Files.createDirectories(installed.resolve("builtin"));
-        for (Path part : builtInJars) {
-            Files.copy(part, installed.resolve("builtin").resolve(part.getFileName()), StandardCopyOption.REPLACE_EXISTING);
-        }
-        Files.copy(squidJar, installed.resolve("squid.jar"), StandardCopyOption.REPLACE_EXISTING);
-        deleteFolder(installed.resolve("library")); // so files an older Squid had there don't stay behind
-        Files.createDirectories(installed.resolve("library"));
-        try (Stream<Path> parts = Files.list(LIBRARY)) {
-            for (Path part : parts.toList()) {
-                Files.copy(part, installed.resolve("library").resolve(part.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+        Path busy = firstInUse(installed);
+        if (busy != null) {
+            System.out.println("Didn't copy Squid into Kelp: " + busy + " is in use (is Minecraft open?). Build again after closing it.");
+        } else try {
+            Files.createDirectories(installed.resolve("builtin"));
+            for (Path part : builtInJars) {
+                Files.copy(part, installed.resolve("builtin").resolve(part.getFileName()), StandardCopyOption.REPLACE_EXISTING);
             }
+            Files.copy(squidJar, installed.resolve("squid.jar"), StandardCopyOption.REPLACE_EXISTING);
+            deleteFolder(installed.resolve("library")); // so files an older Squid had there don't stay behind
+            Files.createDirectories(installed.resolve("library"));
+            try (Stream<Path> parts = Files.list(LIBRARY)) {
+                for (Path part : parts.toList()) {
+                    Files.copy(part, installed.resolve("library").resolve(part.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+            for (Path library : libraries) {
+                Files.copy(library, installed.resolve(library.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+            }
+            System.out.println("Copied Squid into " + installed);
+        } catch (java.nio.file.FileSystemException inUse) {
+            System.out.println("Didn't copy Squid into Kelp: " + inUse.getFile() + " is in use (is Minecraft open?). Build again after closing it.");
         }
-        for (Path library : libraries) {
-            Files.copy(library, installed.resolve(library.getFileName()), StandardCopyOption.REPLACE_EXISTING);
-        }
-        System.out.println("Copied Squid into " + installed);
 
         if (args.length > 0 && args[0].equals("test")) test(classes, squidClasspath, game);
     }
@@ -283,6 +291,26 @@ public class Build {
         json.append("\n    ]\n}\n");
         Files.writeString(store.resolve("store.json"), json);
         System.out.println("Made the store folder in " + store);
+    }
+
+    /**
+     * The first of Kelp's Squid files that's in use (a running Minecraft keeps them open), or null if none are. Each
+     * is moved aside and back, which Windows refuses for a file in use, so Squid is put in all at once or not at all.
+     */
+    static Path firstInUse(Path installed) throws IOException {
+        if (!Files.isDirectory(installed)) return null;
+        try (Stream<Path> files = Files.walk(installed)) {
+            for (Path file : files.filter(Files::isRegularFile).toList()) {
+                Path aside = file.resolveSibling(file.getFileName() + ".check");
+                try {
+                    Files.move(file, aside);
+                } catch (IOException inUse) {
+                    return file;
+                }
+                Files.move(aside, file); // straight back (if even this fails, the build stops and says so)
+            }
+        }
+        return null;
     }
 
     /** A text field from a squid.json, like "name". Empty if it isn't there. */

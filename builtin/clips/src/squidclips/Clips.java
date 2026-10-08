@@ -52,7 +52,16 @@ public class Clips implements SquidMod {
                     net.minecraft.client.resources.sounds.SoundInstance sound = (net.minecraft.client.resources.sounds.SoundInstance) call.args()[0];
                     net.minecraft.sounds.SoundSource source = sound.getSource();
                     if (source == net.minecraft.sounds.SoundSource.MUSIC || source == net.minecraft.sounds.SoundSource.UI || sound.isLooping()) return;
-                    buffer.addSound(new ClipBuffer.Noise(System.currentTimeMillis(), sound.getIdentifier(), sound.getVolume(), sound.getPitch(),
+                    // Its volume and pitch come from the sound file Minecraft picks, which happens after this
+                    float volume, pitch;
+                    try {
+                        volume = sound.getVolume();
+                        pitch = sound.getPitch();
+                    } catch (RuntimeException notPickedYet) {
+                        volume = 1f;
+                        pitch = 1f;
+                    }
+                    buffer.addSound(new ClipBuffer.Noise(System.currentTimeMillis(), sound.getIdentifier(), volume, pitch,
                             sound.getX(), sound.getY(), sound.getZ(), sound.isRelative(), sound.getAttenuation()));
                 });
     }

@@ -66,7 +66,16 @@ final class Recorder {
         if (minecraft.level != level || timeline.size() == 0) return;
         net.minecraft.sounds.SoundSource source = sound.getSource();
         if (source == net.minecraft.sounds.SoundSource.MUSIC || source == net.minecraft.sounds.SoundSource.UI || sound.isLooping()) return;
-        timeline.add(new Timeline.Noise(tick, sound.getIdentifier(), source, sound.getVolume(), sound.getPitch(), sound.getX(), sound.getY(),
+        // Its volume and pitch come from the sound file Minecraft picks, which happens after this
+        float volume, pitch;
+        try {
+            volume = sound.getVolume();
+            pitch = sound.getPitch();
+        } catch (RuntimeException notPickedYet) {
+            volume = 1f;
+            pitch = 1f;
+        }
+        timeline.add(new Timeline.Noise(tick, sound.getIdentifier(), source, volume, pitch, sound.getX(), sound.getY(),
                 sound.getZ(), sound.getAttenuation(), sound.isRelative()));
     }
 

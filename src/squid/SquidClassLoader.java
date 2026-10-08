@@ -85,4 +85,9 @@ final class SquidClassLoader extends URLClassLoader {
         }
         return classUrl;
     }
+
+    /** Whether this loader has loaded a class already (for tests that check nothing loads too early). */
+    boolean hasLoaded(String name) {
+        return findLoadedClass(name) != null;
+    }
 }

@@ -23,45 +23,12 @@ public class ModsMenu implements SquidMod {
     public void init(Squid squid) {
         squid.atEnd("net.minecraft.client.gui.screens.TitleScreen", "init", "()V", call -> addButton((Screen) call.self()));
         squid.atEnd("net.minecraft.client.gui.screens.PauseScreen", "init", "()V", call -> addButton((Screen) call.self()));
-        squid.onTick(ModsMenu::tick);
+        // In its own class, loaded on the first tick: it names TitleScreen and PauseScreen, and loading those before
+        // their hooks are in (Squid's Store hooks the title screen after this) would keep the hooks out
+        squid.onTick(() -> ScreenWatch.tick());
     }
 
-    private static boolean newsChecked;
-    /** The Squid button on each title or pause screen, to check it's still there. */
-    private static final java.util.Map<Screen, Button> BUTTONS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
-    private static boolean toldMissing;
-
-    private static void tick() {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null) return;
-        // The Squid button has to be on the title screen and the pause menu. If it isn't (something set the screen
-        // up again without it), it's put back, and the log says so once, to find out why
-        Screen screen = minecraft.gui.screen();
-        if (screen instanceof net.minecraft.client.gui.screens.TitleScreen || screen instanceof net.minecraft.client.gui.screens.PauseScreen) {
-            Button button = BUTTONS.get(screen);
-            if (button == null || !screen.children().contains(button)) {
-                if (!toldMissing) {
-                    toldMissing = true;
-                    System.out.println("[Squid] The Squid button wasn't on " + screen.getClass().getSimpleName()
-                            + (button == null ? " (it was never added)" : " (it was taken off)") + ", so it was put back.");
-                }
-                addButton(screen);
-            }
-        }
-        news(minecraft);
-    }
-
-    /** The first time the title screen shows after an update: what's new, once. */
-    private static void news(Minecraft minecraft) {
-        if (newsChecked) return;
-        if (!(minecraft.gui.screen() instanceof net.minecraft.client.gui.screens.TitleScreen title)) return;
-        newsChecked = true;
-        if (WhatsNew.seen(WhatsNew.file())) return;
-        WhatsNew.markSeen(WhatsNew.file());
-        minecraft.setScreenAndShow(new WhatsNewScreen(title));
-    }
-
-    private static void addButton(Screen screen) {
+    static void addButton(Screen screen) {
         Button mods = Button.builder(Component.literal("Squid"),
                 button -> Minecraft.getInstance().setScreenAndShow(new SquidMenuScreen(screen))).bounds(4, 4, 60, 20).build();
         try {
@@ -71,7 +38,7 @@ public class ModsMenu implements SquidMod {
                 addWidget.setAccessible(true);
             }
             addWidget.invoke(screen, mods);
-            BUTTONS.put(screen, mods);
+            ScreenWatch.added(screen, mods);
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException(Lang.t("Couldn't add the Mods button"), e);
         }

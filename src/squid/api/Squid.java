@@ -78,7 +78,15 @@ public final class Squid {
             Hooks.replace(reused, mod.id(), hook);
             return;
         }
-        if (Transformers.isLoaded(className)) Slots.needsRestart(mod.id(), className);
+        if (Transformers.isLoaded(className)) {
+            Slots.needsRestart(mod.id(), className);
+            if (!squid.Main.gameStarted()) {
+                // While Squid starts, nothing should have loaded it yet: something used it too early, and this hook
+                // won't be in it. Said in the log, so it's found.
+                System.out.println("[Squid] Warning: " + mod.id() + " hooks " + className + "." + methodName
+                        + ", but that class had already loaded, so the hook can't go in. Something loaded it too early.");
+            }
+        }
         int id = Hooks.register(mod.id(), hook);
         Transformers.add(className, new Transformers.HookPatch(methodName, descriptor, atStart, id));
         Slots.record(mod.id(), className, methodName, descriptor, atStart, id);
