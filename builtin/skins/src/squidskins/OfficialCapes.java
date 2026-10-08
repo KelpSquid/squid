@@ -19,10 +19,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Mojang's official capes, for the wardrobe's Official tab. Squid never includes or hosts their pictures: the list
- * (official-capes.json in the squid-store repo) only has links to Mojang's own texture server, and each picture is
- * downloaded from Mojang when someone looks at it, the same place the game gets capes for the players who own them,
- * and kept in Kelp's official-capes folder so it only downloads once.
+ * Mojang's official capes, for the wardrobe's Official tab: a slot for every vanilla cape. Squid never includes or
+ * hosts their pictures: the list (official-capes.json, in Squid and in the squid-store repo, which can add newer ones)
+ * only has links to Mojang's own texture server, and a picture is only downloaded from Mojang when the player presses
+ * Download on its slot, the same place the game gets capes for the players who own them. It's then kept in Kelp's
+ * official-capes folder so it only downloads once.
  * Wearing one you don't own shows a tag next to your name.
  */
 public final class OfficialCapes {
@@ -35,8 +36,8 @@ public final class OfficialCapes {
     /** Mojang's texture server: the only place official cape pictures are ever loaded from. */
     public static String mojangTextures = "https://textures.minecraft.net/texture/";
 
-    /** One official cape: its name, and its picture's id on Mojang's texture server. */
-    public record Cape(String id, String name, String hash) {
+    /** One official cape: its name, which group of capes it's in, and its picture's id on Mojang's texture server. */
+    public record Cape(String id, String name, String group, String hash) {
         /** How a wardrobe choice names it: "official:" and the picture's id. */
         public String choice() {
             return "official:" + hash;
@@ -54,11 +55,35 @@ public final class OfficialCapes {
             String prefix = "https://textures.minecraft.net/texture/";
             String hash = texture.startsWith(prefix) ? texture.substring(prefix.length()) : "";
             if (!hash.matches("[0-9a-f]{40,64}")) continue; // anything that isn't a Mojang texture is left out
-            capes.add(new Cape(cape.get("id") instanceof String id ? id : hash, name, hash));
+            capes.add(new Cape(cape.get("id") instanceof String id ? id : hash, name, cape.get("group") instanceof String group ? group : "", hash));
         }
         return capes;
     }
 
+    private static volatile List<Cape> bundled;
+
+    /** The list that comes with Squid, so every slot is there even without internet. Read once. */
+    public static List<Cape> bundled() {
+        List<Cape> known = bundled;
+        if (known != null) return known;
+        try (java.io.InputStream in = OfficialCapes.class.getResourceAsStream("/squidskins/official-capes.json")) {
+            known = in == null ? List.of() : List.copyOf(parse(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            known = List.of();
+        }
+        bundled = known;
+        return known;
+    }
+
+    /** The official cape a choice names, if it's in the list that comes with Squid. */
+    public static Cape named(String choice) {
+        for (Cape cape : bundled()) {
+            if (cape.choice().equals(choice)) return cape;
+        }
+        return null;
+    }
+
+    /** The list from the Store, which can have capes newer than this Squid. */
     public static List<Cape> load() throws IOException, InterruptedException {
         HttpResponse<String> response = client().send(request(list), HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) throw new IOException(Lang.t("The list of official capes didn't load (error {0}).", response.statusCode()));
@@ -68,6 +93,11 @@ public final class OfficialCapes {
     /** Whether a choice's cape is an official one. */
     public static boolean isOfficial(String cape) {
         return cape.startsWith("official:");
+    }
+
+    /** Whether an official cape's picture has been downloaded from Mojang to this computer. */
+    public static boolean downloaded(Path folder, String hash) {
+        return Files.exists(file(folder, hash));
     }
 
     /** Where an official cape's picture is kept on this computer once it's been loaded from Mojang. */

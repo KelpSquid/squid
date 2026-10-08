@@ -626,6 +626,14 @@ public class PipelineTest {
                 + "{\"id\": \"odd\", \"name\": \"Odd\", \"texture\": \"https://textures.minecraft.net/texture/../../x\"}]}");
         check("only links to Mojang's texture server are official capes", officialCapes.stream().map(c -> c.name() + " " + c.choice().substring(0, 16)).toList().toString(),
                 "[Migrator official:2340c0e]");
+        // Squid comes with a slot for every vanilla cape, as links only (no pictures), so they're there without internet
+        List<squidskins.OfficialCapes.Cape> slots = squidskins.OfficialCapes.bundled();
+        check("Squid comes with a slot for every vanilla cape", slots.size() + " " + slots.stream().map(squidskins.OfficialCapes.Cape::id)
+                .filter(List.of("migrator", "minecon-2011", "mojang", "classic-mojang", "twisted", "aurora")::contains).count(), "49 6");
+        check("each slot is in a group, and none is in twice", slots.stream().filter(c -> c.group().isEmpty()).count() + " "
+                + (slots.size() - slots.stream().map(squidskins.OfficialCapes.Cape::hash).distinct().count()), "0 0");
+        check("an official cape on the list is found by its choice", String.valueOf(squidskins.OfficialCapes.named(slots.get(0).choice())), slots.get(0).toString());
+        check("Squid has no official cape pictures in it", String.valueOf(squidskins.OfficialCapes.class.getResource("/squidskins/official-capes")), "null");
         com.sun.net.httpserver.HttpServer textureServer = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
         byte[] capePng;
         try (java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream()) {

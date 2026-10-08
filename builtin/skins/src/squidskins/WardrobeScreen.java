@@ -100,7 +100,10 @@ final class WardrobeScreen extends Screen {
 
     private static String capeName(String cape) {
         if (cape.isEmpty()) return Lang.t("None");
-        if (OfficialCapes.isOfficial(cape)) return Lang.t("Official");
+        if (OfficialCapes.isOfficial(cape)) {
+            OfficialCapes.Cape official = OfficialCapes.named(cape);
+            return official != null && official.name().length() <= 14 ? official.name() : Lang.t("Official");
+        }
         if (cape.startsWith("file:")) {
             String name = shortName(cape.substring(5));
             return name.length() > 14 ? name.substring(0, 13) + "..." : name;

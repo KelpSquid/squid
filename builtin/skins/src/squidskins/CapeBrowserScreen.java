@@ -27,8 +27,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Every cape you can wear, as pictures: Official (Mojang's, loaded from Mojang), Community (approved capes from the
- * Squid Store) and Yours (the Kelp and Squid capes, and ones you added or painted). Click one to wear it.
+ * Every cape you can wear, as pictures: Official (a slot for every vanilla cape; press Download on one to get its picture
+ * from Mojang), Community (approved capes from the Squid Store) and Yours (the Kelp and Squid capes, and ones you added
+ * or painted). Click one to wear it.
  */
 final class CapeBrowserScreen extends Screen {
     private enum Tab {
@@ -41,11 +42,23 @@ final class CapeBrowserScreen extends Screen {
         }
     }
 
-    /** One cape in the grid. cape is how a choice names it; a Store cape that isn't here yet also has its item. */
-    private record Entry(String name, String cape, Catalog.Item storeItem) {
+    /**
+     * One cape in the grid. cape is how a choice names it; a Store cape that isn't here yet also has its item, and an
+     * official one its place in the list.
+     */
+    private record Entry(String name, String cape, Catalog.Item storeItem, OfficialCapes.Cape official) {
+        Entry(String name, String cape, Catalog.Item storeItem) {
+            this(name, cape, storeItem, null);
+        }
+
+        /** An official cape whose picture hasn't been downloaded from Mojang yet. */
+        boolean needsDownload() {
+            return official != null && !OfficialCapes.downloaded(Skins.wardrobe.officialCapes(), official.hash());
+        }
     }
 
     private static final int CELL_W = 46;
+    private static final int OFFICIAL_CELL_W = 58; // wider, so "Download" fits
     private static final int CELL_H = 64;
     private static final int PICTURE_W = 30; // a cape's back is 10x16 pixels, shown 3 times as big
     private static final int PICTURE_H = 48;
@@ -58,6 +71,9 @@ final class CapeBrowserScreen extends Screen {
     private volatile List<OfficialCapes.Cape> official;
     private volatile List<Catalog.Item> community;
     private volatile String loadProblem;
+    private boolean officialRefreshed;
+    /** Official capes being downloaded from Mojang right now (their picture ids). */
+    private final java.util.Set<String> downloading = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final java.util.Set<String> previewing = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     CapeBrowserScreen(WardrobeScreen parent) {
@@ -86,7 +102,7 @@ final class CapeBrowserScreen extends Screen {
             addRenderableWidget(Button.builder(Component.literal(">"), b -> turn(1)).bounds(width / 2 + 80, height - 52, 20, 20).build());
         }
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
-        if (tab == Tab.OFFICIAL && official == null) loadOfficial();
+        if (tab == Tab.OFFICIAL && !officialRefreshed) loadOfficial();
         if (tab == Tab.COMMUNITY && community == null) loadCommunity();
     }
 
@@ -108,7 +124,7 @@ final class CapeBrowserScreen extends Screen {
         List<Entry> entries = new ArrayList<>();
         switch (tab) {
             case OFFICIAL -> {
-                if (official != null) for (OfficialCapes.Cape cape : official) entries.add(new Entry(cape.name(), cape.choice(), null));
+                for (OfficialCapes.Cape cape : officialCapes()) entries.add(new Entry(cape.name(), cape.choice(), null, cape));
             }
             case COMMUNITY -> {
                 if (community != null) {
@@ -131,8 +147,18 @@ final class CapeBrowserScreen extends Screen {
         return entries;
     }
 
+    /** The official capes: the Store's list once it's loaded, and until then (or with no internet) Squid's own. */
+    private List<OfficialCapes.Cape> officialCapes() {
+        List<OfficialCapes.Cape> fromStore = official;
+        return fromStore != null && !fromStore.isEmpty() ? fromStore : OfficialCapes.bundled();
+    }
+
+    private int cellW() {
+        return tab == Tab.OFFICIAL ? OFFICIAL_CELL_W : CELL_W;
+    }
+
     private int columns() {
-        return Math.max(1, (width - 130) / CELL_W);
+        return Math.max(1, (width - 130) / cellW());
     }
 
     private int rows() {
@@ -145,13 +171,43 @@ final class CapeBrowserScreen extends Screen {
     }
 
     private int gridLeft() {
-        return 110 + Math.max(0, (width - 120 - columns() * CELL_W) / 2);
+        return 110 + Math.max(0, (width - 120 - columns() * cellW()) / 2);
     }
 
     // ---- Loading the lists ----
 
+    /** Every slot is there from Squid's own list; the Store's list can add capes newer than this Squid. */
     private void loadOfficial() {
+        officialRefreshed = true;
         background(() -> official = OfficialCapes.load());
+    }
+
+    /** Downloads an official cape's picture from Mojang's texture server (textures.minecraft.net); then it can be worn. */
+    private void download(Entry entry) {
+        String hash = entry.official().hash();
+        if (!downloading.add(hash)) return;
+        say(Lang.t("Downloading {0} from Mojang...", entry.name()), 0xFFA0A0A0);
+        Thread thread = new Thread(() -> {
+            String done;
+            int color;
+            try {
+                OfficialCapes.fetch(Skins.wardrobe.officialCapes(), hash);
+                done = Lang.t("Got {0}! Click it to wear it.", entry.name());
+                color = 0xFF55FF55;
+            } catch (IOException e) {
+                done = Lang.t("Couldn't download it: {0}", e.getMessage());
+                color = 0xFFFF5555;
+            } catch (InterruptedException e) {
+                return;
+            } finally {
+                downloading.remove(hash);
+            }
+            String text = done;
+            int textColor = color;
+            minecraft.execute(() -> say(text, textColor));
+        }, "Squid official cape download");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private void loadCommunity() {
@@ -198,6 +254,10 @@ final class CapeBrowserScreen extends Screen {
     // ---- Picking ----
 
     private void pick(Entry entry) {
+        if (entry.needsDownload()) {
+            download(entry);
+            return;
+        }
         Wardrobe.Choice now = Skins.choice(Skins.myId());
         try {
             if (entry.storeItem() != null) {
@@ -237,9 +297,9 @@ final class CapeBrowserScreen extends Screen {
         int columns = columns();
         int first = page * columns * rows();
         for (int i = first; i < Math.min(entries.size(), first + columns * rows()); i++) {
-            int x = gridLeft() + ((i - first) % columns) * CELL_W;
+            int x = gridLeft() + ((i - first) % columns) * cellW();
             int y = 52 + ((i - first) / columns) * CELL_H;
-            if (mouseX >= x && mouseX < x + CELL_W - 4 && mouseY >= y && mouseY < y + CELL_H - 4) return entries.get(i);
+            if (mouseX >= x && mouseX < x + cellW() - 4 && mouseY >= y && mouseY < y + CELL_H - 4) return entries.get(i);
         }
         return null;
     }
@@ -256,29 +316,42 @@ final class CapeBrowserScreen extends Screen {
         int first = page * columns * rows();
         for (int i = first; i < Math.min(entries.size(), first + columns * rows()); i++) {
             Entry entry = entries.get(i);
-            int x = gridLeft() + ((i - first) % columns) * CELL_W;
+            int x = gridLeft() + ((i - first) % columns) * cellW();
             int y = 52 + ((i - first) / columns) * CELL_H;
-            boolean over = mouseX >= x && mouseX < x + CELL_W - 4 && mouseY >= y && mouseY < y + CELL_H - 4;
+            boolean over = mouseX >= x && mouseX < x + cellW() - 4 && mouseY >= y && mouseY < y + CELL_H - 4;
             boolean worn = entry.cape().equals(wearing) && entry.storeItem() == null;
-            g.fill(x, y, x + CELL_W - 4, y + CELL_H - 4, worn ? 0xFF2E7D32 : over ? 0x80FFFFFF : 0x60000000);
-            int px = x + (CELL_W - 4 - PICTURE_W) / 2;
+            int cellW = cellW();
+            g.fill(x, y, x + cellW - 4, y + CELL_H - 4, worn ? 0xFF2E7D32 : over ? 0x80FFFFFF : 0x60000000);
+            int px = x + (cellW - 4 - PICTURE_W) / 2;
             int py = y + 3;
-            Identifier picture = entry.cape().isEmpty() ? null
+            boolean needsDownload = entry.needsDownload();
+            Identifier picture = entry.cape().isEmpty() || needsDownload ? null
                     : entry.storeItem() != null ? storePreview(entry.storeItem()) : Skins.capePicture(entry.cape());
-            if (picture != null) {
+            if (needsDownload) {
+                // An empty slot with a Download button on it: nothing comes from Mojang until it's pressed
+                g.fill(px, py, px + PICTURE_W, py + PICTURE_H, 0xFF303030);
+                boolean busy = downloading.contains(entry.official().hash());
+                int bx = x + 3;
+                int by = py + PICTURE_H / 2 - 7;
+                g.fill(bx, by, x + cellW - 7, by + 14, busy ? 0xFF404040 : over ? 0xFF4A7A4A : 0xFF3A5A3A);
+                g.centeredText(font, font.plainSubstrByWidth(busy ? "..." : Lang.t("Download"), cellW - 12), x + (cellW - 4) / 2, by + 3,
+                        busy ? 0xFFA0A0A0 : 0xFFFFFFFF);
+            } else if (picture != null) {
                 // The cape's back: pixels 1-11 across and 1-17 down of a 64x32 cape (each frame, for animated ones)
                 g.blit(picture, px, py, px + PICTURE_W, py + PICTURE_H, 1 / 64f, 11 / 64f, 1 / 32f, 17 / 32f);
             } else {
                 g.fill(px, py, px + PICTURE_W, py + PICTURE_H, 0xFF303030);
                 g.centeredText(font, entry.cape().isEmpty() ? "-" : "...", px + PICTURE_W / 2, py + PICTURE_H / 2 - 4, 0xFF808080);
             }
-            String name = font.plainSubstrByWidth(entry.name(), CELL_W - 6);
-            g.centeredText(font, name, x + (CELL_W - 4) / 2, y + PICTURE_H + 6, entry.storeItem() != null ? 0xFFA0A0A0 : 0xFFFFFFFF);
+            String name = font.plainSubstrByWidth(entry.name(), cellW - 6);
+            g.centeredText(font, name, x + (cellW - 4) / 2, y + PICTURE_H + 6,
+                    entry.storeItem() != null || needsDownload ? 0xFFA0A0A0 : 0xFFFFFFFF);
         }
 
         String hint = switch (tab) {
-            case OFFICIAL -> official == null ? (loadProblem != null ? Lang.t("Couldn't load them: {0}", loadProblem) : Lang.t("Loading from Mojang..."))
-                    : Lang.t("Mojang's capes. Wearing one you don't own shows a tag by your name.");
+            case OFFICIAL -> hoveredOfficial(mouseX, mouseY) instanceof Entry over
+                    ? (over.official().group().isEmpty() ? over.name() : over.name() + " (" + Lang.t(over.official().group()) + ")")
+                    : Lang.t("Every vanilla cape. Download gets it from Mojang. Wearing one you don't own shows a tag by your name.");
             case COMMUNITY -> community == null ? (loadProblem != null ? Lang.t("Couldn't load them: {0}", loadProblem) : Lang.t("Loading the Store..."))
                     : community.isEmpty() ? Lang.t("No community capes yet.") : Lang.t("Approved capes from the Squid Store. Click one to get it and wear it.");
             case YOURS -> Lang.t("Yours: drop pictures on the wardrobe, or paint one.");
@@ -286,6 +359,11 @@ final class CapeBrowserScreen extends Screen {
         if (pages() > 1) g.centeredText(font, (page + 1) + " / " + pages(), width / 2, height - 46, 0xFFA0A0A0);
         g.centeredText(font, font.plainSubstrByWidth(message != null ? message : hint, width - 20), width / 2, height - 64,
                 message != null ? messageColor : 0xFF808080);
+    }
+
+    private Entry hoveredOfficial(int mouseX, int mouseY) {
+        Entry entry = entryAt(mouseX, mouseY);
+        return entry != null && entry.official() != null ? entry : null;
     }
 
     @Override
