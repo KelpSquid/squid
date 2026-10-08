@@ -243,6 +243,11 @@ public class PipelineTest {
         });
         wrapper.atCall("demo.Wrapped", "greetTwice", null, "twice", (c, o) -> "once:" + c.args()[0]); // skips the call
         wrapper.around("demo.Wrapped", "greetTwice", (c, o) -> "[" + o.call() + "]"); // around and atCall on one method
+        wrapper.around("demo.Wrapped", "over", (c, o) -> ((Number) o.call()).longValue() * 10); // over(int) and over(long)
+        wrapper.around("demo.Wrapped", "over", (c, o) -> ((Number) o.call()).longValue() + 1); // a second hook on both
+        wrapper.atCall("demo.Wrapped", "<init>", null, "twice", (c, o) -> "ctor:" + o.call());
+        wrapper.atCall("demo.Wrapped", "init", null, "twice", (c, o) -> "[" + o.call() + "]");
+        wrapper.atCall("demo.Wrapped", "init", null, "twice", (c, o) -> "<" + o.call() + ">"); // the same call, wrapped again
         Class<?> wrappedClass = loader.loadClass("demo.Wrapped");
         Object w = wrappedClass.getDeclaredConstructor().newInstance();
         check("around runs the original twice with other arguments", wrappedClass.getMethod("add", int.class, int.class).invoke(w, 10, 20) + " "
@@ -269,6 +274,10 @@ public class PipelineTest {
                 riskyResults + " " + wrappedClass.getMethod("risky", int.class).invoke(w, 7) + " " + riskyRuns[0], "[IOException, IOException, IOException, IOException] 7 5");
         check("atCall changes a call's argument, skips another, and around wraps it all", wrappedClass.getMethod("greetTwice", String.class).invoke(w, "sam") + " " + callers,
                 "[once:hi SAM] [true]");
+        check("around on a method with overloads wraps each one, and the class still loads",
+                wrappedClass.getMethod("over", int.class).invoke(w, 1) + " " + wrappedClass.getMethod("over", long.class).invoke(w, 1L), "30 40");
+        check("atCall in init() isn't mixed up with the constructor's, and a call wrapped twice runs both hooks",
+                wrappedClass.getField("made").get(w) + " " + wrappedClass.getMethod("init").invoke(w), "ctor:cc [<ii>]");
         // On real Minecraft classes, loaded fresh: the y of every Vec3.add(Vec3) is dropped, and lengths are 10 times longer
         wrapper.atCall("net.minecraft.world.phys.Vec3", "add", "(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;",
                 "net.minecraft.world.phys.Vec3", "add(DDD)Lnet/minecraft/world/phys/Vec3;", (c, o) -> o.call(c.args()[0], 0, c.args()[2]));
@@ -289,6 +298,18 @@ public class PipelineTest {
                 java.lang.invoke.MethodHandles.constant(Object.class, "original"), 0, Object.class, Object[].class);
         check("the reloaded around hook runs the new version", Hooks.around(Slots.hookIds("around-reload").get(0), null, new Object[0], null, originalRun, Object.class),
                 "new original");
+
+        String signatureBefore = Transformers.signature();
+        Transformers.add("test.NeverLoadedSignature", new Transformers.AroundPatch("run", null, 12345));
+        String signatureAround = Transformers.signature();
+        Transformers.add("test.NeverLoadedSignature", new Transformers.CallPatch("run", null, "a.B", "c", 12346));
+        check("fast boot's fingerprint changes with around and atCall hooks", !signatureBefore.equals(signatureAround) + " "
+                + !signatureAround.equals(Transformers.signature()), "true true");
+        int plainHook = Hooks.register("stale-test", call -> call.cancel("hooked"));
+        check("a hook number that's out of date (or the wrong kind) runs the original, not some other hook",
+                Hooks.around(999_999, null, new Object[0], null, originalRun, Object.class) + " "
+                        + Hooks.around(plainHook, null, new Object[0], null, originalRun, Object.class) + " "
+                        + Hooks.start(999_999, null, new Object[0]).isCancelled(), "original original false");
 
         // Reflect: Minecraft's (and anyone's) fields and methods by their real names, private ones too
         Object vec = newVec.newInstance(1, 2, 3);

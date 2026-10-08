@@ -4,6 +4,7 @@ package demo;
 public class Wrapped {
     public int count;
     private String secret = "squid";
+    public String made = twice("c");
 
     public int add(int a, int b) { count++; return a + b; }
     public static String shout(String s) { return s.toUpperCase(); }
@@ -16,5 +17,8 @@ public class Wrapped {
     public String greetTwice(String name) { return twice(hello(name)); }
     private String hello(String name) { return "hi " + name; }
     static String twice(String s) { return s + s; }
+    public int over(int x) { return x + 1; }
+    public long over(long x) { return x + 2; }
+    public String init() { return twice("i"); }
     private int secretLength(int extra) { return secret.length() + extra; }
 }

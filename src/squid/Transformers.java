@@ -75,7 +75,8 @@ public final class Transformers {
     }
 
     /**
-     * A fingerprint of every patch, in order: which class, which method, start or end, and which hook number. Fast
+     * A fingerprint of every patch, in order: which class, which method, which kind (start, end, around, a call),
+     * the call it wraps, and which hook number. Fast
      * boot uses it to know its pre-patched classes still match what the mods asked for.
      */
     static String signature() {
@@ -87,6 +88,12 @@ public final class Transformers {
                             .append(' ').append(h.atStart()).append(' ').append(h.hookId()).append('\n');
                 } else if (patch instanceof RawPatch r) {
                     b.append("R ").append(className).append(' ').append(r.modId()).append('\n');
+                } else if (patch instanceof AroundPatch a) {
+                    b.append("A ").append(className).append(' ').append(a.method()).append(' ').append(a.descriptor())
+                            .append(' ').append(a.hookId()).append('\n');
+                } else if (patch instanceof CallPatch c) {
+                    b.append("C ").append(className).append(' ').append(c.method()).append(' ').append(c.descriptor())
+                            .append(' ').append(c.calledClass()).append(' ').append(c.calledMethod()).append(' ').append(c.hookId()).append('\n');
                 }
             }
         }
@@ -114,9 +121,10 @@ public final class Transformers {
         for (Patch patch : patches) {
             if (patch instanceof RawPatch raw) raw.patch().accept(node);
         }
+        Wrappers.Runners runners = new Wrappers.Runners();
         for (Patch patch : patches) {
             if (patch instanceof CallPatch call && Wrappers.atCall(node, call.method(), call.descriptor(), call.calledClass(),
-                    call.calledMethod(), call.hookId(), loader) == 0) {
+                    call.calledMethod(), call.hookId(), loader, runners) == 0) {
                 System.out.println("[Squid] Warning: no call to " + call.calledMethod() + " in " + className + "." + call.method());
             }
         }

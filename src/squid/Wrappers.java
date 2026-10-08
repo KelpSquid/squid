@@ -56,9 +56,22 @@ final class Wrappers {
             if (m.name.startsWith("<")) continue; // a constructor's code can't move to another method
             targets.add(m);
         }
-        for (MethodNode m : targets) {
+        java.util.Set<String> taken = new java.util.HashSet<>();
+        for (MethodNode m : node.methods) taken.add(m.name);
+        int wrapped = 0;
+        for (int index = 0; index < targets.size(); index++) {
+            MethodNode m = targets.get(index);
             boolean isStatic = (m.access & Opcodes.ACC_STATIC) != 0;
-            String bodyName = "squid$" + m.name + "$" + hookId;
+            // Each overload (over(int), over(long)...) gets names of its own: two methods with one name and the same
+            // arguments would stop the class from loading at all
+            String bodyName = "squid$" + m.name + "$" + hookId + "$" + index;
+            if (taken.contains(bodyName) || taken.contains(bodyName + "$run")) {
+                System.out.println("[Squid] Warning: couldn't wrap " + node.name + "." + m.name + m.desc + ": its hidden copy's name is taken");
+                continue;
+            }
+            taken.add(bodyName);
+            taken.add(bodyName + "$run");
+            wrapped++;
             // 1. The method's own code moves to a hidden method with the same arguments
             MethodNode body = new MethodNode(Opcodes.ACC_PRIVATE | Opcodes.ACC_SYNTHETIC | (m.access & Opcodes.ACC_STATIC),
                     bodyName, m.desc, m.signature, m.exceptions == null ? null : m.exceptions.toArray(String[]::new));
@@ -101,7 +114,21 @@ final class Wrappers {
             code.add(new MethodInsnNode(Opcodes.INVOKESTATIC, HOOKS, "around", AROUND_DESC, false));
             returnIt(code, returns);
         }
-        return targets.size();
+        return wrapped;
+    }
+
+    /**
+     * The runners atCall hooks have written into one class so far, and which method each one's call came from (its
+     * name and descriptor). A second mod wrapping the same call finds it inside the first one's runner through this.
+     * Made fresh for each class as it's patched.
+     */
+    static final class Runners {
+        private final Map<String, String[]> callers = new HashMap<>();
+
+        boolean from(String runner, String method, String descriptor) {
+            String[] caller = callers.get(runner);
+            return caller != null && caller[0].equals(method) && (descriptor == null || caller[1].equals(descriptor));
+        }
     }
 
     /**
@@ -110,21 +137,22 @@ final class Wrappers {
      * and calledClass can be null for any class. A call through a subclass (ClientLevel for Level) counts too.
      * Gives back how many calls it wrapped.
      */
-    static int atCall(ClassNode node, String method, String descriptor, String calledClass, String calledMethod, int hookId, ClassLoader loader) {
+    static int atCall(ClassNode node, String method, String descriptor, String calledClass, String calledMethod, int hookId,
+                      ClassLoader loader, Runners runners) {
         boolean itf = (node.access & Opcodes.ACC_INTERFACE) != 0;
         String wantedOwner = calledClass == null ? null : calledClass.replace('.', '/');
         int paren = calledMethod.indexOf('(');
         String wantedName = paren < 0 ? calledMethod : calledMethod.substring(0, paren);
         String wantedDesc = paren < 0 ? null : calledMethod.substring(paren);
-        String safeName = method.replace("<", "").replace(">", "");
-        // A call another mod's atCall already wrapped sits in that hook's invoker now, so those are looked in too
-        String earlierInvokers = "squid$atcall$" + safeName + "$";
+        // A call another mod's atCall already wrapped sits in that hook's runner now, so those are looked in too
         List<MethodNode> callers = new ArrayList<>();
+        Map<MethodNode, String[]> callerOf = new java.util.IdentityHashMap<>(); // the real method each one stands for
         for (MethodNode m : node.methods) {
             boolean named = m.name.equals(method) && (descriptor == null || m.desc.equals(descriptor));
-            if (!named && !m.name.startsWith(earlierInvokers)) continue;
+            if (!named && !runners.from(m.name, method, descriptor)) continue;
             if ((m.access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE | Opcodes.ACC_BRIDGE)) != 0) continue;
             callers.add(m);
+            callerOf.put(m, named ? new String[] {m.name, m.desc} : runners.callers.get(m.name));
         }
         Map<String, Boolean> subtypes = new HashMap<>();
         Map<String, Handle> invokers = new HashMap<>(); // one invoker per kind of call, shared by every place it's made
@@ -151,8 +179,12 @@ final class Wrappers {
                 boolean hasTarget = op != Opcodes.INVOKESTATIC;
                 String key = op + " " + call.owner + "." + call.name + call.desc;
                 int opcode = op;
-                Handle invoker = invokers.computeIfAbsent(key, k -> invoker(node, earlierInvokers + hookId + "$" + invokers.size(),
-                        opcode, call.owner, call.name, call.desc, call.itf, itf));
+                String[] realCaller = callerOf.get(m);
+                Handle invoker = invokers.computeIfAbsent(key, k -> {
+                    String runner = "squid$atcall$" + hookId + "$" + invokers.size();
+                    runners.callers.put(runner, realCaller);
+                    return invoker(node, runner, opcode, call.owner, call.name, call.desc, call.itf, itf);
+                });
                 // Store the arguments (last first) and the target in the fresh locals, then pack them up for the hook
                 Type[] params = Type.getArgumentTypes(call.desc);
                 int[] slots = new int[params.length];

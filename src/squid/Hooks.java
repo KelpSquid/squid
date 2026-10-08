@@ -92,10 +92,15 @@ public final class Hooks {
     }
 
     private static void run(int id, Call call) {
-        Entry entry = hooks[id];
+        Entry[] all = hooks;
+        if (id < 0 || id >= all.length || !(all[id].hook instanceof Hook hook)) {
+            outOfDate(id);
+            return;
+        }
+        Entry entry = all[id];
         if (entry.turnedOff) return;
         try {
-            ((Hook) entry.hook).run(call);
+            hook.run(call);
         } catch (RuntimeException | LinkageError e) {
             failed(entry, e);
         }
@@ -109,17 +114,35 @@ public final class Hooks {
      * counts as broken instead of crashing Minecraft's code.
      */
     public static Object around(int id, Object self, Object[] args, Object caller, MethodHandle original, Class<?> returns) throws Throwable {
-        Entry entry = hooks[id];
+        Entry[] all = hooks;
+        if (id < 0 || id >= all.length || !(all[id].hook instanceof Around around)) {
+            outOfDate(id);
+            return (Object) original.invokeExact(self, args);
+        }
+        Entry entry = all[id];
         if (entry.turnedOff) return (Object) original.invokeExact(self, args);
         Wrapped wrapped = new Wrapped(original, self, args);
         try {
-            return fit(((Around) entry.hook).run(new Call(self, args, null, caller), wrapped), returns);
+            return fit(around.run(new Call(self, args, null, caller), wrapped), returns);
         } catch (RuntimeException | LinkageError e) {
             if (e == wrapped.thrown) throw e; // Minecraft's own code threw it, not the hook: it goes on as it would
             failed(entry, e);
             // The game carries on as if the hook weren't there: with what the original gave, or by running it now
             return wrapped.runs > 0 ? wrapped.last : (Object) original.invokeExact(self, args);
         }
+    }
+
+    private static volatile boolean warnedOutOfDate;
+
+    /**
+     * A hook number written into a class that doesn't match the hooks registered now (a fast boot's classes made for
+     * another set of mods). The class carries on as if it weren't hooked, instead of running some other mod's hook.
+     */
+    private static void outOfDate(int id) {
+        if (warnedOutOfDate) return;
+        warnedOutOfDate = true;
+        System.out.println("[Squid] A class has hook number " + id + " written in it, which doesn't match this game's hooks,"
+                + " so it runs without it. Starting the game again from Kelp makes its classes fresh.");
     }
 
     private static void failed(Entry entry, Throwable e) {
