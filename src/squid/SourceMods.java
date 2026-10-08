@@ -179,7 +179,7 @@ final class SourceMods {
                     }
                 }
             }
-        } catch (java.util.zip.ZipException e) {
+        } catch (java.util.zip.ZipException | java.io.EOFException e) { // EOF: a file cut short partway through
             throw new IOException(Lang.t("it's damaged, so Squid can't open it. Download or pack it again."));
         }
         Path out = buildProject(unpacked, mod);

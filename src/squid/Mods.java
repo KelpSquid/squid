@@ -327,7 +327,7 @@ final class Mods {
             if (entry == null) return null;
             String text = SourceMods.text(SourceMods.squidJson(zip, entry));
             return info(parse(text, jar.getFileName().toString()), jar, null, null, null);
-        } catch (java.util.zip.ZipException e) {
+        } catch (java.util.zip.ZipException | java.io.EOFException e) { // EOF: a file cut short partway through
             throw new IOException(Lang.t("it's damaged, so Squid can't open it. Download it again."));
         }
     }
@@ -364,7 +364,7 @@ final class Mods {
             String root = SourceMods.packedRoot(zip);
             if (root == null) throw new IOException(Lang.t("it has no squid.json inside. Pack it again from Kelp."));
             json = parse(SourceMods.text(SourceMods.squidJson(zip, SourceMods.entry(zip, root + "squid.json"))), null);
-        } catch (java.util.zip.ZipException e) {
+        } catch (java.util.zip.ZipException | java.io.EOFException e) { // EOF: a file cut short partway through
             throw new IOException(Lang.t("it's damaged, so Squid can't open it. Download or pack it again."));
         }
         String fileName = file.getFileName().toString();

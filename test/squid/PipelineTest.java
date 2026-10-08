@@ -877,6 +877,38 @@ public class PipelineTest {
         jar(bomb, "squid.json", "{\"name\": \"Bomb\"" + " ".repeat(2 << 20) + "}");
         check("a squid.json far too big is refused without reading it all", failure(() -> Mods.describe(bomb)) + " | "
                 + squidmods.ModFiles.list(bomb.getParent()).size(), "IOException: its squid.json is far too big. | 1");
+        // .squid files cut short or with bytes flipped: each loads or is skipped with words a player can act on, and
+        // never stops the game
+        java.io.ByteArrayOutputStream fuzzBytes = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(fuzzBytes)) {
+            for (String[] entry : new String[][] {{"squid.json", "{\"id\": \"fuzz\", \"name\": \"Fuzz\", \"main\": \"Fuzz\"}"},
+                    {"src/Fuzz.java", "public class Fuzz extends EasyMod { void start() { say(\"hi\"); } }"}, {"resources/a.txt", "hello"}}) {
+                zip.putNextEntry(new java.util.zip.ZipEntry(entry[0]));
+                zip.write(entry[1].getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
+        }
+        byte[] goodSquid = fuzzBytes.toByteArray();
+        Path fuzzRoot = java.nio.file.Files.createTempDirectory("squid-fuzz");
+        SourceMods fuzzSources = new SourceMods(fuzzRoot.resolve(".squid-cache"), System.getProperty("java.class.path") + File.pathSeparator + a[0]);
+        java.util.Random squidFlips = new java.util.Random(5);
+        java.util.Set<String> unclear = new java.util.TreeSet<>();
+        for (int i = 0; i < 120; i++) {
+            byte[] damaged = goodSquid.clone();
+            if (i % 3 == 0) damaged = java.util.Arrays.copyOf(damaged, squidFlips.nextInt(damaged.length));
+            else for (int k = 0; k <= squidFlips.nextInt(4); k++) damaged[squidFlips.nextInt(damaged.length)] ^= (byte) (1 << squidFlips.nextInt(8));
+            Path fuzzFolder = java.nio.file.Files.createDirectories(fuzzRoot.resolve("m" + i));
+            java.nio.file.Files.write(fuzzFolder.resolve("Fuzz.squid"), damaged);
+            try {
+                for (Mods.Skipped skippedFuzz : Mods.find(fuzzFolder, "26.3", fuzzSources).skipped()) {
+                    String reason = skippedFuzz.reason();
+                    if (reason.startsWith("Squid couldn't read it") || reason.contains("ZLIB")) unclear.add(reason);
+                }
+            } catch (Throwable e) {
+                unclear.add("stopped: " + e);
+            }
+        }
+        check("120 damaged .squid files each load or are skipped with a clear reason", unclear.toString(), "[]");
 
         // A reloaded mod takes over its old hooks in classes that can't be patched again
         ModInfo hooker = new ModInfo("hooker", "Hooker", "1.0", "", List.of(), List.of(), List.of(), "x", live);
