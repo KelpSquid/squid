@@ -44,7 +44,10 @@ public class SquidCount implements SquidMod {
         squid.onHud(this::hud);
         squid.onTick(this::tick);
         // Squid's own achievements, for making things: other parts of Squid say when one happens
-        Events.on("achievement", squid.mod().id(), id -> Minecraft.getInstance().execute(() -> achieved(String.valueOf(id))));
+        Events.on("achievement", squid.mod().id(), id -> {
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft != null) minecraft.execute(() -> achieved(String.valueOf(id))); // (none in tests)
+        });
 
         // The game tells itself about advancements in batches. The first batch when you join a world (a "reset")
         // is everything already done there, so it's skipped: only ones that become done while you play count.
