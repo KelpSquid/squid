@@ -494,3 +494,6 @@ Start from: {0} => 起點：{0}
 glow can't outline players, only mobs => glow 不能幫玩家描邊，只能幫生物描邊
 Creeper Radar => 苦力怕雷達
 Press K: every creeper nearby glows through walls for 10 seconds. => 按 K：附近的每隻苦力怕都會穿過牆壁發光 10 秒。
+onLevelUp only works inside start() => onLevelUp 只能寫在 start() 裡
+Night Watch => 守夜人
+Warns you when night falls, and counts the nights you survive. => 夜幕降臨時提醒你，並記錄你撐過的每一夜。

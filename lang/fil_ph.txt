@@ -494,3 +494,6 @@ Start from: {0} => Simulan mula sa: {0}
 glow can't outline players, only mobs => hindi kayang i-outline ng glow ang mga player, mga mob lang
 Creeper Radar => Creeper Radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Pindutin ang K: lahat ng creeper sa malapit ay kikinang sa likod ng pader nang 10 segundo.
+onLevelUp only works inside start() => sa loob lang ng start() gumagana ang onLevelUp
+Night Watch => Bantay sa Gabi
+Warns you when night falls, and counts the nights you survive. => Binabalaan ka kapag gumabi na, at binibilang ang mga gabing nakaligtas ka.

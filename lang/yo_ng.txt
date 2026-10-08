@@ -494,3 +494,6 @@ Start from: {0} => Bẹ̀rẹ̀ láti: {0}
 glow can't outline players, only mobs => glow kò lè fa ìlà yí àwọn eléré ká, àwọn ẹ̀dá nìkan
 Creeper Radar => Radar Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Tẹ K: gbogbo creeper tó wà nítòsí á máa dán gba inú ògiri fún ìṣẹ́jú-àáyá 10.
+onLevelUp only works inside start() => onLevelUp ń ṣiṣẹ́ nínú start() nìkan
+Night Watch => Olùṣọ́ Òru
+Warns you when night falls, and counts the nights you survive. => Ó ń kìlọ̀ fún ọ nígbà tí òru bá dé, ó sì ń ka àwọn òru tí o là já.

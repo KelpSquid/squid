@@ -494,3 +494,6 @@ Start from: {0} => Dalleth gans: {0}
 glow can't outline players, only mobs => ny yll glow linenna gwarioryon, mobow hepken
 Creeper Radar => Radar Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Gwask K: pub creeper ogas a dhewl dre fosow dres 10 eylen.
+onLevelUp only works inside start() => ny ober onLevelUp marnas a-ji dhe start()
+Night Watch => Gwithyas Nos
+Warns you when night falls, and counts the nights you survive. => Y'th war pan dheu an nos, hag ow nivera an nosow a dreusvewydh.

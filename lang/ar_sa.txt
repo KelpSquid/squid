@@ -494,3 +494,6 @@ Start from: {0} => ابدأ من: {0}
 glow can't outline players, only mobs => glow لا يحدد اللاعبين، المخلوقات فقط
 Creeper Radar => رادار الكريبر
 Press K: every creeper nearby glows through walls for 10 seconds. => اضغط K: كل كريبر قريب يتوهج عبر الجدران لمدة 10 ثوانٍ.
+onLevelUp only works inside start() => onLevelUp يعمل فقط داخل start()
+Night Watch => حارس الليل
+Warns you when night falls, and counts the nights you survive. => ينبّهك عندما يحلّ الليل، ويعدّ الليالي التي تنجو فيها.

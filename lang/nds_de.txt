@@ -494,3 +494,6 @@ Start from: {0} => Anfangen mit: {0}
 glow can't outline players, only mobs => glow kann keen Speler ümranden, blots Mobs
 Creeper Radar => Creeper-Radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Drück K: Elk Creeper in de Neeg lücht 10 Sekunnen dör de Wännen.
+onLevelUp only works inside start() => onLevelUp geiht blots in start()
+Night Watch => Nachtwach
+Warns you when night falls, and counts the nights you survive. => Seggt di Bescheed, wenn de Nacht kummt, un tellt de Nachten, de du överleevst.

@@ -494,3 +494,6 @@ Start from: {0} => Ofanga mit: {0}
 glow can't outline players, only mobs => glow ko koane Spuier umrandn, bloß Viecher
 Creeper Radar => Creeper-Radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Druck K: jeder Creeper in da Nähe leicht 10 Sekundn lang durch d'Wänd.
+onLevelUp only works inside start() => onLevelUp geht bloß in start()
+Night Watch => Nachtwach
+Warns you when night falls, and counts the nights you survive. => Warnt di, wenn's Nacht wird, und zählt de Nächt, de'st überlebst.

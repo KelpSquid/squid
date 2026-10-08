@@ -494,3 +494,6 @@ Start from: {0} => vo' tagh: {0}
 glow can't outline players, only mobs => QujwI'pu' HeHmoHlaHbe' glow, Ha'DIbaHmey neH
 Creeper Radar => Creeper 'olwI'
 Press K: every creeper nearby glows through walls for 10 seconds. => K yI'uy: Hoch creeper Sum tlhoy'mey vegh wov 10 lup.
+onLevelUp only works inside start() => start() qoDDaq neH Qap onLevelUp
+Night Watch => ram 'avwI'
+Warns you when night falls, and counts the nights you survive. => ram pawDI', DughuHmoH. ram DataHbogh togh je.

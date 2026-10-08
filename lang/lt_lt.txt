@@ -494,3 +494,6 @@ Start from: {0} => Pradėti nuo: {0}
 glow can't outline players, only mobs => glow negali apvesti žaidėjų, tik gyvius
 Creeper Radar => Creeper radaras
 Press K: every creeper nearby glows through walls for 10 seconds. => Spausk K: kiekvienas netoliese esantis creeper 10 sekundžių švyti pro sienas.
+onLevelUp only works inside start() => onLevelUp veikia tik start() viduje
+Night Watch => Naktinė sargyba
+Warns you when night falls, and counts the nights you survive. => Įspėja, kai užeina naktis, ir skaičiuoja naktis, kurias išgyveni.

@@ -494,3 +494,6 @@ Start from: {0} => Fillo nga: {0}
 glow can't outline players, only mobs => glow nuk mund të rrethojë lojtarët, vetëm krijesat
 Creeper Radar => Radar Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Shtyp K: çdo creeper aty pranë shkëlqen përmes mureve për 10 sekonda.
+onLevelUp only works inside start() => onLevelUp punon vetëm brenda start()
+Night Watch => Roja e natës
+Warns you when night falls, and counts the nights you survive. => Të paralajmëron kur bie nata dhe numëron netët që mbijeton.

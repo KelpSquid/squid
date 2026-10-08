@@ -494,3 +494,6 @@ Start from: {0} => شروع از: {0}
 glow can't outline players, only mobs => glow نمی‌تواند دور بازیکنان خط بکشد، فقط موجودات
 Creeper Radar => رادار کریپر
 Press K: every creeper nearby glows through walls for 10 seconds. => K را بزنید: هر کریپر نزدیک تا 10 ثانیه از پشت دیوارها می‌درخشد.
+onLevelUp only works inside start() => onLevelUp فقط داخل start() کار می‌کند
+Night Watch => نگهبان شب
+Warns you when night falls, and counts the nights you survive. => وقتی شب می‌رسد خبرتان می‌کند و شب‌هایی را که زنده می‌مانید می‌شمارد.

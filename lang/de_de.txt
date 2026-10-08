@@ -494,3 +494,6 @@ Start from: {0} => Starten mit: {0}
 glow can't outline players, only mobs => glow kann keine Spieler umranden, nur Kreaturen
 Creeper Radar => Creeper-Radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Drück K: Jeder Creeper in der Nähe leuchtet 10 Sekunden lang durch Wände.
+onLevelUp only works inside start() => onLevelUp funktioniert nur in start()
+Night Watch => Nachtwache
+Warns you when night falls, and counts the nights you survive. => Warnt dich, wenn die Nacht hereinbricht, und zählt die Nächte, die du überlebst.

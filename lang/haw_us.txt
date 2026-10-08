@@ -494,3 +494,6 @@ Start from: {0} => Hoʻomaka mai: {0}
 glow can't outline players, only mobs => ʻAʻole hiki iā glow ke kahakaha a puni nā mea pāʻani, nā holoholona wale nō
 Creeper Radar => Lekeka Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => E kaomi iā K: ʻālohilohi nā creeper a pau kokoke ma o nā paia no 10 kekona.
+onLevelUp only works inside start() => hana wale ʻo onLevelUp i loko o start()
+Night Watch => Kiaʻi Pō
+Warns you when night falls, and counts the nights you survive. => Hōʻike iā ʻoe ke hiki mai ka pō, a helu i nā pō āu e ola ai.

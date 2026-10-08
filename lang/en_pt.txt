@@ -494,3 +494,6 @@ Start from: {0} => Start from: {0}
 glow can't outline players, only mobs => glow can't outline other sailors, only beasties
 Creeper Radar => Creeper Spyglass
 Press K: every creeper nearby glows through walls for 10 seconds. => Press K: every creeper nearby glows through walls fer 10 seconds, arr!
+onLevelUp only works inside start() => onLevelUp only works inside start()
+Night Watch => Night Lookout
+Warns you when night falls, and counts the nights you survive. => Warns ye when night falls, an' tallies the nights ye live to see.

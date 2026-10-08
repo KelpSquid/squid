@@ -494,3 +494,6 @@ Start from: {0} => Empeçâh dehde: {0}
 glow can't outline players, only mobs => glow no pué remarcâh a lô hugadorê, solo a lâ criaturâ
 Creeper Radar => Radâh de creeperâ
 Press K: every creeper nearby glows through walls for 10 seconds. => Pulsa K: tôh lô creeperâ de çerca brillan a travé de lâ paredê durante 10 çegundô.
+onLevelUp only works inside start() => onLevelUp solo funçiona dentro de start()
+Night Watch => Guardia nohturna
+Warns you when night falls, and counts the nights you survive. => Te avisa cuando cae la noche y cuenta lâ nochê que sobrevivê.

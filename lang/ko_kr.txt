@@ -494,3 +494,6 @@ Start from: {0} => 시작: {0}
 glow can't outline players, only mobs => glow는 플레이어는 테두리를 못 그려요. 몹만 돼요
 Creeper Radar => 크리퍼 레이더
 Press K: every creeper nearby glows through walls for 10 seconds. => K를 누르면: 근처의 모든 크리퍼가 10초 동안 벽 너머로 빛나요.
+onLevelUp only works inside start() => onLevelUp는 start() 안에서만 쓸 수 있어요
+Night Watch => 밤 파수꾼
+Warns you when night falls, and counts the nights you survive. => 밤이 되면 알려 주고, 살아남은 밤을 세어 줘요.

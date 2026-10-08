@@ -494,3 +494,6 @@ Start from: {0} => Bido na: {0}
 glow can't outline players, only mobs => glow enweghị ike ịkọ ndị egwuregwu gburugburu, naanị anụmanụ
 Creeper Radar => Radar Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Pịa K: creeper ọ bụla nọ nso na-enwu site na mgbidi ruo sekọnd 10.
+onLevelUp only works inside start() => onLevelUp na-arụ ọrụ naanị n'ime start()
+Night Watch => Onye Nche Abalị
+Warns you when night falls, and counts the nights you survive. => Na-adọ gị aka ná ntị mgbe abalị dara, ma na-agụ abalị ole ị lanarịrị.

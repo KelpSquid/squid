@@ -494,3 +494,6 @@ Start from: {0} => 元にする：{0}
 glow can't outline players, only mobs => glow でプレイヤーは光らせられません。モブだけです
 Creeper Radar => クリーパーレーダー
 Press K: every creeper nearby glows through walls for 10 seconds. => K を押すと、近くのクリーパーがみんな 10 秒間かべごしに光ります。
+onLevelUp only works inside start() => onLevelUp は start() の中でしか使えません
+Night Watch => 夜の見張り番
+Warns you when night falls, and counts the nights you survive. => 夜になったら知らせて、生き延びた夜を数えてくれる。

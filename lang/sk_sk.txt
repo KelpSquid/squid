@@ -494,3 +494,6 @@ Start from: {0} => Začať z: {0}
 glow can't outline players, only mobs => glow nevie obkresliť hráčov, iba moby
 Creeper Radar => Creeper radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Stlač K: každý creeper nablízku svieti cez steny 10 sekúnd.
+onLevelUp only works inside start() => onLevelUp funguje len vnútri start()
+Night Watch => Nočná hliadka
+Warns you when night falls, and counts the nights you survive. => Varuje ťa, keď padne noc, a počíta noci, ktoré prežiješ.

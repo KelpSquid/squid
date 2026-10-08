@@ -494,3 +494,6 @@ Start from: {0} => אָנהייבן פֿון: {0}
 glow can't outline players, only mobs => glow קען ניט אַרומרינגלען שפּילער, נאָר באַשעפֿענישן
 Creeper Radar => קריפּער־ראַדאַר
 Press K: every creeper nearby glows through walls for 10 seconds. => דריק K: יעדער קריפּער לעבן דיר שײַנט דורך ווענט 10 סעקונדעס.
+onLevelUp only works inside start() => onLevelUp אַרבעט נאָר אין start()
+Night Watch => נאַכטוואַך
+Warns you when night falls, and counts the nights you survive. => וואָרנט דיך ווען די נאַכט פֿאַלט, און ציילט די נעכט וואָס דו איבערלעבסט.

@@ -494,3 +494,6 @@ Start from: {0} => Sākt no: {0}
 glow can't outline players, only mobs => glow nevar iezīmēt spēlētājus, tikai radības
 Creeper Radar => Creeper radars
 Press K: every creeper nearby glows through walls for 10 seconds. => Spied K: katrs tuvumā esošais creeper 10 sekundes spīd cauri sienām.
+onLevelUp only works inside start() => onLevelUp darbojas tikai start() iekšā
+Night Watch => Nakts sardze
+Warns you when night falls, and counts the nights you survive. => Brīdina, kad iestājas nakts, un skaita naktis, ko pārdzīvo.

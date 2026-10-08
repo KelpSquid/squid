@@ -494,3 +494,6 @@ Start from: {0} => Бастау негізі: {0}
 glow can't outline players, only mobs => glow ойыншыларды емес, тек мобтарды қоршай алады
 Creeper Radar => Крипер радары
 Press K: every creeper nearby glows through walls for 10 seconds. => K бас: жақын маңдағы әр крипер 10 секунд бойы қабырға арқылы жарқырайды.
+onLevelUp only works inside start() => onLevelUp тек start() ішінде жұмыс істейді
+Night Watch => Түнгі күзет
+Warns you when night falls, and counts the nights you survive. => Түн түскенде ескертеді және сен аман өткен түндерді санайды.

@@ -494,3 +494,6 @@ Start from: {0} => Byrja frá: {0}
 glow can't outline players, only mobs => glow getur ekki dregið útlínur um leikmenn, bara verur
 Creeper Radar => Creeper-radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Ýttu á K: allir creeperar í nágrenninu ljóma í gegnum veggi í 10 sekúndur.
+onLevelUp only works inside start() => onLevelUp virkar bara inni í start()
+Night Watch => Næturvakt
+Warns you when night falls, and counts the nights you survive. => Varar þig við þegar nóttin skellur á og telur næturnar sem þú lifir af.

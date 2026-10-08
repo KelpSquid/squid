@@ -494,3 +494,6 @@ Start from: {0} => ເລີ່ມຈາກ: {0}
 glow can't outline players, only mobs => glow ຂີດເສັ້ນອ້ອມຜູ້ຫຼິ້ນບໍ່ໄດ້ ໄດ້ແຕ່ມັອບ
 Creeper Radar => ເຣດາ Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => ກົດ K: creeper ທຸກໂຕທີ່ຢູ່ໃກ້ຈະເຫຼື້ອມແສງຜ່ານກຳແພງ 10 ວິນາທີ
+onLevelUp only works inside start() => onLevelUp ໃຊ້ໄດ້ແຕ່ໃນ start()
+Night Watch => ຍາມກາງຄືນ
+Warns you when night falls, and counts the nights you survive. => ເຕືອນເຈົ້າເມື່ອຄ່ຳມາ ແລະ ນັບຄືນທີ່ເຈົ້າລອດມາໄດ້

@@ -494,3 +494,6 @@ Start from: {0} => Zacznij ôd: {0}
 glow can't outline players, only mobs => glow niy poradzi ôbrysować grŏczy, ino moby
 Creeper Radar => Creeperowy radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Przyciś K: kożdy creeper blisko świeci bez ściany bez 10 sekund.
+onLevelUp only works inside start() => onLevelUp działo yno we start()
+Night Watch => Nocno warta
+Warns you when night falls, and counts the nights you survive. => Ôstrzygŏ cie, kej przichodzi noc, i liczy noce, kere przetrwŏsz.

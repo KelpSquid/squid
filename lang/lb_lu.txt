@@ -494,3 +494,6 @@ Start from: {0} => Ufänke mat: {0}
 glow can't outline players, only mobs => glow kann keng Spiller ëmranden, nëmme Mobs
 Creeper Radar => Creeper-Radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Dréck K: All Creeper an der Géigend liicht 10 Sekonne laang duerch d'Maueren.
+onLevelUp only works inside start() => onLevelUp geet just an start()
+Night Watch => Nuetswuecht
+Warns you when night falls, and counts the nights you survive. => Warnt dech, wann d'Nuecht fält, an zielt d'Nuechten, déi s du iwwerlieft hues.

@@ -494,3 +494,6 @@ Start from: {0} => Почни од: {0}
 glow can't outline players, only mobs => glow не може да ги оцрта играчите, само суштествата
 Creeper Radar => Радар за Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Притисни K: секој creeper во близина свети низ ѕидовите 10 секунди.
+onLevelUp only works inside start() => onLevelUp работи само во start()
+Night Watch => Ноќна стража
+Warns you when night falls, and counts the nights you survive. => Те предупредува кога ќе падне ноќ и ги брои ноќите што ќе ги преживееш.

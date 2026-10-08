@@ -494,3 +494,6 @@ Start from: {0} => Зачати од: {0}
 glow can't outline players, only mobs => glow не може обвести грачів, лем мобы
 Creeper Radar => Кріперовый радар
 Press K: every creeper nearby glows through walls for 10 seconds. => Стисни K: кождый кріпер близко світить через стїны 10 секунд.
+onLevelUp only works inside start() => onLevelUp іде лем внутрї start()
+Night Watch => Нічна стража
+Warns you when night falls, and counts the nights you survive. => Упозорнить тя, коли зайде ніч, і чітать ночі, што переживешь.

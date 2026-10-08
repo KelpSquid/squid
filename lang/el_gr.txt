@@ -494,3 +494,6 @@ Start from: {0} => Ξεκίνα από: {0}
 glow can't outline players, only mobs => το glow δεν μπορεί να περιγράψει παίκτες, μόνο πλάσματα
 Creeper Radar => Ραντάρ creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Πάτα K: κάθε κοντινός creeper λάμπει μέσα από τοίχους για 10 δευτερόλεπτα.
+onLevelUp only works inside start() => το onLevelUp δουλεύει μόνο μέσα στο start()
+Night Watch => Νυχτερινή φρουρά
+Warns you when night falls, and counts the nights you survive. => Σε προειδοποιεί όταν πέφτει η νύχτα και μετράει τις νύχτες που επιβιώνεις.

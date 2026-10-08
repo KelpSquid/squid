@@ -494,3 +494,6 @@ Start from: {0} => مولا دري: {0}
 glow can't outline players, only mobs => glow تيدق بوليه مڠݢاريسکن ڤماٴين، هاڽ موب
 Creeper Radar => رادر Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => تکن K: ستياڤ creeper بردکتن برسينر منمبوسي دينديڠ سلاما 10 ساٴت.
+onLevelUp only works inside start() => onLevelUp هاڽ برفوڠسي د دالم start()
+Night Watch => ڤڠاول مالم
+Warns you when night falls, and counts the nights you survive. => ممبري امرن اڤابيلا مالم تيبا، دان مڠيرا مالم يڠ اندا هاروڠي.

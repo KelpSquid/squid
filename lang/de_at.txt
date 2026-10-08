@@ -494,3 +494,6 @@ Start from: {0} => Aunfaungen mit: {0}
 glow can't outline players, only mobs => glow kau ka Spüla umrandn, nur Viecha
 Creeper Radar => Creeper-Radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Druck K: jeder Creeper in da Nähe leicht 10 Sekundn laung durch d'Wänd.
+onLevelUp only works inside start() => onLevelUp geht nur in start()
+Night Watch => Nochtwach
+Warns you when night falls, and counts the nights you survive. => Warnt di, wenn's Nocht wird, und zöht de Nächt, de'st überlebst.

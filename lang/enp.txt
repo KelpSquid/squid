@@ -494,3 +494,6 @@ Start from: {0} => Start from: {0}
 glow can't outline players, only mobs => glow can't outline players, only wights
 Creeper Radar => Creeper Finder
 Press K: every creeper nearby glows through walls for 10 seconds. => Press K: every creeper nearby glows through walls for 10 seconds.
+onLevelUp only works inside start() => onLevelUp only works inside start()
+Night Watch => Night Ward
+Warns you when night falls, and counts the nights you survive. => Warns you when night falls, and tells the nights you outlive.

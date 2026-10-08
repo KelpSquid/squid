@@ -494,3 +494,6 @@ Start from: {0} => Schdardn vo: {0}
 glow can't outline players, only mobs => glow konn ka Schbieler umrandn, bloß Viecher
 Creeper Radar => Creeper-Radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Drügg K: jeder Creeper in der Nähe leuchd 10 Sekundn lang durch die Wänd.
+onLevelUp only works inside start() => onLevelUp gehd bloß in start()
+Night Watch => Nachdwach
+Warns you when night falls, and counts the nights you survive. => Warnd di, wenn's Nachd wird, und zähld die Nächd, die'd überlebsd.

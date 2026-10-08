@@ -494,3 +494,6 @@ Start from: {0} => Aloita pohjasta: {0}
 glow can't outline players, only mobs => glow ei voi korostaa pelaajia, vain olentoja
 Creeper Radar => Creeper-tutka
 Press K: every creeper nearby glows through walls for 10 seconds. => Paina K: jokainen lähellä oleva creeper hehkuu seinien läpi 10 sekunnin ajan.
+onLevelUp only works inside start() => onLevelUp toimii vain start()-metodin sisällä
+Night Watch => Yövahti
+Warns you when night falls, and counts the nights you survive. => Varoittaa, kun yö laskeutuu, ja laskee yöt, joista selviät.

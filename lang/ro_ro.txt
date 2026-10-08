@@ -494,3 +494,6 @@ Start from: {0} => Pornește de la: {0}
 glow can't outline players, only mobs => glow nu poate contura jucătorii, doar mobii
 Creeper Radar => Radar de Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Apasă K: fiecare creeper din apropiere strălucește prin pereți timp de 10 secunde.
+onLevelUp only works inside start() => onLevelUp merge doar în start()
+Night Watch => Paza de noapte
+Warns you when night falls, and counts the nights you survive. => Te avertizează când se lasă noaptea și numără nopțile pe care le supraviețuiești.

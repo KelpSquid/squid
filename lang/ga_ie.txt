@@ -494,3 +494,6 @@ Start from: {0} => Tosaigh ó: {0}
 glow can't outline players, only mobs => ní féidir le glow imlíne a chur ar imreoirí, ar chréatúir amháin
 Creeper Radar => Radar Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Brúigh K: lonraíonn gach creeper in aice láimhe trí bhallaí ar feadh 10 soicind.
+onLevelUp only works inside start() => ní oibríonn onLevelUp ach taobh istigh de start()
+Night Watch => Faire na hOíche
+Warns you when night falls, and counts the nights you survive. => Tugann sé rabhadh duit nuair a thiteann an oíche, agus áiríonn sé na hoícheanta a mhaireann tú.

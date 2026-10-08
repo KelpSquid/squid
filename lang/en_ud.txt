@@ -494,3 +494,6 @@ Diamond Counter => ɹǝʇunoƆ puoɯɐᴉᗡ
 Counts every diamond you collect, forever. => ˙ɹǝʌǝɹoɟ 'ʇɔǝꞁꞁoɔ noʎ puoɯɐᴉp ʎɹǝʌǝ sʇunoƆ
 Dance Party => ʎʇɹɐԀ ǝɔuɐᗡ
 Notes and hearts jump to the beat of your music. => ˙ɔᴉsnɯ ɹnoʎ ɟo ʇɐǝq ǝɥʇ oʇ dɯnɾ sʇɹɐǝɥ puɐ sǝʇoN
+onLevelUp only works inside start() => start() ǝpᴉsuᴉ sʞɹoʍ ʎꞁuo onLevelUp
+Night Watch => ɥɔʇɐM ʇɥᵷᴉN
+Warns you when night falls, and counts the nights you survive. => ˙ǝʌᴉʌɹns noʎ sʇɥᵷᴉu ǝɥʇ sʇunoɔ puɐ 'sꞁꞁɐɟ ʇɥᵷᴉu uǝɥʍ noʎ suɹɐM

@@ -494,3 +494,6 @@ Start from: {0} => Start frum: {0}
 glow can't outline players, only mobs => glow cant outlien kittehz, onli mobz
 Creeper Radar => Creeper Raydar
 Press K: every creeper nearby glows through walls for 10 seconds. => Pres K: evry creeper neerby glowz thru wallz 4 10 secondz.
+onLevelUp only works inside start() => onLevelUp onli werks inside start()
+Night Watch => Nite Watch
+Warns you when night falls, and counts the nights you survive. => Warnz u wen nite fallz, an countz teh nitez u surviv.

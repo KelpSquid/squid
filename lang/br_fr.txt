@@ -494,3 +494,6 @@ Start from: {0} => Kregiñ gant : {0}
 glow can't outline players, only mobs => glow ne c'hall ket tresañ an dro d'ar c'hoarierien, d'ar c'hrouadurioù hepken
 Creeper Radar => Radar creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Pouez war K : pep creeper tost a lugern a-dreuz ar mogerioù e-pad 10 eilenn.
+onLevelUp only works inside start() => onLevelUp ne ya en-dro nemet e-barzh start()
+Night Watch => Gward an noz
+Warns you when night falls, and counts the nights you survive. => Da gemenn pa zeu an noz, hag a gont an nozvezhioù a dremenez bev.

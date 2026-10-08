@@ -494,3 +494,6 @@ Start from: {0} => Mulai dari: {0}
 glow can't outline players, only mobs => glow tidak bisa memberi garis pada pemain, hanya makhluk
 Creeper Radar => Radar Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Tekan K: semua creeper di dekatmu bersinar menembus dinding selama 10 detik.
+onLevelUp only works inside start() => onLevelUp hanya bisa dipakai di dalam start()
+Night Watch => Penjaga Malam
+Warns you when night falls, and counts the nights you survive. => Memperingatkanmu saat malam tiba, dan menghitung malam yang berhasil kamu lewati.

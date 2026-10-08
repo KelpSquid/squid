@@ -494,3 +494,6 @@ Start from: {0} => cfari fi: {0}
 glow can't outline players, only mobs => la'e zoi gy glow gy na ka'e sruri lo kelci .i ri sruri lo danlu po'o
 Creeper Radar => creeper zgana cabra
 Press K: every creeper nearby glows through walls for 10 seconds. => ko danre K .i ro lo jibni creeper cu gusni ne'i lo bitmu ze'a lo 10 snidu
+onLevelUp only works inside start() => onLevelUp cu gunka po'o ne'i start()
+Night Watch => nicte zgana
+Warns you when night falls, and counts the nights you survive. => ri cusku do ca lo nu co'a nicte .ije ri kancu lo nicte poi do renvi ke'a

@@ -494,3 +494,6 @@ Start from: {0} => Սկսել սրանից: {0}
 glow can't outline players, only mobs => glow-ը չի կարող խաղացողներին եզրագծել, միայն արարածներին
 Creeper Radar => Քրիփերի ռադար
 Press K: every creeper nearby glows through walls for 10 seconds. => Սեղմիր K՝ մոտակա ամեն քրիփեր 10 վայրկյան փայլում է պատերի միջով։
+onLevelUp only works inside start() => onLevelUp-ը աշխատում է միայն start()-ի ներսում
+Night Watch => Գիշերային պահակ
+Warns you when night falls, and counts the nights you survive. => Զգուշացնում է, երբ գիշեր է իջնում, և հաշվում է քո վերապրած գիշերները։

@@ -494,3 +494,6 @@ Start from: {0} => Kiindulás: {0}
 glow can't outline players, only mobs => a glow nem tud játékosokat körberajzolni, csak lényeket
 Creeper Radar => Creeper-radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Nyomd meg a K-t: minden közeli creeper 10 másodpercig átvilágít a falakon.
+onLevelUp only works inside start() => az onLevelUp csak a start() belsejében működik
+Night Watch => Éjjeliőr
+Warns you when night falls, and counts the nights you survive. => Szól, amikor leszáll az éj, és számolja a túlélt éjszakákat.

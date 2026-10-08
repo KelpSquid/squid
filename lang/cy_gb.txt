@@ -494,3 +494,6 @@ Start from: {0} => Dechrau o: {0}
 glow can't outline players, only mobs => does dim modd i glow amlinellu chwaraewyr, dim ond creaduriaid
 Creeper Radar => Radar Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Pwysa K: mae pob creeper gerllaw yn tywynnu drwy waliau am 10 eiliad.
+onLevelUp only works inside start() => dim ond y tu mewn i start() mae onLevelUp yn gweithio
+Night Watch => Gwyliwr y Nos
+Warns you when night falls, and counts the nights you survive. => Yn dy rybuddio pan fydd y nos yn disgyn, ac yn cyfrif y nosweithiau rwyt ti'n eu goroesi.

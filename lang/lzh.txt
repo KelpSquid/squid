@@ -494,3 +494,6 @@ Start from: {0} => 始於：{0}
 glow can't outline players, only mobs => glow 不能圍戲者，唯生靈耳
 Creeper Radar => Creeper 之察
 Press K: every creeper nearby glows through walls for 10 seconds. => 按 K：近處 Creeper 皆透壁而輝，凡 10 秒。
+onLevelUp only works inside start() => onLevelUp 唯於 start() 中可用
+Night Watch => 夜巡
+Warns you when night falls, and counts the nights you survive. => 夜降則警汝。汝所生還之夜，皆計之。

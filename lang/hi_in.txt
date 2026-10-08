@@ -494,3 +494,6 @@ Start from: {0} => यहाँ से शुरू करें: {0}
 glow can't outline players, only mobs => glow खिलाड़ियों के चारों ओर रेखा नहीं बना सकता, सिर्फ़ मॉब के
 Creeper Radar => क्रीपर रडार
 Press K: every creeper nearby glows through walls for 10 seconds. => K दबाएँ: पास का हर क्रीपर 10 सेकंड तक दीवारों के पार चमकता है।
+onLevelUp only works inside start() => onLevelUp सिर्फ़ start() के अंदर काम करता है
+Night Watch => रात का पहरा
+Warns you when night falls, and counts the nights you survive. => रात ढलने पर आपको चेतावनी देता है, और गिनता है कि आप कितनी रातें बच गए।

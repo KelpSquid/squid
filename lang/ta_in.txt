@@ -494,3 +494,6 @@ Start from: {0} => இதிலிருந்து தொடங்கு: {0}
 glow can't outline players, only mobs => glow வீரர்களைச் சுற்றிக் கோடு போட முடியாது, உயிரினங்களை மட்டுமே
 Creeper Radar => க்ரீப்பர் ரேடார்
 Press K: every creeper nearby glows through walls for 10 seconds. => K அழுத்துங்கள்: அருகிலுள்ள ஒவ்வொரு க்ரீப்பரும் 10 விநாடிகள் சுவர்கள் வழியே ஒளிரும்.
+onLevelUp only works inside start() => onLevelUp start()-க்குள் மட்டுமே வேலை செய்யும்
+Night Watch => இரவுக் காவல்
+Warns you when night falls, and counts the nights you survive. => இரவு வரும்போது எச்சரிக்கும், நீங்கள் தப்பிப்பிழைத்த இரவுகளை எண்ணும்.

@@ -494,3 +494,6 @@ Start from: {0} => საწყისი: {0}
 glow can't outline players, only mobs => glow ვერ შემოხაზავს მოთამაშეებს, მხოლოდ არსებებს
 Creeper Radar => კრიპერის რადარი
 Press K: every creeper nearby glows through walls for 10 seconds. => დააჭირე K-ს: ყველა ახლომდებარე კრიპერი 10 წამით კედლებში გამოანათებს.
+onLevelUp only works inside start() => onLevelUp მხოლოდ start()-ის შიგნით მუშაობს
+Night Watch => ღამის გუშაგი
+Warns you when night falls, and counts the nights you survive. => გაფრთხილებს, როცა ღამდება, და ითვლის ღამეებს, რომლებსაც გადაურჩი.

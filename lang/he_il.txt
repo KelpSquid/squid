@@ -494,3 +494,6 @@ Start from: {0} => התחלה מ: {0}
 glow can't outline players, only mobs => glow לא יכול להקיף שחקנים, רק יצורים
 Creeper Radar => מכ"ם קריפרים
 Press K: every creeper nearby glows through walls for 10 seconds. => לחצו K: כל קריפר קרוב זוהר דרך קירות למשך 10 שניות.
+onLevelUp only works inside start() => onLevelUp עובד רק בתוך start()
+Night Watch => משמר לילה
+Warns you when night falls, and counts the nights you survive. => מזהיר אתכם כשיורד הלילה, וסופר את הלילות שאתם שורדים.

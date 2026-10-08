@@ -494,3 +494,6 @@ Start from: {0} => Başlangıç: {0}
 glow can't outline players, only mobs => glow oyuncuların çevresini çizemez, sadece yaratıkların
 Creeper Radar => Creeper Radarı
 Press K: every creeper nearby glows through walls for 10 seconds. => K'ye bas: yakındaki her creeper 10 saniye boyunca duvarların içinden parlar.
+onLevelUp only works inside start() => onLevelUp sadece start() içinde çalışır
+Night Watch => Gece Nöbeti
+Warns you when night falls, and counts the nights you survive. => Gece çökünce seni uyarır ve hayatta kaldığın geceleri sayar.

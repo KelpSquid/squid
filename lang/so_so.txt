@@ -494,3 +494,6 @@ Start from: {0} => Ka bilow: {0}
 glow can't outline players, only mobs => glow ma xariiqi karo ciyaartoyda, mob-yada oo keliya
 Creeper Radar => Raadaarka Creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Riix K: creeper kasta oo u dhow wuxuu ka iftiimayaa derbiyada 10 ilbiriqsi.
+onLevelUp only works inside start() => onLevelUp wuxuu ku shaqeeyaa oo keliya gudaha start()
+Night Watch => Ilaalada Habeenka
+Warns you when night falls, and counts the nights you survive. => Wuu ku digaa marka habeenku dhaco, wuxuuna tiriyaa habeennada aad ka badbaaddo.

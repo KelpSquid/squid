@@ -494,3 +494,6 @@ Start from: {0} => Byrja frå: {0}
 glow can't outline players, only mobs => glow kann ikkje teikna omriss kring leikarar, berre skapningar
 Creeper Radar => Creeper-radar
 Press K: every creeper nearby glows through walls for 10 seconds. => Trykk K: kvar creeper i nærleiken lyser gjenom veggjer i 10 sekund.
+onLevelUp only works inside start() => onLevelUp verkar berre inni start()
+Night Watch => Nattvakt
+Warns you when night falls, and counts the nights you survive. => Varslar deg når natti fell på, og tel netterne du overliver.

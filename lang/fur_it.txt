@@ -494,3 +494,6 @@ Start from: {0} => Partî di: {0}
 glow can't outline players, only mobs => glow nol pues contornâ i zuiadôrs, dome lis creaturis
 Creeper Radar => Radar dai creeper
 Press K: every creeper nearby glows through walls for 10 seconds. => Frache K: ogni creeper dongje al lûs atraviers i mûrs par 10 seconts.
+onLevelUp only works inside start() => onLevelUp al funzione dome dentri di start()
+Night Watch => Vuardie di gnot
+Warns you when night falls, and counts the nights you survive. => Ti vise cuant che al ven gnot, e al conte lis gnots che tu sorevivis.
