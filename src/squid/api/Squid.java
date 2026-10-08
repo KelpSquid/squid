@@ -184,6 +184,15 @@ public final class Squid {
     }
 
     /**
+     * Runs every frame while you're in a world, to draw in it with the {@link WorldDraw}: outlines around blocks,
+     * boxes, lines, floating text and waypoints. Unlike {@link #onHud}, these sit in the world and you can walk around
+     * them (they still show with the HUD hidden).
+     */
+    public void onWorldDraw(Consumer<WorldDraw> draw) {
+        squid.Events.onWorldDraw(mod.id(), draw);
+    }
+
+    /**
      * Runs right as a cue in a playing .sqda sound is heard: its beats, bars, sections, named cues and light cues.
      * Good for lights or effects that follow the music.
      */
@@ -228,6 +237,111 @@ public final class Squid {
     /** Runs 20 times a second, all the time the game is open (in menus too). */
     public void onTick(Runnable tick) {
         squid.Events.onTick(mod.id(), tick);
+    }
+
+    /**
+     * A screen of this mod's own, with this title: add buttons, switches, sliders, text boxes and labels to it, then
+     * {@link ModScreen#open()} it. No need to know Minecraft's screen classes.
+     */
+    public ModScreen screen(String title) {
+        return new ModScreen(mod.id(), title);
+    }
+
+    // ---- Messages between the game and a Squid server ----
+
+    /**
+     * Sends something to the copy of this mod on the server: text, a number, true/false, or a list or map of those,
+     * up to 30,000 bytes. The server's copy gets it in {@link #onMessage}. Gives back false if it couldn't go (the
+     * game isn't on a server with Squid, or the mod sent more than about 40 a second, which is held back so no mod can
+     * flood a server). In single player your world's server is right there in your game, so it works there too.
+     */
+    public boolean send(String channel, Object data) {
+        return squid.ModNet.send(mod.id(), channel, data);
+    }
+
+    /**
+     * Runs when the other copy of this mod sends something on a channel: from the server (in the game) or from a
+     * player (on the server). {@code from} says who, and can {@link Sender#reply} straight back:
+     *
+     * <pre>
+     * squid.onMessage("ping", (from, data) -&gt; from.reply("pong", "Hi " + from.name()));
+     * </pre>
+     *
+     * It runs on the game's (or the server's) own thread, so it can use Minecraft like a hook does.
+     */
+    public void onMessage(String channel, java.util.function.BiConsumer<Sender, Object> handler) {
+        squid.ModNet.on(mod.id(), channel, handler);
+    }
+
+    /**
+     * On a server: sends something to the copy of this mod in one player's game. player is their name, their id
+     * (a UUID), Minecraft's ServerPlayer, or a {@link Sender}. False if they aren't on, or don't have Squid.
+     */
+    public boolean sendTo(Object player, String channel, Object data) {
+        return squid.ModNet.sendTo(mod.id(), player, channel, data);
+    }
+
+    /** On a server: sends something to every player whose game has Squid. Gives back how many it went to. */
+    public int sendToAll(String channel, Object data) {
+        return squid.ModNet.sendToAll(mod.id(), channel, data);
+    }
+
+    // ---- Mods talking to each other ----
+
+    /**
+     * Sends an event to every mod listening for it with {@link #on}, with a value (or null). The mods don't need each
+     * other's code: they only agree on the event's name, like "treasure-found". Gives back how many listened.
+     */
+    public int emit(String event, Object value) {
+        return squid.ModBus.emit(mod.id(), event, value);
+    }
+
+    /** Runs whenever any mod sends this event with {@link #emit}, with its value. */
+    public void on(String event, Consumer<Object> listener) {
+        squid.ModBus.on(mod.id(), event, listener);
+    }
+
+    /** Whether a mod with this id is running, like hasMod("minimap"). */
+    public boolean hasMod(String id) {
+        for (ModInfo m : squid.Main.mods()) {
+            if (m.id().equals(id)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Shares a value under a name, for other mods to get with {@link #shared} (sharing again replaces it). It can be
+     * a Function or Supplier for other mods to {@link #ask}. Plain Java things work best: text, numbers, lists, maps.
+     */
+    public void share(String name, Object value) {
+        squid.ModBus.share(mod.id(), name, value);
+    }
+
+    /** A function other mods can {@link #ask}: {@code squid.offer("price", item -> 5);} */
+    public void offer(String name, java.util.function.Function<Object, Object> answer) {
+        squid.ModBus.share(mod.id(), name, answer);
+    }
+
+    /** A value some mod shared under this name, or null if none did. */
+    @SuppressWarnings("unchecked")
+    public <T> T shared(String name) {
+        return (T) squid.ModBus.shared(name);
+    }
+
+    /** A value some mod shared under this name, or the fallback if none did. */
+    @SuppressWarnings("unchecked")
+    public <T> T shared(String name, T fallback) {
+        Object value = squid.ModBus.shared(name);
+        return value == null ? fallback : (T) value;
+    }
+
+    /**
+     * Asks a function another mod offered (or shared) under this name, with a question. Null if no mod offers it, or
+     * if its code breaks.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T ask(String name, Object question) {
+        return (T) squid.ModBus.ask(name, question);
     }
 
     /** For advanced mods: change a class's bytecode directly with ASM before it loads. */

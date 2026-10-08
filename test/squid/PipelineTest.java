@@ -302,6 +302,187 @@ public class PipelineTest {
         check("wrong values for a method are explained", failure(() -> squid.api.Reflect.call(vec, "scale", "two")),
                 "IllegalArgumentException: Vec3.scale doesn't take these values: (String). It takes: (double)");
 
+        // Mods' own messages between the game and a server: written into bytes and read back, with limits
+        java.util.Map<String, Object> netMessage = new java.util.LinkedHashMap<>();
+        netMessage.put("name", "Steve");
+        netMessage.put("score", 12);
+        netMessage.put("big", 5_000_000_000L);
+        netMessage.put("pi", 3.5);
+        netMessage.put("half", 1.5f);
+        netMessage.put("ok", true);
+        netMessage.put("list", java.util.Arrays.asList(1, "two", null));
+        netMessage.put("nested", java.util.Map.of("deep", List.of(List.of("down"))));
+        netMessage.put("bytes", new byte[] {1, 2, 3});
+        ModNet.Decoded decodedMessage = ModNet.decode(ModNet.encode("net-test", "score", netMessage));
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> back = (java.util.Map<String, Object>) decodedMessage.value();
+        byte[] bytesBack = (byte[]) back.remove("bytes");
+        check("a mod message comes back the same: text, numbers, true/false, lists, maps and bytes", decodedMessage.modId() + " " + decodedMessage.channel() + " "
+                + back + " " + java.util.Arrays.toString(bytesBack),
+                "net-test score {name=Steve, score=12, big=5000000000, pi=3.5, half=1.5, ok=true, list=[1, two, null], nested={deep=[[down]]}} [1, 2, 3]");
+        check("what a message can't carry is explained", failure(() -> ModNet.encode("m", "c", new Object())) + " | "
+                + failure(() -> ModNet.encode("m", "c", "x".repeat(40_000))).startsWith("IllegalArgumentException: that message is too big to send")
+                + " | " + failure(() -> ModNet.encode("m", "", 1)),
+                "IllegalArgumentException: a message can't carry Object. Send text, numbers, true/false, or lists and maps of those | true"
+                        + " | IllegalArgumentException: a message channel needs a name of 1 to 64 letters, like \"score\"");
+        check("broken and made-up messages are refused, not read", failure(() -> ModNet.decode(new byte[] {1})) + " | "
+                + failure(() -> ModNet.decode(new byte[] {1, 1, 'm', 1, 'c', 8, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 0x7F})),
+                "IllegalArgumentException: it ends too soon | IllegalArgumentException: it claims more than it has");
+        List<String> toServer = new ArrayList<>();
+        List<String> toPlayers = new ArrayList<>();
+        ModNet.attach(new ModNet.Transport() {
+            public boolean toServer(byte[] m) {
+                toServer.add(String.valueOf(ModNet.decode(m).value()));
+                return true;
+            }
+
+            public void toPlayer(Object player, byte[] m) {
+                toPlayers.add(player + ":" + ModNet.decode(m).value());
+            }
+
+            public java.util.Collection<?> players() {
+                return List.of("Alex", "Steve");
+            }
+
+            public Object findPlayer(Object nameOrId) {
+                return "Steve".equals(nameOrId) || "Alex".equals(nameOrId) ? nameOrId : null;
+            }
+
+            public String nameOf(Object player) {
+                return String.valueOf(player);
+            }
+
+            public java.util.UUID idOf(Object player) {
+                return java.util.UUID.nameUUIDFromBytes(String.valueOf(player).getBytes());
+            }
+
+            public void onMainThread(Object player, Runnable task) {
+                task.run();
+            }
+        });
+        Squid netMod = new Squid(mod("net-test"));
+        List<String> netHeard = new ArrayList<>();
+        netMod.onMessage("score", (from, data) -> netHeard.add(from + ":" + data + ":" + from.isServer()));
+        netMod.onMessage("ping", (from, data) -> from.reply("pong", "hi " + from.name()));
+        ModNet.fromServer(ModNet.encode("net-test", "score", 5));
+        ModNet.fromPlayer("Steve", ModNet.encode("net-test", "score", 7));
+        ModNet.fromPlayer("Steve", ModNet.encode("another-mod", "score", 8)); // not this mod's: nobody here listens
+        ModNet.fromPlayer("Steve", ModNet.encode("net-test", "ping", null));
+        check("messages reach the mod's handler, saying who sent them, and a reply goes back", netHeard + " " + toPlayers, "[server:5:true, Steve:7:false] [Steve:hi Steve]");
+        ModNet.resetLimits();
+        int sentOk = 0;
+        for (int i = 0; i < 100; i++) if (netMod.send("score", i)) sentOk++;
+        check("a mod can't flood the server: a burst of 100 messages sends " + ModNet.BURST, sentOk, ModNet.BURST);
+        toPlayers.clear();
+        check("the server sends to one player by name, and to everyone", netMod.sendTo("Alex", "score", 1) + " " + netMod.sendTo("Nobody", "score", 1) + " "
+                + netMod.sendToAll("score", 2) + " " + toPlayers, "true false 2 [Alex:1, Alex:2, Steve:2]");
+        netHeard.clear();
+        for (int i = 0; i < 100; i++) ModNet.fromPlayer("Alex", ModNet.encode("net-test", "score", i));
+        check("a player flooding the server is held back", netHeard.size(), ModNet.BURST);
+        int[] handlerRuns = {0};
+        netMod.onMessage("broken", (from, data) -> {
+            handlerRuns[0]++;
+            throw new IllegalStateException("broken on purpose");
+        });
+        ModNet.resetLimits();
+        for (int i = 0; i < 5; i++) ModNet.fromServer(ModNet.encode("net-test", "broken", i));
+        check("a broken message handler is turned off after 3 tries", handlerRuns[0], 3);
+        Events.remove("net-test");
+        netHeard.clear();
+        ModNet.fromServer(ModNet.encode("net-test", "score", 9));
+        check("a mod that's reloaded or off stops hearing messages", netHeard.size(), 0);
+        ModNet.attach(null);
+
+        // Mods talking to each other, without needing each other's code
+        Squid busA = new Squid(mod("bus-a"));
+        Squid busB = new Squid(mod("bus-b"));
+        List<Object> busHeard = new ArrayList<>();
+        busB.on("treasure-found", value -> busHeard.add(value));
+        int listened = busA.emit("treasure-found", 5);
+        busA.share("price", 12);
+        busA.offer("double", x -> (Integer) x * 2);
+        check("an event reaches the other mod, and shared values and answers can be got", busHeard + " " + listened + " " + busB.shared("price") + " "
+                + busB.shared("nothing", 0) + " " + busB.ask("double", 21) + " " + busB.ask("nobody-offers-this", 1), "[5] 1 12 0 42 null");
+        int[] brokenAnswers = {0};
+        busA.offer("broken", x -> {
+            brokenAnswers[0]++;
+            throw new IllegalStateException("broken on purpose");
+        });
+        List<Object> answers = new ArrayList<>();
+        for (int i = 0; i < 5; i++) answers.add(busB.ask("broken", i));
+        check("a broken answer is null, and isn't asked again after 3 tries", answers + " " + brokenAnswers[0], "[null, null, null, null, null] 3");
+        int[] echoes = {0};
+        busA.on("echo", value -> {
+            echoes[0]++;
+            busA.emit("echo", value); // answers itself forever, which Squid stops
+        });
+        busB.emit("echo", 1);
+        check("mods answering each other in a loop are stopped", echoes[0], 16);
+        Events.remove("bus-a");
+        check("a mod that's off stops sharing", busB.shared("price") + " " + busB.emit("echo", 1) + " " + busB.hasMod("not-a-mod"), "null 0 false");
+        Events.remove("bus-b");
+
+        // Drawing in the world: each mod's shapes, in its colors, handed to whatever draws them
+        List<String> worldDrawn = new ArrayList<>();
+        WorldPainter recorder = new WorldPainter() {
+            public void box(double x1, double y1, double z1, double x2, double y2, double z2, int stroke, float width, int fill, boolean onTop) {
+                worldDrawn.add("box " + x1 + "," + y1 + "," + z1 + " " + x2 + "," + y2 + "," + z2 + " " + Integer.toHexString(stroke) + " " + Integer.toHexString(fill) + " " + onTop);
+            }
+
+            public void line(double x1, double y1, double z1, double x2, double y2, double z2, int color, float width, boolean onTop) {
+                worldDrawn.add("line " + x1 + "," + y1 + "," + z1 + " " + x2 + "," + y2 + "," + z2 + " " + Integer.toHexString(color) + " " + onTop);
+            }
+
+            public void text(String text, double x, double y, double z, int color, float scale, boolean onTop) {
+                worldDrawn.add("text " + text + " " + Math.round(x) + "," + Math.round(y) + "," + Math.round(z) + " " + Integer.toHexString(color) + " " + scale + " " + onTop);
+            }
+
+            public double[] camera() {
+                return new double[] {0.5, 65.5, 0.5};
+            }
+        };
+        Events.onWorldDraw("draw-a", draw -> draw.throughWalls(true).block(1, 2, 3, "red"));
+        Events.onWorldDraw("draw-b", draw -> {
+            draw.text("Hi", 0.5, 65, 0.5, 0x00FF00);
+            draw.filledBox(0, 0, 0, 1, 1, 1, "#0000FF");
+        });
+        Events.drawWorld(recorder);
+        check("mods draw boxes and text in the world, and one mod's throughWalls doesn't carry over to the next", worldDrawn.toString(),
+                "[box 1.0,2.0,3.0 2.0,3.0,4.0 ffff5555 0 true, text Hi 1,65,1 ff00ff00 1.0 false, box 0.0,0.0,0.0 1.0,1.0,1.0 ff0000ff 400000ff false]");
+        Events.remove("draw-a");
+        Events.remove("draw-b");
+        worldDrawn.clear();
+        Events.onWorldDraw("draw-c", draw -> draw.waypoint("Home", 0, 64, 100, "gold"));
+        Events.drawWorld(recorder);
+        check("a waypoint is an outline, a beam and its name with how far it is, drawn nearer (and bigger) when it's far", worldDrawn.toString(),
+                "[box 0.0,64.0,100.0 1.0,65.0,101.0 ffffaa00 33ffaa00 false, line 0.5,65.0,100.5 0.5,320.0,100.5 99ffaa00 false, text Home (100m) 1,66,49 ffffaa00 6.0 true]");
+        Events.remove("draw-c");
+        check("colors by name, #RRGGBB or number", Integer.toHexString(squid.api.Colors.of("Light Blue")) + " " + Integer.toHexString(squid.api.Colors.of("#FF8800")) + " "
+                + Integer.toHexString(squid.api.Colors.of(0xFF8800)) + " " + Integer.toHexString(squid.api.Colors.of(0x80FF0000)) + " | " + failure(() -> squid.api.Colors.of("blurple")),
+                "ff3ab3da ffff8800 ffff8800 80ff0000 | IllegalArgumentException: Squid doesn't know the color \"blurple\". Try \"red\", \"gold\", \"light_blue\" or 0xFF8800");
+
+        // A mod's own screen: what's on it, in order, and actions that break are switched off
+        int[] clicks = {0};
+        squid.api.ModScreen built = new Squid(mod("screen-test")).screen("My Menu")
+                .label("Hello")
+                .button("Go", () -> {
+                    clicks[0]++;
+                    throw new IllegalStateException("broken on purpose");
+                })
+                .toggle("Fly", true, on -> { })
+                .slider("Speed", 1, 10, 50, speed -> { })
+                .textBox("Name", null, typed -> { });
+        List<String> screenItems = new ArrayList<>();
+        for (squid.api.ModScreen.Item item : built.items()) screenItems.add(item.getClass().getSimpleName());
+        for (int i = 0; i < 5; i++) built.safely(((squid.api.ModScreen.Button) built.items().get(1)).onClick());
+        check("a mod's screen has its items in order, a slider keeps its start in range, and a broken button stops after 3 tries",
+                built.title() + " " + screenItems + " " + ((squid.api.ModScreen.Slider) built.items().get(3)).start() + " " + clicks[0],
+                "My Menu [Label, Button, Toggle, Slider, TextBox] 10 3");
+        check("a screen can't open before the game is running", failure(() -> {
+            built.open();
+            return null;
+        }), "IllegalStateException: a screen can only open while the game is running, with Squid Mods on");
+
         // Mods written as one .java file: Squid compiles them, and explains mistakes in plain words
         Path easy = java.nio.file.Files.createTempDirectory("squid-easy-test");
         String[][] easyMods = {
@@ -378,6 +559,21 @@ public class PipelineTest {
                 "        onDay(() -> say(\"Morning! You're level \" + level()));",
                 "        onKey(\"K\", () -> { glow(\"creeper\"); after(10, () -> stopGlowing(\"creeper\")); });",
                 "        keepShowing(() -> \"Diamonds: \" + remembered(\"diamonds\", 0));",
+                "        markBlock(0, 64, 0, \"gold\");",
+                "        waypoint(\"Home\", 0, 64, 0);",
+                "        waypoint(\"Base\", 10, 70, 10, 0x55FFFF);",
+                "        removeWaypoint(\"Base\");",
+                "        floatingText(\"Hi\", 0.5, 66, 0.5);",
+                "        drawLine(0, 64, 0, 5, 64, 5, \"red\");",
+                "        keepDrawing(draw -> draw.block(x(), y() - 1, z(), \"lime\"));",
+                "        onKey(\"M\", () -> screen(\"My Menu\").button(\"Day\", () -> command(\"time set day\")).toggle(\"Fly\", false, on -> say(\"Fly: \" + on))",
+                "                .slider(\"Speed\", 1, 10, 5, speed -> say(\"Speed \" + speed)).textBox(\"Name\", \"\", text -> { }).label(() -> \"Level \" + level()).open());",
+                "        onMessage(\"score\", (from, data) -> say(from + \" scored \" + data));",
+                "        onSignal(\"treasure-found\", value -> say(\"Treasure! \" + value));",
+                "        if (hasMod(\"minimap\")) signal(\"hello\", shared(\"count\", 0));",
+                "        signal(\"started\");",
+                "        share(\"count\", 3);",
+                "        send(\"score\", 1);",
                 "        every(1, () -> {",
                 "            if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");",
                 "            showText(holding() + \" / \" + lookingAt() + \" / \" + biome() + \" / \" + (isNight() ? \"night\" : \"day\"));",
@@ -397,6 +593,12 @@ public class PipelineTest {
         check("chat commands and onChat hook into Minecraft's chat classes", Class.forName("net.minecraft.client.multiplayer.ClientPacketListener", false, chatLoader).getClassLoader() == chatLoader
                 && Class.forName("net.minecraft.client.gui.components.ChatComponent", false, chatLoader).getClassLoader() == chatLoader, true);
         check("onBreak hooks into breaking blocks", Class.forName("net.minecraft.client.multiplayer.MultiPlayerGameMode", false, chatLoader).getClassLoader() == chatLoader, true);
+        // The easy mod's marks (a block, a waypoint, floating text, a line) and keepDrawing are drawn in the world
+        worldDrawn.clear();
+        Events.drawWorld(recorder);
+        check("an easy mod's marks and keepDrawing are drawn in the world (a removed waypoint isn't)", worldDrawn.size() + " " + worldDrawn.get(0) + " | "
+                + new Squid(mod("other")).shared("count"), "7 box 0.0,64.0,0.0 1.0,65.0,1.0 ffffaa00 0 true | 3");
+        Events.remove("all-commands"); // its waypoint wants a camera, which later tests don't have
         // The Store's easy mods (Coords, Where I Died) start like any mod
         List<String> storeStarted = new ArrayList<>();
         for (String storeMod : new String[] {"coords", "whereidied"}) {
@@ -1071,7 +1273,7 @@ public class PipelineTest {
         allSnippets.append("    }\n}\n");
         Path snippetsFile = java.nio.file.Files.createTempDirectory("squid-snippets").resolve("AllSnippets.java");
         java.nio.file.Files.writeString(snippetsFile, allSnippets);
-        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 29");
+        check("every command in the Mod Maker's list compiles", sources.compile(snippetsFile).id() + " " + squidmods.ModMaker.SNIPPETS.size(), "all-snippets 41");
 
         Main.setGameFolder(modsGame);
         squid.api.ModSettings settings = squid.api.ModSettings.of("settings-test");
@@ -1681,6 +1883,26 @@ public class PipelineTest {
         Object inGame = unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, clientListener);
         clientListener.getMethod("handleCustomPayload", clientbound).invoke(inGame, arrivedInGame);
         check("the game hands Squid messages to Squid", clientGot.toString(), "[hi game]");
+        // Mods' own messages through the real packet code: a player's game to the server, and the server to the game
+        Squid realNet = new Squid(mod("net-real"));
+        List<String> realHeard = new ArrayList<>();
+        realNet.onMessage("greet", (from, data) -> {
+            realHeard.add(from.name() + ":" + data);
+            from.reply("answer", "hello " + from.name()); // the fake player has no connection: nothing is sent, nothing breaks
+        });
+        realNet.onMessage("news", (from, data) -> realHeard.add(from.name() + ":" + data));
+        Field profileField = Class.forName("net.minecraft.world.entity.player.Player", false, netLoader).getDeclaredField("gameProfile");
+        profileField.setAccessible(true);
+        profileField.set(fakePlayer, Class.forName("com.mojang.authlib.GameProfile", true, netLoader).getConstructor(java.util.UUID.class, String.class)
+                .newInstance(java.util.UUID.fromString("00000000-0000-0000-0000-000000000062"), "Tester"));
+        Object greet = serverbound.getConstructors()[0].newInstance(payloadClass.getConstructors()[0].newInstance(idOf.invoke(null, "squid", "mods"),
+                ModNet.encode("net-real", "greet", "hi server")));
+        gameListener.getMethod("handleCustomPayload", serverbound).invoke(listener, throughTheWire.apply(serverbound.getField("STREAM_CODEC").get(null), greet));
+        Object news = clientbound.getConstructors()[0].newInstance(payloadClass.getConstructors()[0].newInstance(idOf.invoke(null, "squid", "mods"),
+                ModNet.encode("net-real", "news", "hi game")));
+        clientListener.getMethod("handleCustomPayload", clientbound).invoke(inGame, throughTheWire.apply(clientbound.getField("CONFIG_STREAM_CODEC").get(null), news));
+        check("a mod's messages go through Minecraft's real packets to the server and to the game", realHeard.toString(), "[Tester:hi server, server:hi game]");
+        Events.remove("net-real");
         // Squid Sounds' hooks go into Minecraft's sound classes, which must still load and pass Java's checks
         ((SquidMod) netLoader.loadClass("squidsounds.Sounds").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-sounds")));
         boolean soundsLoad = true;
@@ -1838,6 +2060,35 @@ public class PipelineTest {
             partsStarted.add(part[1]);
         }
         check("voice chat, emotes and the Squid menu start", partsStarted.toString(), "[squid-voice, squid-emotes, squid-mods]");
+        // Drawing in the world for real: Squid Mods' hook goes into Minecraft's LevelExtractor, and mods' shapes become
+        // Minecraft's own gizmos, gathered the way a frame gathers them
+        check("Minecraft's LevelExtractor loads with Squid's world drawing hook, and mods' screens load",
+                Class.forName("net.minecraft.client.renderer.extract.LevelExtractor", true, netLoader).getClassLoader() == netLoader
+                        && Class.forName("squidmods.BuiltScreen", true, netLoader).getSimpleName().equals("BuiltScreen") && Screens.opener != null, true);
+        Class<?> gizmoCollector = Class.forName("net.minecraft.gizmos.SimpleGizmoCollector", true, netLoader);
+        Object gizmoSink = gizmoCollector.getConstructor().newInstance();
+        Object collecting = Class.forName("net.minecraft.gizmos.Gizmos", true, netLoader)
+                .getMethod("withCollector", Class.forName("net.minecraft.gizmos.GizmoCollector", true, netLoader)).invoke(null, gizmoSink);
+        Field gizmoPainter = netLoader.loadClass("squidmods.WorldGizmos").getDeclaredField("PAINTER");
+        gizmoPainter.setAccessible(true);
+        Events.onWorldDraw("gizmo-test", draw -> {
+            draw.block(0, 64, 0, "red");
+            draw.filledBox(0, 64, 0, 2, 66, 2, "blue");
+            draw.line(0, 64, 0, 0, 80, 0, "yellow", 4);
+            draw.throughWalls(true).text("Hi", 0.5, 66, 0.5, "white");
+        });
+        Events.drawWorld((WorldPainter) gizmoPainter.get(null));
+        collecting.getClass().getMethod("close").invoke(collecting);
+        List<String> gizmoKinds = new ArrayList<>();
+        for (Object instance : (List<?>) gizmoCollector.getMethod("getGizmos").invoke(gizmoSink)) {
+            java.lang.reflect.Method gizmoOf = instance.getClass().getMethod("gizmo");
+            java.lang.reflect.Method onTopOf = instance.getClass().getMethod("isAlwaysOnTop");
+            gizmoOf.setAccessible(true);
+            onTopOf.setAccessible(true);
+            gizmoKinds.add(gizmoOf.invoke(instance).getClass().getSimpleName() + (Boolean.TRUE.equals(onTopOf.invoke(instance)) ? " on top" : ""));
+        }
+        check("mods' shapes become Minecraft's gizmos", gizmoKinds.toString(), "[CuboidGizmo, CuboidGizmo, LineGizmo, TextGizmo on top]");
+        Events.remove("gizmo-test");
         check("the Block Painter's and Sound Swapper's screens load", Class.forName("squidpaint.BlockPaintScreen", true, netLoader).getSimpleName() + " "
                 + Class.forName("squidpaint.BlockPickScreen", true, netLoader).getSimpleName() + " "
                 + Class.forName("squidpaint.SoundSwapScreen", true, netLoader).getSimpleName(), "BlockPaintScreen BlockPickScreen SoundSwapScreen");

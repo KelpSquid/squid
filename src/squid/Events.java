@@ -24,6 +24,7 @@ public final class Events {
     private static final List<Listener<Void>> TICKS = new CopyOnWriteArrayList<>();
     private static final List<Listener<Hud>> HUDS = new CopyOnWriteArrayList<>();
     private static final List<Listener<SoundCue>> CUES = new CopyOnWriteArrayList<>();
+    private static final List<Listener<squid.api.WorldDraw>> WORLD = new CopyOnWriteArrayList<>();
     private static final java.util.Map<String, List<Listener<Object>>> GAME = new java.util.concurrent.ConcurrentHashMap<>();
     private static final List<Command> COMMANDS = new CopyOnWriteArrayList<>();
 
@@ -114,6 +115,22 @@ public final class Events {
         HUDS.add(new Listener<>(modId, draw, new AtomicInteger()));
     }
 
+    /** A mod draws in the world every frame (see squid.api.Squid#onWorldDraw). */
+    public static void onWorldDraw(String modId, Consumer<squid.api.WorldDraw> draw) {
+        WORLD.add(new Listener<>(modId, draw, new AtomicInteger()));
+    }
+
+    /** Whether any mod draws in the world, so Squid only gets ready to when one does. */
+    public static boolean drawingWorld() {
+        return !WORLD.isEmpty();
+    }
+
+    /** Lets every mod draw in the world for this frame (Squid Mods calls this while Minecraft gathers what to draw). */
+    public static void drawWorld(WorldPainter painter) {
+        // Each mod gets its own WorldDraw, so one mod's throughWalls(true) doesn't carry over to the next
+        for (Listener<squid.api.WorldDraw> listener : WORLD) runOne(listener, new squid.api.WorldDraw(painter));
+    }
+
     public static void onSoundCue(String modId, Consumer<SoundCue> cue) {
         CUES.add(new Listener<>(modId, cue, new AtomicInteger()));
     }
@@ -128,9 +145,12 @@ public final class Events {
         TICKS.removeIf(l -> l.modId().equals(modId));
         HUDS.removeIf(l -> l.modId().equals(modId));
         CUES.removeIf(l -> l.modId().equals(modId));
+        WORLD.removeIf(l -> l.modId().equals(modId));
         for (List<Listener<Object>> listeners : GAME.values()) listeners.removeIf(l -> l.modId().equals(modId));
         COMMANDS.removeIf(c -> c.listener().modId().equals(modId));
         GLOWING.remove(modId);
+        ModNet.remove(modId);
+        ModBus.remove(modId);
     }
 
     /** Squid hooks Minecraft's tick and HUD here once, before any mod starts. */
@@ -148,20 +168,22 @@ public final class Events {
     }
 
     private static <T> void run(List<Listener<T>> listeners, T value) {
-        for (Listener<T> listener : listeners) {
-            if (listener.failures().get() >= 3) continue;
-            try {
-                listener.run().accept(value);
-            } catch (RuntimeException | LinkageError e) {
-                int failures = listener.failures().incrementAndGet();
-                if (failures == 1) {
-                    System.out.println("[Squid] Something from " + listener.modId() + " failed:");
-                    e.printStackTrace(System.out);
-                }
-                if (failures == 3) {
-                    System.out.println("[Squid] Turned off something from " + listener.modId() + " because it kept failing.");
-                    Main.hookProblem(listener.modId(), Main.describe(e));
-                }
+        for (Listener<T> listener : listeners) runOne(listener, value);
+    }
+
+    private static <T> void runOne(Listener<T> listener, T value) {
+        if (listener.failures().get() >= 3) return;
+        try {
+            listener.run().accept(value);
+        } catch (RuntimeException | LinkageError e) {
+            int failures = listener.failures().incrementAndGet();
+            if (failures == 1) {
+                System.out.println("[Squid] Something from " + listener.modId() + " failed:");
+                e.printStackTrace(System.out);
+            }
+            if (failures == 3) {
+                System.out.println("[Squid] Turned off something from " + listener.modId() + " because it kept failing.");
+                Main.hookProblem(listener.modId(), Main.describe(e));
             }
         }
     }

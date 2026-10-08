@@ -28,6 +28,18 @@ public final class NetClient {
         return serverHasSquid;
     }
 
+    /** Sends a message to the server if it has Squid. False if it doesn't (or the game isn't on one). */
+    static boolean toSquidServer(String channel, byte[] data) {
+        if (!serverHasSquid()) return false;
+        toServer(channel, data);
+        return true;
+    }
+
+    /** Runs it on the game's own thread, where mods' code runs. */
+    static void onGameThread(Runnable task) {
+        Minecraft.getInstance().execute(task);
+    }
+
     /** Sends a message to the server (only once it said it has Squid). */
     public static void toServer(String channel, byte[] data) {
         var connection = Minecraft.getInstance().getConnection();

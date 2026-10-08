@@ -527,6 +527,178 @@ public abstract class EasyMod implements SquidMod {
         return squid.settings().remembered(name, startingValue);
     }
 
+    // ---- Talking to the server, and to other mods ----
+
+    /**
+     * Sends something to this mod's copy on the server: send("score", 10). Text, numbers, true/false, or lists of
+     * those. In single player it always works; on a server, the server needs Squid and this mod too.
+     */
+    protected boolean send(String channel, Object data) {
+        return squid.send(channel, data);
+    }
+
+    /**
+     * Runs when the other copy of this mod sends something: onMessage("score", (from, data) -&gt; say(from + " scored "
+     * + data)). from is who sent it: "server", or a player's name when this copy is the server's.
+     */
+    protected void onMessage(String channel, java.util.function.BiConsumer<Sender, Object> action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onMessage only works inside start()"));
+        Object[] got = {null, null};
+        Action run = new Action("onMessage(\"" + channel + "\")", () -> action.accept((Sender) got[0], got[1]));
+        squid.onMessage(channel, (from, data) -> {
+            got[0] = from;
+            got[1] = data;
+            run.run();
+        });
+    }
+
+    /** Server side: sends something to one player's copy of this mod, by their name: sendTo("Steve", "score", 10). */
+    protected boolean sendTo(Object player, String channel, Object data) {
+        return squid.sendTo(player, channel, data);
+    }
+
+    /** Server side: sends something to every player's copy of this mod: sendToAll("start", "Go!"). */
+    protected int sendToAll(String channel, Object data) {
+        return squid.sendToAll(channel, data);
+    }
+
+    /** Tells every other mod something happened, by name: signal("treasure-found"). */
+    protected int signal(String name) {
+        return squid.emit(name, null);
+    }
+
+    /** Tells every other mod something happened, with a value: signal("treasure-found", 5). */
+    protected int signal(String name, Object value) {
+        return squid.emit(name, value);
+    }
+
+    /** Runs when any mod signals this: onSignal("treasure-found", value -&gt; say("Treasure! " + value)). */
+    protected void onSignal(String name, java.util.function.Consumer<Object> action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onSignal only works inside start()"));
+        Object[] got = {null};
+        Action run = new Action("onSignal(\"" + name + "\")", () -> action.accept(got[0]));
+        squid.on(name, value -> {
+            got[0] = value;
+            run.run();
+        });
+    }
+
+    /** Whether another mod is running, by its id: if (hasMod("minimap")) ... */
+    protected boolean hasMod(String id) {
+        return squid.hasMod(id);
+    }
+
+    /** Shares a value with other mods by name: share("diamonds", diamonds). They get it with shared(). */
+    protected void share(String name, Object value) {
+        squid.share(name, value);
+    }
+
+    /** A value another mod shared, or startingValue if none did: int theirs = shared("diamonds", 0); */
+    protected <T> T shared(String name, T startingValue) {
+        return squid.shared(name, startingValue);
+    }
+
+    // ---- Drawing in the world ----
+
+    /** Something drawn in the world until it's taken away (see markBlock, waypoint, floatingText, drawLine). */
+    private record Mark(String kind, String name, double x1, double y1, double z1, double x2, double y2, double z2, int color) {
+    }
+
+    private final List<Mark> marks = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private boolean drawingMarks;
+
+    private void addMark(Mark mark) {
+        if (!drawingMarks) {
+            drawingMarks = true;
+            squid.onWorldDraw(draw -> {
+                for (Mark m : marks) {
+                    switch (m.kind()) {
+                        case "block" -> draw.throughWalls(true).block((int) m.x1(), (int) m.y1(), (int) m.z1(), m.color());
+                        case "waypoint" -> draw.waypoint(m.name(), (int) m.x1(), (int) m.y1(), (int) m.z1(), m.color());
+                        case "text" -> draw.throughWalls(false).text(m.name(), m.x1(), m.y1(), m.z1(), m.color());
+                        default -> draw.throughWalls(false).line(m.x1(), m.y1(), m.z1(), m.x2(), m.y2(), m.z2(), m.color());
+                    }
+                }
+            });
+        }
+        marks.add(mark);
+    }
+
+    /**
+     * Outlines a block in a color, so you can find it again (even through walls): markBlock(x(), y() - 1, z(), "gold").
+     * Colors are names like "red", "lime" or "light_blue", or numbers like 0xFF8800. It stays until unmarkBlock or
+     * clearMarks.
+     */
+    protected void markBlock(int x, int y, int z, Object color) {
+        addMark(new Mark("block", "", x, y, z, 0, 0, 0, Colors.of(color)));
+    }
+
+    /** Takes the outline off a block marked with markBlock. */
+    protected void unmarkBlock(int x, int y, int z) {
+        marks.removeIf(m -> m.kind().equals("block") && m.x1() == x && m.y1() == y && m.z1() == z);
+    }
+
+    /** A gold waypoint: a beam of light and its name with how far away it is, seen from anywhere: waypoint("Home", 0, 64, 0). */
+    protected void waypoint(String name, int x, int y, int z) {
+        waypoint(name, x, y, z, "gold");
+    }
+
+    /** A waypoint in a color: waypoint("Base", x(), y(), z(), "aqua"). A new one with the same name moves it. */
+    protected void waypoint(String name, int x, int y, int z, Object color) {
+        int argb = Colors.of(color);
+        removeWaypoint(name);
+        addMark(new Mark("waypoint", String.valueOf(name), x, y, z, 0, 0, 0, argb));
+    }
+
+    /** Takes a waypoint away, by its name. */
+    protected void removeWaypoint(String name) {
+        marks.removeIf(m -> m.kind().equals("waypoint") && m.name().equals(String.valueOf(name)));
+    }
+
+    /** White text floating in the world: floatingText("Treasure here!", x(), y() + 2, z()). */
+    protected void floatingText(Object text, double x, double y, double z) {
+        floatingText(text, x, y, z, "white");
+    }
+
+    /** Floating text in a color. */
+    protected void floatingText(Object text, double x, double y, double z, Object color) {
+        addMark(new Mark("text", String.valueOf(text), x, y, z, 0, 0, 0, Colors.of(color)));
+    }
+
+    /** A line in the world from one spot to another: drawLine(0, 64, 0, 10, 64, 10, "red"). */
+    protected void drawLine(double x1, double y1, double z1, double x2, double y2, double z2, Object color) {
+        addMark(new Mark("line", "", x1, y1, z1, x2, y2, z2, Colors.of(color)));
+    }
+
+    /** Takes away everything this mod marked: blocks, waypoints, floating text and lines. */
+    protected void clearMarks() {
+        marks.clear();
+    }
+
+    /**
+     * Draws in the world every frame, kept up to date like keepShowing: keepDrawing(draw -&gt; draw.block(x(), y() - 1,
+     * z(), "lime")). draw can do block, filledBlock, box, line, text and waypoint.
+     */
+    protected void keepDrawing(java.util.function.Consumer<WorldDraw> drawing) {
+        if (!starting) throw new IllegalStateException(Lang.t("keepDrawing only works inside start()"));
+        WorldDraw[] now = {null};
+        Action run = new Action("keepDrawing", () -> drawing.accept(now[0]));
+        squid.onWorldDraw(draw -> {
+            now[0] = draw;
+            run.run();
+        });
+    }
+
+    // ---- Screens ----
+
+    /**
+     * A screen of your own: screen("My Menu").button("Day", () -&gt; command("time set day")).toggle("Fly", false, on
+     * -&gt; say("Fly: " + on)).open(). It can have buttons, toggles, sliders, textBoxes and labels.
+     */
+    protected ModScreen screen(String title) {
+        return squid.screen(title);
+    }
+
     /** For bigger mods: everything Squid can do, like hooks and drawing on the screen. */
     protected Squid squid() {
         return squid;

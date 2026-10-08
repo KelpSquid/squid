@@ -4,11 +4,15 @@ import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.server.players.PlayerList;
 import squid.Main;
+import squid.ModNet;
 import squid.api.Squid;
 import squid.api.SquidMod;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,12 +28,15 @@ import java.util.function.Consumer;
  * then on both know the other has Squid, so nothing is sent to plain Minecraft servers.
  *
  * Other parts of Squid use {@link #onClient}, {@link #onServer}, {@link #toPlayer}, and {@link NetClient#toServer}.
+ * Mods' own messages ({@link squid.api.Squid#send}) go on the "squid:mods" channel, through {@link squid.ModNet}.
  */
 public class Net implements SquidMod {
     private static final Map<String, List<Consumer<byte[]>>> clientHandlers = new ConcurrentHashMap<>();
     private static final Map<String, List<BiConsumer<ServerPlayer, byte[]>>> serverHandlers = new ConcurrentHashMap<>();
     /** Players (on this server) whose game has Squid. */
     private static final Set<java.util.UUID> squidPlayers = ConcurrentHashMap.newKeySet();
+    /** The server's player list, once someone has joined (to find players by name, and send to everyone). */
+    private static volatile PlayerList playerList;
 
     @Override
     public void init(Squid squid) {
@@ -59,10 +66,84 @@ public class Net implements SquidMod {
                     }
                 });
         // Say hello to every player who joins, and forget them when they leave
-        squid.atEnd("net.minecraft.server.players.PlayerList", "placeNewPlayer", call -> toPlayer((ServerPlayer) call.args()[1], "hello", new byte[] {1}));
+        squid.atEnd("net.minecraft.server.players.PlayerList", "placeNewPlayer", call -> {
+            playerList = (PlayerList) call.self();
+            toPlayer((ServerPlayer) call.args()[1], "hello", new byte[] {1});
+        });
         squid.atStart("net.minecraft.server.players.PlayerList", "remove", "(Lnet/minecraft/server/level/ServerPlayer;)V",
                 call -> squidPlayers.remove(((ServerPlayer) call.args()[0]).getUUID()));
         if (!Main.isServer()) NetClient.init();
+        // Mods' own messages
+        onClient("mods", ModNet::fromServer);
+        onServer("mods", fromPlayers());
+        ModNet.attach(new ModTransport());
+    }
+
+    /**
+     * Mods' messages from players, handed to ModNet. Written as a BiConsumer of Object, so starting Squid Net doesn't
+     * load ServerPlayer (and with it LivingEntity, which other parts hook): a ServerPlayer-typed lambda would.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static BiConsumer<ServerPlayer, byte[]> fromPlayers() {
+        BiConsumer<Object, byte[]> handler = ModNet::fromPlayer;
+        return (BiConsumer) handler;
+    }
+
+    /** How mods' messages get sent, and where they're handled: on the game's thread, or the server's. */
+    private static final class ModTransport implements ModNet.Transport {
+        @Override
+        public boolean toServer(byte[] message) {
+            return !Main.isServer() && NetClient.toSquidServer("mods", message);
+        }
+
+        @Override
+        public void toPlayer(Object player, byte[] message) {
+            if (player instanceof ServerPlayer p && hasSquid(p)) Net.toPlayer(p, "mods", message);
+        }
+
+        @Override
+        public Collection<?> players() {
+            PlayerList list = playerList;
+            if (list == null) return List.of();
+            return list.getPlayers().stream().filter(Net::hasSquid).toList();
+        }
+
+        @Override
+        public Object findPlayer(Object nameOrId) {
+            PlayerList list = playerList;
+            if (nameOrId instanceof ServerPlayer p) return p;
+            if (list == null || nameOrId == null) return null;
+            if (nameOrId instanceof java.util.UUID id) return list.getPlayer(id);
+            return list.getPlayerByName(String.valueOf(nameOrId));
+        }
+
+        @Override
+        public String nameOf(Object player) {
+            return ((ServerPlayer) player).getGameProfile().name();
+        }
+
+        @Override
+        public java.util.UUID idOf(Object player) {
+            return ((ServerPlayer) player).getUUID();
+        }
+
+        @Override
+        public void onMainThread(Object player, Runnable task) {
+            try {
+                if (player == null) {
+                    NetClient.onGameThread(task);
+                    return;
+                }
+                MinecraftServer server = ((ServerPlayer) player).level().getServer();
+                if (server != null) {
+                    server.execute(task);
+                    return;
+                }
+            } catch (RuntimeException | LinkageError e) {
+                // no game or server to hand it to (like in tests): run it here
+            }
+            task.run();
+        }
     }
 
     private static void run(Runnable r) {

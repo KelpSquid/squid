@@ -55,7 +55,19 @@ public final class ModMaker {
             new String[] {"nearby", "if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");"},
             new String[] {"isNight", "if (isNight()) say(\"It's night!\");"},
             new String[] {"isRaining", "if (isRaining()) title(\"Rain!\", \"Get inside\");"},
-            new String[] {"random", "if (random(1, 6) == 6) say(\"You rolled a 6!\");"});
+            new String[] {"random", "if (random(1, 6) == 6) say(\"You rolled a 6!\");"},
+            new String[] {"markBlock", "markBlock(x(), y() - 1, z(), \"gold\");"},
+            new String[] {"waypoint", "waypoint(\"Home\", x(), y(), z());"},
+            new String[] {"floatingText", "floatingText(\"Treasure here!\", x(), y() + 2, z());"},
+            new String[] {"drawLine", "drawLine(0, 64, 0, x(), y(), z(), \"red\");"},
+            new String[] {"clearMarks", "clearMarks();"},
+            new String[] {"keepDrawing", "keepDrawing(draw -> draw.block(x(), y() - 1, z(), \"lime\"));"},
+            new String[] {"screen", "onKey(\"M\", () -> screen(\"My Menu\").button(\"Day\", () -> command(\"time set day\")).open());"},
+            new String[] {"send", "send(\"score\", 10);"},
+            new String[] {"onMessage", "onMessage(\"score\", (from, data) -> say(from + \" scored \" + data));"},
+            new String[] {"signal", "signal(\"treasure-found\", 5);"},
+            new String[] {"onSignal", "onSignal(\"treasure-found\", value -> say(\"Treasure! \" + value));"},
+            new String[] {"hasMod", "if (hasMod(\"minimap\")) say(\"You have the minimap too!\");"});
 
     /** Every easy mod in the folder, by name. */
     public static List<Path> easyMods(Path mods) {

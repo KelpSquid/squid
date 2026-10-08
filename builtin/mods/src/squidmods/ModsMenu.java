@@ -5,7 +5,9 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import squid.Events;
 import squid.Lang;
+import squid.Screens;
 import squid.api.Squid;
 import squid.api.SquidMod;
 
@@ -26,6 +28,13 @@ public class ModsMenu implements SquidMod {
         // In its own class, loaded on the first tick: it names TitleScreen and PauseScreen, and loading those before
         // their hooks are in (Squid's Store hooks the title screen after this) would keep the hooks out
         squid.onTick(() -> ScreenWatch.tick());
+        // Mods drawing in the world (Squid.onWorldDraw): Minecraft gathers this frame's gizmos (its boxes, lines and
+        // floating text) right here, so mods' shapes join them
+        squid.atStart("net.minecraft.client.renderer.extract.LevelExtractor", "extractGizmos", "()V", call -> {
+            if (Events.drawingWorld()) Events.drawWorld(WorldGizmos.PAINTER);
+        });
+        // Mods' own screens (Squid.screen). A lambda, so the screen class only loads when one opens
+        Screens.opener = screen -> BuiltScreen.open(screen);
     }
 
     static void addButton(Screen screen) {
