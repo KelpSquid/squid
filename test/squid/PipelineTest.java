@@ -1641,6 +1641,31 @@ public class PipelineTest {
                 "[ 4.5 Chorus! , 12.0 Second line , 19.5 Chorus! , 61.75 Last");
         check("the line being sung at a time", currentLyric.invoke(null, sung, 3.0) + " " + currentLyric.invoke(null, sung, 12.0) + " "
                 + currentLyric.invoke(null, sung, 15.0) + " " + currentLyric.invoke(null, sung, 999.0), "-1 1 1 3");
+        // A .sqda the speakers won't take at its own rate (like 96 kHz) is changed to 48 kHz as it streams in the Jukebox
+        short[] fastSong = new short[96000];
+        for (int i = 0; i < fastSong.length; i++) fastSong[i] = (short) (Math.sin(i * 2 * Math.PI * 440 / 96000) * 10000);
+        Object jukeboxSqda = netLoader.loadClass("squid.audio.Sqda").getMethod("read", byte[].class)
+                .invoke(null, (Object) squid.audio.Sqda.fromSound(new squid.audio.Pcm(fastSong, 1, 96000), 6).write());
+        java.lang.reflect.Constructor<?> sqdaSource = netLoader.loadClass("squidjukebox.SongPlayer$SqdaSource").getDeclaredConstructor(jukeboxSqda.getClass(), boolean.class);
+        sqdaSource.setAccessible(true);
+        Class<?> sourceClass = netLoader.loadClass("squidjukebox.SongPlayer$Source");
+        java.lang.reflect.Constructor<?> resampled = netLoader.loadClass("squidjukebox.SongPlayer$Resampled").getDeclaredConstructor(sourceClass, int.class);
+        resampled.setAccessible(true);
+        Object slowedDown = resampled.newInstance(sqdaSource.newInstance(jukeboxSqda, false), 48000);
+        java.lang.reflect.Method readSource = sourceClass.getDeclaredMethod("read", int.class);
+        readSource.setAccessible(true);
+        int resampledLength = 0;
+        int crossings = 0;
+        short lastSample = 0;
+        for (short[] piece = (short[]) readSource.invoke(slowedDown, 1000); piece != null; piece = (short[]) readSource.invoke(slowedDown, 1000)) {
+            for (short v : piece) {
+                if ((v >= 0) != (lastSample >= 0)) crossings++;
+                lastSample = v;
+            }
+            resampledLength += piece.length;
+        }
+        check("a 96 kHz .sqda streams at 48 kHz in the Jukebox, as long and at the same pitch", (Math.abs(resampledLength - 48000) <= 2) + " "
+                + (Math.abs(crossings - 880) <= 4), "true true");
         // Texture pack names become folder names: nothing that could reach another folder, or that Windows refuses
         java.lang.reflect.Method goodPackName = netLoader.loadClass("squidpaint.Paint").getDeclaredMethod("goodName", String.class);
         goodPackName.setAccessible(true);

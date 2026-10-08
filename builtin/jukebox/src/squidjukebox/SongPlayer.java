@@ -158,6 +158,68 @@ final class SongPlayer {
         }
     }
 
+    /** Another source at a new sample rate, changed as it plays by drawing straight lines between its samples. */
+    private static final class Resampled implements Source {
+        private final Source from;
+        private final int rate;
+        /** How many of the source's moments go by for each new one. */
+        private final double step;
+        /** Source moments read but not used up yet, channel after channel, and where in them the next moment is. */
+        private short[] held = new short[0];
+        private int heldMoments;
+        private double at;
+
+        Resampled(Source from, int rate) {
+            this.from = from;
+            this.rate = rate;
+            this.step = from.rate() / (double) rate;
+        }
+
+        public int rate() {
+            return rate;
+        }
+
+        public int channels() {
+            return from.channels();
+        }
+
+        public long length() {
+            return (long) (from.length() / step);
+        }
+
+        public long position() {
+            return Math.max(0, (long) ((from.position() - heldMoments + at) / step)); // (just after a loop, it can't go below 0)
+        }
+
+        public short[] read(int moments) {
+            int ch = from.channels();
+            short[] out = new short[moments * ch];
+            int made = 0;
+            while (made < moments) {
+                int a = (int) at;
+                if (a + 1 >= heldMoments) {
+                    // Needs the next moment to draw the line to: read more, keeping what's still to come
+                    short[] more = from.read(4096);
+                    if (more == null || more.length == 0) break;
+                    int keep = Math.max(0, heldMoments - a);
+                    short[] next = new short[keep * ch + more.length];
+                    System.arraycopy(held, (heldMoments - keep) * ch, next, 0, keep * ch);
+                    System.arraycopy(more, 0, next, keep * ch, more.length);
+                    at -= heldMoments - keep;
+                    held = next;
+                    heldMoments = keep + more.length / ch;
+                    continue;
+                }
+                double f = at - a;
+                for (int c = 0; c < ch; c++) out[made * ch + c] = (short) Math.round(held[a * ch + c] * (1 - f) + held[(a + 1) * ch + c] * f);
+                made++;
+                at += step;
+            }
+            if (made == 0) return null;
+            return made == moments ? out : java.util.Arrays.copyOf(out, made * ch);
+        }
+    }
+
     private void run() {
         SourceDataLine line = null;
         try {
@@ -192,15 +254,19 @@ final class SongPlayer {
                 line = AudioSystem.getSourceDataLine(format);
                 line.open(format, source.rate() * source.channels() * 2 / 4); // a quarter of a second
             } catch (IllegalArgumentException | LineUnavailableException unusual) {
-                // A sample rate the speakers won't take (like 96 kHz): played at 48 kHz instead
-                if (pcm == null) throw unusual;
-                pcm = resample(pcm, 48000);
-                source = new PcmSource(pcm, repeat);
+                // A sample rate the speakers won't take (like 96 kHz): played at 48 kHz instead. A .sqda is changed as
+                // it streams, so a long song still doesn't have to be decoded all at once.
+                if (pcm == null) {
+                    source = new Resampled(source, 48000);
+                } else {
+                    pcm = resample(pcm, 48000);
+                    source = new PcmSource(pcm, repeat);
+                }
                 length = source.length();
                 rate = source.rate();
-                format = new AudioFormat(48000, 16, pcm.channels(), true, false);
+                format = new AudioFormat(48000, 16, source.channels(), true, false);
                 line = AudioSystem.getSourceDataLine(format);
-                line.open(format, 48000 * pcm.channels() * 2 / 4);
+                line.open(format, 48000 * source.channels() * 2 / 4);
             }
             line.start();
             byte[] out = new byte[0];
