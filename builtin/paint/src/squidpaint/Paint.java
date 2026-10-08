@@ -129,12 +129,12 @@ public class Paint implements SquidMod {
     }
 
     /**
-     * A picture shrunk into a texture's pixels: it fills the whole square (the middle of a long picture is used), with
-     * each pixel the average of the part of the picture it covers, so a photo turns into neat pixel art. An animated
-     * texture (a strip of square frames) gets the picture in every frame.
+     * A picture shrunk into a texture's pixels: it fills the whole texture (the middle of a picture with another shape
+     * is used), with each pixel the average of the part of the picture it covers, so a photo turns into neat pixel
+     * art. An animated texture (a strip of frames, each frame pixels high) gets the picture in every frame.
      */
-    static int[] fit(BufferedImage picture, int w, int h) {
-        int frame = h > w && h % w == 0 ? w : h; // the height of one frame
+    static int[] fit(BufferedImage picture, int w, int h, int frame) {
+        if (frame <= 0 || frame > h || h % frame != 0) frame = h;
         int pw = picture.getWidth();
         int ph = picture.getHeight();
         // The middle part of the picture with the frame's shape
@@ -176,17 +176,24 @@ public class Paint implements SquidMod {
         return out;
     }
 
-    /** Every block texture there is, like minecraft:block/stone, by name. */
-    static List<Identifier> blockTextures() {
-        return textures("block");
+    /**
+     * How tall one frame of an animated texture is (from its .mcmeta), or 0 if it isn't animated. Frames are square
+     * unless the .mcmeta says otherwise.
+     */
+    static int frameHeight(Identifier texture, int width) {
+        byte[] settings = originalSettings(texture);
+        if (settings == null) return 0;
+        String text = new String(settings, StandardCharsets.UTF_8);
+        if (!text.contains("\"animation\"")) return 0;
+        java.util.regex.Matcher height = java.util.regex.Pattern.compile("\"height\"\\s*:\\s*(\\d+)").matcher(text);
+        return height.find() ? Integer.parseInt(height.group(1)) : width;
     }
 
-    /** Every item texture, like minecraft:item/diamond_sword. */
-    static List<Identifier> itemTextures() {
-        return textures("item");
-    }
-
-    private static List<Identifier> textures(String kind) {
+    /**
+     * Every texture of a kind, by name: "block" (like minecraft:block/stone), "item" (minecraft:item/diamond_sword),
+     * "painting" (the paintings that hang on walls) or "entity" (mobs, like minecraft:entity/pig/pig_temperate).
+     */
+    static List<Identifier> textures(String kind) {
         List<Identifier> found = new ArrayList<>();
         for (Identifier id : Minecraft.getInstance().getResourceManager()
                 .listResources("textures/" + kind, id -> id.getPath().endsWith(".png")).keySet()) {

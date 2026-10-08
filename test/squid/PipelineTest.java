@@ -1379,13 +1379,17 @@ public class PipelineTest {
         // A dropped picture becomes pixel art: a picture half red, half blue fills a 16 x 16 texture the same way
         java.awt.image.BufferedImage picture = new java.awt.image.BufferedImage(200, 100, java.awt.image.BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < 100; y++) for (int x = 0; x < 200; x++) picture.setRGB(x, y, x < 100 ? 0xFFFF0000 : 0xFF0000FF);
-        java.lang.reflect.Method fit = netLoader.loadClass("squidpaint.Paint").getDeclaredMethod("fit", java.awt.image.BufferedImage.class, int.class, int.class);
+        java.lang.reflect.Method fit = netLoader.loadClass("squidpaint.Paint").getDeclaredMethod("fit", java.awt.image.BufferedImage.class, int.class, int.class, int.class);
         fit.setAccessible(true);
-        int[] art = (int[]) fit.invoke(null, picture, 16, 16);
+        int[] art = (int[]) fit.invoke(null, picture, 16, 16, 0);
         check("a picture becomes pixel art (the middle of a wide picture)", Integer.toHexString(art[0]) + " " + Integer.toHexString(art[15]) + " " + Integer.toHexString(art[255]),
                 "ffff0000 ff0000ff ff0000ff");
-        int[] paintedFrames = (int[]) fit.invoke(null, picture, 16, 48);
+        int[] paintedFrames = (int[]) fit.invoke(null, picture, 16, 48, 16);
         check("an animated texture gets the picture in every frame", paintedFrames[0] == paintedFrames[16 * 16] && paintedFrames[15] == paintedFrames[32 * 16 + 15] && paintedFrames[0] != paintedFrames[15], true);
+        java.awt.image.BufferedImage upright = new java.awt.image.BufferedImage(100, 200, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 200; y++) for (int x = 0; x < 100; x++) upright.setRGB(x, y, y < 100 ? 0xFF00FF00 : 0xFFFFFF00);
+        int[] tall = (int[]) fit.invoke(null, upright, 16, 32, 0); // a tall painting isn't two frames
+        check("a tall painting gets one picture, not two", Integer.toHexString(tall[0]) + " " + Integer.toHexString(tall[16 * 16]), "ff00ff00 ffffff00");
         // The Fill bucket fills what touches, not what only touches at a corner
         java.lang.reflect.Method fill = netLoader.loadClass("squidpaint.BlockPaintScreen").getDeclaredMethod("fill", int[].class, int.class, int.class, int.class, int.class);
         fill.setAccessible(true);

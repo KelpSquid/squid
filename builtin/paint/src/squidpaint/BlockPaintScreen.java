@@ -37,6 +37,7 @@ final class BlockPaintScreen extends Screen {
     private final Identifier texture;
     private int w;
     private int h;
+    private int frame; // how tall one frame is, for an animated texture (0 if it isn't)
     private int[] pixels;
     private int[] palette = RAINBOW;
     private final Deque<int[]> undo = new ArrayDeque<>();
@@ -76,6 +77,7 @@ final class BlockPaintScreen extends Screen {
             w = image.getWidth();
             h = image.getHeight();
             pixels = image.getRGB(0, 0, w, h, null, 0, w);
+            frame = Paint.frameHeight(texture, w);
         }
         palette = withBlockColors(pixels);
         color = palette[0];
@@ -250,7 +252,7 @@ final class BlockPaintScreen extends Screen {
                 return;
             }
             remember();
-            System.arraycopy(Paint.fit(picture, w, h), 0, pixels, 0, pixels.length);
+            System.arraycopy(Paint.fit(picture, w, h, frame), 0, pixels, 0, pixels.length);
             palette = withBlockColors(pixels);
             say(Lang.t("Here it is as pixel art. Touch it up, then Save."), 0xFF55FF55);
             rebuildWidgets();

@@ -164,7 +164,8 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
 - **Block Painter:** Squid > Block Painter: pick any block, repaint its texture pixel by pixel (with the block's own
   colors at hand, a Fill bucket and a 3 x 3 preview), or drop any picture on it to turn it into pixel art, and Save.
   Squid keeps your paintings in a "Squid Paint" resource pack it makes and switches on for you, so the world changes
-  right away; Reset brings Minecraft's own texture back. Items and animated blocks too.
+  right away; Reset brings Minecraft's own texture back. Items, animated blocks, mobs (a pig's skin) and the paintings
+  on walls too, so you can hang your own photo in your house.
 - **Sound Swapper:** Squid > Sound Swapper: pick any Minecraft sound (a pig's oink, the door creak...), hear it, and
   drop your own sound file on it, or press Record and make the sound yourself (the quiet bits at the ends are cut
   off), with an effect if you like: Chipmunk, Giant, Robot, Echo or Backwards. It goes in the same pack as a `.sqda`, so Squid plays it in its place (only Squid players hear swapped
