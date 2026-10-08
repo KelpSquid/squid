@@ -27,11 +27,22 @@ import java.util.function.Consumer;
 /** Every change mods asked for, grouped by class, and the code that applies them while a class loads. */
 public final class Transformers {
     /** A change to one class. */
-    public sealed interface Patch permits HookPatch, RawPatch {
+    public sealed interface Patch permits HookPatch, RawPatch, AroundPatch, CallPatch {
     }
 
     /** Calls hook number {@code hookId} at the start (or end) of methods named {@code method}. */
     public record HookPatch(String method, String descriptor, boolean atStart, int hookId) implements Patch {
+    }
+
+    /** Wraps hook number {@code hookId} around methods named {@code method} (see {@link squid.api.Squid#around}). */
+    public record AroundPatch(String method, String descriptor, int hookId) implements Patch {
+    }
+
+    /**
+     * Wraps hook number {@code hookId} around each call to {@code calledClass.calledMethod} made inside methods
+     * named {@code method} (see {@link squid.api.Squid#atCall}).
+     */
+    public record CallPatch(String method, String descriptor, String calledClass, String calledMethod, int hookId) implements Patch {
     }
 
     /** A mod's own ASM changes. */
@@ -96,11 +107,24 @@ public final class Transformers {
 
         ClassNode node = new ClassNode();
         new ClassReader(bytes).accept(node, 0);
-        // Order matters: raw patches first, then end hooks, then start hooks. That way the early
-        // return a start hook adds when it cancels a call doesn't get end hooks, so a cancelled call
-        // skips them no matter which mod registered first.
+        // Order matters: raw patches first, then atCall and around hooks, then end hooks, then start hooks. atCall
+        // finds its calls before around moves the method's code away, and start and end hooks go into the method
+        // everyone calls (so they run once, around everything else). The early return a start hook adds when it
+        // cancels a call doesn't get end hooks, so a cancelled call skips them no matter which mod registered first.
         for (Patch patch : patches) {
             if (patch instanceof RawPatch raw) raw.patch().accept(node);
+        }
+        for (Patch patch : patches) {
+            if (patch instanceof CallPatch call && Wrappers.atCall(node, call.method(), call.descriptor(), call.calledClass(),
+                    call.calledMethod(), call.hookId(), loader) == 0) {
+                System.out.println("[Squid] Warning: no call to " + call.calledMethod() + " in " + className + "." + call.method());
+            }
+        }
+        // The first around hook set up ends up outermost: each one wraps what's there, so they go in last-first
+        for (Patch patch : patches.reversed()) {
+            if (patch instanceof AroundPatch around && Wrappers.around(node, around.method(), around.descriptor(), around.hookId()) == 0) {
+                System.out.println("[Squid] Warning: no method " + around.method() + " in " + className + " to wrap");
+            }
         }
         for (Patch patch : patches) {
             if (patch instanceof HookPatch hook && !hook.atStart()) applyHook(className, node, hook);

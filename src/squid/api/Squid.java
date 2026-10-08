@@ -3,6 +3,7 @@ package squid.api;
 import org.objectweb.asm.tree.ClassNode;
 import squid.Hooks;
 import squid.KeyBindings;
+import squid.Lang;
 import squid.Slots;
 import squid.Transformers;
 
@@ -90,6 +91,76 @@ public final class Squid {
         int id = Hooks.register(mod.id(), hook);
         Transformers.add(className, new Transformers.HookPatch(methodName, descriptor, atStart, id));
         Slots.record(mod.id(), className, methodName, descriptor, atStart, id);
+    }
+
+    /**
+     * Wraps a method: the hook runs instead of it, and decides when (and whether, and how often) the original runs,
+     * with which arguments, and what it gives back. Like this, to double every mob's health:
+     *
+     * <pre>
+     * squid.around("net.minecraft.world.entity.LivingEntity", "getMaxHealth", (call, original) -&gt;
+     *         (float) original.call() * 2);
+     * </pre>
+     *
+     * If the hook breaks, the original runs instead, and after 3 breaks the hook is switched off. Constructors can't
+     * be wrapped. If two mods wrap the same method, the one set up first runs outermost.
+     */
+    public void around(String className, String methodName, Around hook) {
+        around(className, methodName, null, hook);
+    }
+
+    /** Like {@link #around(String, String, Around)} but only for the method with this descriptor, like "(I)V". */
+    public void around(String className, String methodName, String descriptor, Around hook) {
+        wrap(className, methodName, descriptor, "around", hook, id -> new Transformers.AroundPatch(methodName, descriptor, id));
+    }
+
+    /**
+     * Wraps one call made inside a method: every time methodName (in className) calls calledMethod (of calledClass,
+     * or a class that comes from it), the hook runs instead. {@link Call#self()} is the call's target (null for
+     * static methods), {@link Call#args()} its arguments, and {@link Call#caller()} the object making the call. The
+     * hook can change them and run the call ({@code original.call()}), skip it (give back a value without running
+     * it), or change what it gives back:
+     *
+     * <pre>
+     * // Fall damage is worked out from how far you fell: make every fall count half
+     * squid.atCall("net.minecraft.world.entity.LivingEntity", "causeFallDamage",
+     *         "net.minecraft.world.entity.LivingEntity", "calculateFallDamage",
+     *         (call, original) -&gt; (int) original.call() / 2);
+     * </pre>
+     *
+     * calledMethod can include a descriptor to pick one of a few methods with that name, like
+     * "getValue(Ljava/lang/Object;)Ljava/lang/Object;". calledClass can be null for a call to any class.
+     */
+    public void atCall(String className, String methodName, String calledClass, String calledMethod, Around hook) {
+        atCall(className, methodName, null, calledClass, calledMethod, hook);
+    }
+
+    /** Like {@link #atCall(String, String, String, String, Around)} but only inside the method with this descriptor. */
+    public void atCall(String className, String methodName, String descriptor, String calledClass, String calledMethod, Around hook) {
+        if (calledMethod == null || calledMethod.isBlank()) throw new IllegalArgumentException(Lang.t("atCall needs the name of the method that's called"));
+        wrap(className, methodName, descriptor, "call " + calledClass + " " + calledMethod, hook,
+                id -> new Transformers.CallPatch(methodName, descriptor, calledClass, calledMethod, id));
+    }
+
+    /** Sets an around or atCall hook up, the same way {@link #hook} does start and end hooks (reloads take over the old place). */
+    private void wrap(String className, String methodName, String descriptor, String kind, Around hook,
+                      java.util.function.IntFunction<Transformers.Patch> patch) {
+        if (hook == null) throw new IllegalArgumentException(Lang.t("the hook is missing (null)"));
+        int reused = Slots.reuse(mod.id(), className, methodName, descriptor, kind);
+        if (reused >= 0) {
+            Hooks.replace(reused, mod.id(), hook);
+            return;
+        }
+        if (Transformers.isLoaded(className)) {
+            Slots.needsRestart(mod.id(), className);
+            if (!squid.Main.gameStarted()) {
+                System.out.println("[Squid] Warning: " + mod.id() + " wraps " + className + "." + methodName
+                        + ", but that class had already loaded, so the hook can't go in. Something loaded it too early.");
+            }
+        }
+        int id = Hooks.register(mod.id(), hook);
+        Transformers.add(className, patch.apply(id));
+        Slots.record(mod.id(), className, methodName, descriptor, kind, id);
     }
 
     /**

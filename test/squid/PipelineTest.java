@@ -202,6 +202,106 @@ public class PipelineTest {
         check("a broken hook is tried 3 times, then turned off", calls[0], 3);
         check("other mods' hooks keep working", Hooks.end(fine, null, new Object[0], "vanilla"), "still works");
 
+        // Around and atCall hooks: written into the class's bytecode, then run for real
+        Squid wrapper = new Squid(mod("wrapper"));
+        int[] brokenRuns = {0};
+        List<String> wrongValues = new ArrayList<>();
+        wrapper.around("demo.Wrapped", "add", (c, o) -> (int) o.call(1, 2) + (int) o.call());
+        wrapper.around("demo.Wrapped", "shout", (c, o) -> {
+            c.args()[0] = "squid";
+            return o.call() + "!";
+        });
+        wrapper.around("demo.Wrapped", "touch", (c, o) -> null); // the original never runs
+        wrapper.around("demo.Wrapped", "half", (c, o) -> 3); // an int where a float is needed is fine
+        wrapper.around("demo.Wrapped", "sum", (c, o) -> {
+            brokenRuns[0]++;
+            throw new IllegalStateException("broken on purpose");
+        });
+        wrapper.around("demo.Wrapped", "name", (c, o) -> 42); // the wrong kind of value: the original's is used
+        wrapper.around("demo.Wrapped", "pick", (c, o) -> {
+            try {
+                o.call("seven");
+            } catch (RuntimeException e) {
+                wrongValues.add(e.getMessage());
+            }
+            try {
+                o.call(1, 2);
+            } catch (RuntimeException e) {
+                wrongValues.add(e.getMessage());
+            }
+            return (int) o.call() + o.timesCalled();
+        });
+        int[] riskyRuns = {0};
+        wrapper.around("demo.Wrapped", "risky", (c, o) -> {
+            riskyRuns[0]++;
+            return o.call();
+        });
+        List<Object> callers = new ArrayList<>();
+        wrapper.atCall("demo.Wrapped", "greetTwice", "demo.Wrapped", "hello", (c, o) -> {
+            callers.add(c.caller() == c.self());
+            return o.call(((String) c.args()[0]).toUpperCase());
+        });
+        wrapper.atCall("demo.Wrapped", "greetTwice", null, "twice", (c, o) -> "once:" + c.args()[0]); // skips the call
+        wrapper.around("demo.Wrapped", "greetTwice", (c, o) -> "[" + o.call() + "]"); // around and atCall on one method
+        Class<?> wrappedClass = loader.loadClass("demo.Wrapped");
+        Object w = wrappedClass.getDeclaredConstructor().newInstance();
+        check("around runs the original twice with other arguments", wrappedClass.getMethod("add", int.class, int.class).invoke(w, 10, 20) + " "
+                + wrappedClass.getField("count").get(w), "33 2");
+        check("around changes a static method's argument and result", wrappedClass.getMethod("shout", String.class).invoke(null, "hi"), "SQUID!");
+        wrappedClass.getMethod("touch").invoke(w);
+        check("around can skip the original", wrappedClass.getField("count").get(w), 2);
+        check("around gives back any kind of number", wrappedClass.getMethod("half", float.class).invoke(w, 10f), 3.0f);
+        List<Object> sums = new ArrayList<>();
+        for (int i = 0; i < 5; i++) sums.add(wrappedClass.getMethod("sum", long.class, double.class, int[].class).invoke(w, 1L, 2.5, new int[3]));
+        check("a broken around hook lets the original run, and is turned off after 3 tries", sums + " " + brokenRuns[0], "[6, 6, 6, 6, 6] 3");
+        check("an around hook giving back the wrong kind counts as broken", wrappedClass.getMethod("name").invoke(w), "wrapped");
+        check("running the original with wrong values is explained", wrappedClass.getMethod("pick", int.class).invoke(w, 5) + " " + wrongValues,
+                "6 [the hook gave String seven where a number (int) is needed, the original needs 1 value(s), but the hook gave it 2]");
+        List<String> riskyResults = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            try {
+                riskyResults.add(String.valueOf(wrappedClass.getMethod("risky", int.class).invoke(w, -1)));
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                riskyResults.add(e.getCause().getClass().getSimpleName());
+            }
+        }
+        check("Minecraft's own exceptions go through an around hook as they are, and don't count against it",
+                riskyResults + " " + wrappedClass.getMethod("risky", int.class).invoke(w, 7) + " " + riskyRuns[0], "[IOException, IOException, IOException, IOException] 7 5");
+        check("atCall changes a call's argument, skips another, and around wraps it all", wrappedClass.getMethod("greetTwice", String.class).invoke(w, "sam") + " " + callers,
+                "[once:hi SAM] [true]");
+        // On real Minecraft classes, loaded fresh: the y of every Vec3.add(Vec3) is dropped, and lengths are 10 times longer
+        wrapper.atCall("net.minecraft.world.phys.Vec3", "add", "(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;",
+                "net.minecraft.world.phys.Vec3", "add(DDD)Lnet/minecraft/world/phys/Vec3;", (c, o) -> o.call(c.args()[0], 0, c.args()[2]));
+        wrapper.around("net.minecraft.world.phys.Vec3", "length", (c, o) -> (double) o.call() * 10);
+        SquidClassLoader vecLoader = new SquidClassLoader(urls.toArray(URL[]::new));
+        Class<?> vec3 = Class.forName("net.minecraft.world.phys.Vec3", true, vecLoader);
+        java.lang.reflect.Constructor<?> newVec = vec3.getConstructor(double.class, double.class, double.class);
+        Object added = vec3.getMethod("add", vec3).invoke(newVec.newInstance(1, 2, 3), newVec.newInstance(1, 1, 1));
+        check("atCall and around work in Minecraft's own Vec3", added + " " + vec3.getMethod("length").invoke(newVec.newInstance(3, 4, 0)), "(2.0, 2.0, 4.0) 50.0");
+        Hooks.turnOff("wrapper"); // later tests use Vec3 too
+        // A reloaded mod's around hook takes over its old place
+        ModInfo aroundMod = new ModInfo("around-reload", "Around Reload", "1.0", "", List.of(), List.of(), List.of(), "x", Path.of("."));
+        new Squid(aroundMod).around("test.NeverLoadedAround", "run", (c, o) -> "old");
+        Slots.beginReload("around-reload");
+        new Squid(aroundMod).around("test.NeverLoadedAround", "run", (c, o) -> "new " + o.call());
+        check("a reloaded around hook needs no restart", Slots.endReload("around-reload").toString(), "[]");
+        java.lang.invoke.MethodHandle originalRun = java.lang.invoke.MethodHandles.dropArguments(
+                java.lang.invoke.MethodHandles.constant(Object.class, "original"), 0, Object.class, Object[].class);
+        check("the reloaded around hook runs the new version", Hooks.around(Slots.hookIds("around-reload").get(0), null, new Object[0], null, originalRun, Object.class),
+                "new original");
+
+        // Reflect: Minecraft's (and anyone's) fields and methods by their real names, private ones too
+        Object vec = newVec.newInstance(1, 2, 3);
+        check("Reflect reads a field and calls a method, with any kind of number", squid.api.Reflect.get(vec, "x") + " " + squid.api.Reflect.call(vec, "scale", 2), "1.0 (2.0, 4.0, 6.0)");
+        squid.api.Reflect.set(w, "secret", "kelp and squid");
+        check("Reflect changes a private field and calls a private method", squid.api.Reflect.get(w, "secret") + " " + squid.api.Reflect.call(w, "secretLength", 1), "kelp and squid 15");
+        check("Reflect calls a static method and makes objects by class name",
+                squid.api.Reflect.callStatic("demo.Wrapped", "twice", "ab") + " " + squid.api.Reflect.create("demo.Wrapped").getClass().getSimpleName(), "abab Wrapped");
+        check("a wrong name is explained, with a guess", failure(() -> squid.api.Reflect.call(vec, "lenght")) + " | " + failure(() -> squid.api.Reflect.get(w, "Count")),
+                "IllegalArgumentException: Vec3 has no method called \"lenght\". Did you mean \"length\"? | IllegalArgumentException: Wrapped has no field called \"Count\". Did you mean \"count\"?");
+        check("wrong values for a method are explained", failure(() -> squid.api.Reflect.call(vec, "scale", "two")),
+                "IllegalArgumentException: Vec3.scale doesn't take these values: (String). It takes: (double)");
+
         // Mods written as one .java file: Squid compiles them, and explains mistakes in plain words
         Path easy = java.nio.file.Files.createTempDirectory("squid-easy-test");
         String[][] easyMods = {
