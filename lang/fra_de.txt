@@ -349,3 +349,6 @@ or put them in the Music Folder. => oder du's in den Musigg-Ordner.
 On => Aa
 All => Alle
 One => Ans
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft hodd kann afachn Bardiggl, der "{0}" haßd. Browier "heart", "flame", "happy_villager" oder "note"
+Squid couldn't look around => Squid hodd si ned umschaua kenna
+Squid couldn't make the particles => Squid hodd die Bardiggl ned machn kenna

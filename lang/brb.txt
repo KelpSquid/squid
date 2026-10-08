@@ -349,3 +349,6 @@ or put them in the Music Folder. => of zet ze in de Muziekmap.
 On => Aon
 All => Alles
 One => Ene
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft hee gin simpel deeltje mè de naom "{0}". Prebeer "heart", "flame", "happy_villager" of "note"
+Squid couldn't look around => Squid kos nie rondkèke
+Squid couldn't make the particles => Squid kos de deeltjes nie maoke

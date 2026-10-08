@@ -349,3 +349,6 @@ or put them in the Music Folder. => 음악 폴더에 넣으세요.
 On => 켬
 All => 전체
 One => 한 곡
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft에는 "{0}"(이)라는 단순 파티클이 없어요. "heart", "flame", "happy_villager", "note"를 써 보세요
+Squid couldn't look around => Squid가 주변을 둘러보지 못했어요
+Squid couldn't make the particles => Squid가 파티클을 만들지 못했어요

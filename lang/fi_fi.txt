@@ -349,3 +349,6 @@ or put them in the Music Folder. => tai laita ne musiikkikansioon.
 On => Päällä
 All => Kaikki
 One => Yksi
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraftissa ei ole yksinkertaista partikkelia nimeltä "{0}". Kokeile "heart", "flame", "happy_villager" tai "note"
+Squid couldn't look around => Squid ei voinut katsella ympärilleen
+Squid couldn't make the particles => Squid ei voinut luoda partikkeleita

@@ -349,3 +349,6 @@ or put them in the Music Folder. => vai ieliec tās Mūzikas mapē.
 On => Ieslēgts
 All => Visas
 One => Viena
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft nav vienkāršas daļiņas ar nosaukumu "{0}". Pamēģini "heart", "flame", "happy_villager" vai "note"
+Squid couldn't look around => Squid nevarēja paskatīties apkārt
+Squid couldn't make the particles => Squid nevarēja izveidot daļiņas

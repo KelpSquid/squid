@@ -349,3 +349,6 @@ or put them in the Music Folder. => o metti-i in la Cartella musega.
 On => Pizzaa
 All => Tucc
 One => Vun
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft el gh'ha minga ona particella sempia ciamada "{0}". Proeuva "heart", "flame", "happy_villager" o "note"
+Squid couldn't look around => Squid l'ha minga poduu vardà intorna
+Squid couldn't make the particles => Squid l'ha minga poduu fà i particell

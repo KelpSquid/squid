@@ -349,3 +349,6 @@ or put them in the Music Folder. => .a ko punji ri lo zgike datnyvau
 On => ja'a
 All => ro
 One => pa
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => la Minecraft na ponse lo sampu kantu po'u "{0}" .i ko troci "heart" .a "flame" .a "happy_villager" .a "note"
+Squid couldn't look around => la Squid na pu ka'e catlu lo se sruri
+Squid couldn't make the particles => la Squid na pu ka'e zbasu lo kantu

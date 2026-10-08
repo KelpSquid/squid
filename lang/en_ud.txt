@@ -349,3 +349,6 @@ or put them in the Music Folder. => ˙ɹǝpꞁoℲ ɔᴉsnW ǝɥʇ uᴉ ɯǝɥʇ
 On => uO
 All => ꞁꞁⱯ
 One => ǝuO
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => "note" ɹo "happy_villager" '"flame" '"heart" ʎɹ⟘ ˙„{0}„ pǝꞁꞁɐɔ ǝꞁɔᴉʇɹɐd ǝꞁdɯᴉs ou sɐɥ Minecraft
+Squid couldn't look around => punoɹɐ ʞooꞁ ʇ,upꞁnoɔ Squid
+Squid couldn't make the particles => sǝꞁɔᴉʇɹɐd ǝɥʇ ǝʞɐɯ ʇ,upꞁnoɔ Squid

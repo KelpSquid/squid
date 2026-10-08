@@ -349,3 +349,6 @@ or put them in the Music Folder. => odor du se in dän Musigg-Ordnor.
 On => An
 All => Alle
 One => Eens
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft had keen eenfachn Bardiggl, där "{0}" heeßd. Brobier "heart", "flame", "happy_villager" odor "note"
+Squid couldn't look around => Squid gonnde sich nich umguggn
+Squid couldn't make the particles => Squid gonnde de Bardiggl nich machn

@@ -349,3 +349,6 @@ or put them in the Music Folder. => яки аларны Музыка папка�
 On => Кабык
 All => Барысы
 One => Берсе
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft'та "{0}" исемле гади кисәкчек юк. "heart", "flame", "happy_villager" яки "note" сынап кара
+Squid couldn't look around => Squid тирә-якка карый алмады
+Squid couldn't make the particles => Squid кисәкчекләрне ясый алмады

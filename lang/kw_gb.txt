@@ -349,3 +349,6 @@ or put them in the Music Folder. => po gorr i y'n Folder Ilow.
 On => Byw
 All => Oll
 One => Onan
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Nyns eus dhe Minecraft temmik sempel henwys "{0}". Assay "heart", "flame", "happy_villager" po "note"
+Squid couldn't look around => Ny allas Squid mires a-dro
+Squid couldn't make the particles => Ny allas Squid gul an temmigow

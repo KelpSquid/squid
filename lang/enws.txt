@@ -349,3 +349,6 @@ or put them in the Music Folder. => or place them in the Minstrelsy Folder.
 On => Awake
 All => All
 One => One
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft hath no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note"
+Squid couldn't look around => Squid could not look about
+Squid couldn't make the particles => Squid could not make the particles

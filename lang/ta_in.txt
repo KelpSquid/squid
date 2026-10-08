@@ -349,3 +349,6 @@ or put them in the Music Folder. => அல்லது அவற்றை இச
 On => ஆன்
 All => அனைத்தும்
 One => ஒன்று
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft-இல் "{0}" என்ற எளிய துகள் இல்லை. "heart", "flame", "happy_villager" அல்லது "note" முயற்சிக்கவும்
+Squid couldn't look around => Squid-ஆல் சுற்றிப் பார்க்க முடியவில்லை
+Squid couldn't make the particles => Squid-ஆல் துகள்களை உருவாக்க முடியவில்லை

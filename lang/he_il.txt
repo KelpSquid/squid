@@ -349,3 +349,6 @@ or put them in the Music Folder. => או שימו אותם בתיקיית המו
 On => פועל
 All => הכול
 One => אחד
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => ב-Minecraft אין חלקיק פשוט בשם "{0}". נסו "heart", "flame", "happy_villager" או "note"
+Squid couldn't look around => Squid לא הצליח להסתכל מסביב
+Squid couldn't make the particles => Squid לא הצליח ליצור את החלקיקים

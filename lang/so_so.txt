@@ -349,3 +349,6 @@ or put them in the Music Folder. => ama geli Galka Muusigga.
 On => Shidan
 All => Dhammaan
 One => Mid
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft ma laha qayb-yar fudud oo la yiraahdo "{0}". Isku day "heart", "flame", "happy_villager" ama "note"
+Squid couldn't look around => Squid ma uusan eegi karin hareeraha
+Squid couldn't make the particles => Squid ma uusan samayn karin qaybaha-yar

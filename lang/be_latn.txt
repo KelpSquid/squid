@@ -349,3 +349,6 @@ or put them in the Music Folder. => abo pakładzi ich u tečku muzyki.
 On => Uklučany
 All => Usie
 One => Adna
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => U Minecraft niama prostaj čascicy "{0}". Pasprabuj "heart", "flame", "happy_villager" abo "note"
+Squid couldn't look around => Squid nie zmoh ahliedziecca
+Squid couldn't make the particles => Squid nie zmoh stvaryć čascicy

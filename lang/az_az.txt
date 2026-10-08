@@ -349,3 +349,6 @@ or put them in the Music Folder. => və ya onları Musiqi qovluğuna qoy.
 On => Açıq
 All => Hamısı
 One => Bir
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft-da "{0}" adlı sadə hissəcik yoxdur. "heart", "flame", "happy_villager" və ya "note" sına
+Squid couldn't look around => Squid ətrafa baxa bilmədi
+Squid couldn't make the particles => Squid hissəcikləri yarada bilmədi

@@ -349,3 +349,6 @@ or put them in the Music Folder. => या उन्हें संगीत �
 On => चालू
 All => सभी
 One => एक
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft में "{0}" नाम का कोई सादा पार्टिकल नहीं है। "heart", "flame", "happy_villager" या "note" आज़माएँ
+Squid couldn't look around => Squid आसपास नहीं देख सका
+Squid couldn't make the particles => Squid पार्टिकल नहीं बना सका

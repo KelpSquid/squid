@@ -349,3 +349,6 @@ or put them in the Music Folder. => tàbí fi wọ́n sínú Fódà Orin.
 On => TAN
 All => Gbogbo
 One => Ọ̀kan
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft kò ní èérún rírọrùn kan tí a ń pè ní "{0}". Gbìyànjú "heart", "flame", "happy_villager" tàbí "note"
+Squid couldn't look around => Squid kò lè wò yíká
+Squid couldn't make the particles => Squid kò lè ṣe àwọn èérún náà

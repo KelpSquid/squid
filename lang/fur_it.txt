@@ -349,3 +349,6 @@ or put them in the Music Folder. => o metilis te Cartele de musiche.
 On => Impiât
 All => Dutis
 One => Une
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft nol à nissune particele semplice clamade "{0}". Prove "heart", "flame", "happy_villager" o "note"
+Squid couldn't look around => Squid nol à podût cjalâ ator
+Squid couldn't make the particles => Squid nol à podût fâ lis particelis

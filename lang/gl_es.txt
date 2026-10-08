@@ -349,3 +349,6 @@ or put them in the Music Folder. => ou ponas no Cartafol de música.
 On => Acendido
 All => Todas
 One => Unha
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft non ten ningunha partícula simple chamada "{0}". Proba "heart", "flame", "happy_villager" ou "note"
+Squid couldn't look around => Squid non puido mirar arredor
+Squid couldn't make the particles => Squid non puido crear as partículas

@@ -349,3 +349,6 @@ or put them in the Music Folder. => abo wraź je do Folderu z muzykōm.
 On => Zał.
 All => Wszyjske
 One => Jedna
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft niy mŏ prostyj czōnstki ô mianie "{0}". Sprōbuj "heart", "flame", "happy_villager" abo "note"
+Squid couldn't look around => Squid niy poradziōł sie rozejrzeć
+Squid couldn't make the particles => Squid niy poradziōł zrobić czōnstek

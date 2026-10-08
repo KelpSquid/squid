@@ -349,3 +349,6 @@ or put them in the Music Folder. => eða settu þau í Tónlistarmöppuna.
 On => Kveikt
 All => Öll
 One => Eitt
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft er ekki með neina einfalda ögn sem heitir "{0}". Prófaðu "heart", "flame", "happy_villager" eða "note"
+Squid couldn't look around => Squid gat ekki litið í kringum sig
+Squid couldn't make the particles => Squid gat ekki búið til agnirnar

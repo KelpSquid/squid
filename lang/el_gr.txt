@@ -349,3 +349,6 @@ or put them in the Music Folder. => ή βάλ' τα στον Φάκελο μου
 On => Ενεργό
 All => Όλα
 One => Ένα
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Το Minecraft δεν έχει απλό σωματίδιο με όνομα "{0}". Δοκίμασε "heart", "flame", "happy_villager" ή "note"
+Squid couldn't look around => Το Squid δεν μπόρεσε να κοιτάξει γύρω
+Squid couldn't make the particles => Το Squid δεν μπόρεσε να φτιάξει τα σωματίδια

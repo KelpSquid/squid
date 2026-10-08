@@ -349,3 +349,6 @@ or put them in the Music Folder. => або поклади їх у теку му�
 On => Увімк.
 All => Усі
 One => Одна
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => У Minecraft немає простої частинки "{0}". Спробуй "heart", "flame", "happy_villager" або "note"
+Squid couldn't look around => Squid не зміг роззирнутися
+Squid couldn't make the particles => Squid не зміг створити частинки

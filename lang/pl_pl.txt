@@ -349,3 +349,6 @@ or put them in the Music Folder. => albo włóż je do folderu muzyki.
 On => Włączony
 All => Wszystkie
 One => Jeden
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft nie ma prostej cząsteczki o nazwie "{0}". Spróbuj "heart", "flame", "happy_villager" albo "note"
+Squid couldn't look around => Squid nie mógł się rozejrzeć
+Squid couldn't make the particles => Squid nie mógł stworzyć cząsteczek

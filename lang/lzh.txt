@@ -349,3 +349,6 @@ or put them in the Music Folder. => 或置之於樂匣。
 On => 啟
 All => 全
 One => 一
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft 無名 "{0}" 之素粒。試 "heart"、"flame"、"happy_villager" 或 "note"
+Squid couldn't look around => Squid 不能四顧
+Squid couldn't make the particles => Squid 不能成粒

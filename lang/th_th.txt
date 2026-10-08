@@ -349,3 +349,6 @@ or put them in the Music Folder. => หรือใส่ไว้ในโฟ�
 On => เปิด
 All => ทั้งหมด
 One => เพลงเดียว
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft ไม่มีอนุภาคธรรมดาชื่อ "{0}" ลอง "heart", "flame", "happy_villager" หรือ "note"
+Squid couldn't look around => Squid มองไปรอบ ๆ ไม่ได้
+Squid couldn't make the particles => Squid สร้างอนุภาคไม่ได้

@@ -349,3 +349,6 @@ or put them in the Music Folder. => o métełe inte ła Carteła mùxega.
 On => Inpisà
 All => Tute
 One => Una
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft no'l ga gnissuna partìseła sémplise ciamà "{0}". Prova "heart", "flame", "happy_villager" o "note"
+Squid couldn't look around => Squid no'l ga podùo vardarse intorno
+Squid couldn't make the particles => Squid no'l ga podùo far łe partìsełe

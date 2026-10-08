@@ -349,3 +349,6 @@ or put them in the Music Folder. => ya da Müzik Klasörü'ne koy.
 On => Açık
 All => Tümü
 One => Tek
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft'ta "{0}" adında basit bir parçacık yok. "heart", "flame", "happy_villager" ya da "note" dene
+Squid couldn't look around => Squid etrafa bakamadı
+Squid couldn't make the particles => Squid parçacıkları oluşturamadı

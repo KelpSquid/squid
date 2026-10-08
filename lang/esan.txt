@@ -349,3 +349,6 @@ or put them in the Music Folder. => o ponlô en la carpeta de múçica.
 On => Ençendío
 All => Toâ
 One => Una
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft no tiene ninguna partícula çencilla que se llame "{0}". Prueba "heart", "flame", "happy_villager" o "note"
+Squid couldn't look around => Squid no pudo mirâh arrededó
+Squid couldn't make the particles => Squid no pudo creâh lâ partícula

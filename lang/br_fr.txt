@@ -349,3 +349,6 @@ or put them in the Music Folder. => pe laka anezho en Teuliad sonerezh.
 On => Enaouet
 All => An holl
 One => Unan
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => N'eus partikulenn eeun ebet anvet "{0}" e Minecraft. Klask "heart", "flame", "happy_villager" pe "note"
+Squid couldn't look around => Squid n'en deus ket gallet sellet tro-dro
+Squid couldn't make the particles => Squid n'en deus ket gallet ober ar partikulennoù

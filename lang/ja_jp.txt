@@ -349,3 +349,6 @@ or put them in the Music Folder. => 音楽フォルダーに入れてね。
 On => オン
 All => 全曲
 One => 1曲
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft に "{0}" という単純なパーティクルはありません。"heart"、"flame"、"happy_villager"、"note" を試してね
+Squid couldn't look around => Squid がまわりを見られませんでした
+Squid couldn't make the particles => Squid がパーティクルを作れませんでした

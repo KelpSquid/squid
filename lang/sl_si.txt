@@ -349,3 +349,6 @@ or put them in the Music Folder. => ali jih daj v mapo z glasbo.
 On => Vklopljen
 All => Vse
 One => Ena
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft nima preprostega delca z imenom "{0}". Poskusi "heart", "flame", "happy_villager" ali "note"
+Squid couldn't look around => Squid se ni mogel ozreti naokoli
+Squid couldn't make the particles => Squid ni mogel ustvariti delcev

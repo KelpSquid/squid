@@ -349,3 +349,6 @@ or put them in the Music Folder. => neu rho nhw yn y Ffolder Cerddoriaeth.
 On => Ymlaen
 All => Pob un
 One => Un
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Does gan Minecraft ddim gronyn syml o'r enw "{0}". Rho gynnig ar "heart", "flame", "happy_villager" neu "note"
+Squid couldn't look around => Methodd Squid edrych o gwmpas
+Squid couldn't make the particles => Methodd Squid greu'r gronynnau

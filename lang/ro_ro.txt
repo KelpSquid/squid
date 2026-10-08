@@ -349,3 +349,6 @@ or put them in the Music Folder. => sau pune-le în Dosar muzică.
 On => Pornit
 All => Toate
 One => Una
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft nu are nicio particulă simplă numită "{0}". Încearcă "heart", "flame", "happy_villager" sau "note"
+Squid couldn't look around => Squid nu s-a putut uita în jur
+Squid couldn't make the particles => Squid nu a putut face particulele

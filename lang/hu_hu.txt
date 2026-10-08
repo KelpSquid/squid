@@ -349,3 +349,6 @@ or put them in the Music Folder. => vagy tedd őket a Zenemappába.
 On => Bekapcsolva
 All => Mind
 One => Egy
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => A Minecraftban nincs "{0}" nevű egyszerű részecske. Próbáld: "heart", "flame", "happy_villager" vagy "note"
+Squid couldn't look around => A Squid nem tudott körülnézni
+Squid couldn't make the particles => A Squid nem tudta elkészíteni a részecskéket

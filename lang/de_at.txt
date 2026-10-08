@@ -349,3 +349,6 @@ or put them in the Music Folder. => oda leg's in'n Musi-Ordner.
 On => Ei
 All => Olle
 One => Ans
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft hod kan afochn Partikl namens "{0}". Probier "heart", "flame", "happy_villager" oda "note"
+Squid couldn't look around => Squid hod si ned umschaun kenna
+Squid couldn't make the particles => Squid hod de Partikl ned mochn kenna

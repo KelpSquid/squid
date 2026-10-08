@@ -349,3 +349,6 @@ or put them in the Music Folder. => ili ih stavi u Mapu glazbe.
 On => Uključen
 All => Sve
 One => Jedna
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft nema jednostavnu česticu "{0}". Probaj "heart", "flame", "happy_villager" ili "note"
+Squid couldn't look around => Squid nije mogao pogledati oko sebe
+Squid couldn't make the particles => Squid nije mogao napraviti čestice

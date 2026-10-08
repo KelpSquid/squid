@@ -349,3 +349,6 @@ or put them in the Music Folder. => nó cuir san Fhillteán Ceoil iad.
 On => Air
 All => Uile
 One => Aon
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Níl aon cháithnín simplí darb ainm "{0}" ag Minecraft. Bain triail as "heart", "flame", "happy_villager" nó "note"
+Squid couldn't look around => Níorbh fhéidir le Squid breathnú timpeall
+Squid couldn't make the particles => Níorbh fhéidir le Squid na cáithníní a dhéanamh

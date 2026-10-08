@@ -349,3 +349,6 @@ or put them in the Music Folder. => yoki ularni Musiqa papkasiga qo'y.
 On => Yoniq
 All => Hammasi
 One => Bittasi
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft'da "{0}" degan oddiy zarracha yo'q. "heart", "flame", "happy_villager" yoki "note"ni sinab ko'r
+Squid couldn't look around => Squid atrofga qaray olmadi
+Squid couldn't make the particles => Squid zarrachalarni yarata olmadi

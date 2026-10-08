@@ -349,3 +349,6 @@ or put them in the Music Folder. => oder legg se in den Musik-Orner.
 On => An
 All => All
 One => Een
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft hett keen eenfach Partikel mit'n Naam "{0}". Probeer "heart", "flame", "happy_villager" oder "note"
+Squid couldn't look around => Squid kunn sik nich ümkieken
+Squid couldn't make the particles => Squid kunn de Partikels nich maken

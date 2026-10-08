@@ -349,3 +349,6 @@ or put them in the Music Folder. => eller læg dem i Musikmappen.
 On => Til
 All => Alle
 One => Én
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft har ingen simpel partikel, der hedder "{0}". Prøv "heart", "flame", "happy_villager" eller "note"
+Squid couldn't look around => Squid kunne ikke se sig omkring
+Squid couldn't make the particles => Squid kunne ikke lave partiklerne

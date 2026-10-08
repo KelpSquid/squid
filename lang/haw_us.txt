@@ -349,3 +349,6 @@ or put them in the Music Folder. => a i ʻole e waiho iā lākou i ka Waihona Me
 On => Ā
 All => A Pau
 One => Hoʻokahi
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => ʻAʻohe huna maʻalahi o Minecraft i kapa ʻia ʻo "{0}". E hoʻāʻo i "heart", "flame", "happy_villager" a i ʻole "note"
+Squid couldn't look around => ʻAʻole hiki iā Squid ke nānā a puni
+Squid couldn't make the particles => ʻAʻole hiki iā Squid ke hana i nā huna

@@ -349,3 +349,6 @@ or put them in the Music Folder. => aŭ metu ilin en la Muzikan dosierujon.
 On => Ŝaltita
 All => Ĉiuj
 One => Unu
+Minecraft has no simple particle called "{0}". Try "heart", "flame", "happy_villager" or "note" => Minecraft ne havas simplan partiklon nomatan "{0}". Provu "heart", "flame", "happy_villager" aŭ "note"
+Squid couldn't look around => Squid ne povis ĉirkaŭrigardi
+Squid couldn't make the particles => Squid ne povis krei la partiklojn
