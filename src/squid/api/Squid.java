@@ -301,12 +301,12 @@ public final class Squid {
         squid.ModBus.on(mod.id(), event, listener);
     }
 
-    /** Whether a mod with this id is running, like hasMod("minimap"). */
+    /**
+     * Whether a mod with this id is running, like hasMod("minimap"). While the game starts, mods starting with this
+     * one count too, so init can already ask.
+     */
     public boolean hasMod(String id) {
-        for (ModInfo m : squid.Main.mods()) {
-            if (m.id().equals(id)) return true;
-        }
-        return false;
+        return squid.Main.hasMod(id);
     }
 
     /**

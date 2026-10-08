@@ -343,9 +343,10 @@ public class PipelineTest {
                 "net-test score {name=Steve, score=12, big=5000000000, pi=3.5, half=1.5, ok=true, list=[1, two, null], nested={deep=[[down]]}} [1, 2, 3]");
         check("what a message can't carry is explained", failure(() -> ModNet.encode("m", "c", new Object())) + " | "
                 + failure(() -> ModNet.encode("m", "c", "x".repeat(40_000))).startsWith("IllegalArgumentException: that message is too big to send")
-                + " | " + failure(() -> ModNet.encode("m", "", 1)),
+                + " | " + failure(() -> ModNet.encode("m", "", 1)) + " | "
+                + failure(() -> ModNet.encode("m", "c", new int[10_000_000])).startsWith("IllegalArgumentException: that message is too big to send"),
                 "IllegalArgumentException: a message can't carry Object. Send text, numbers, true/false, or lists and maps of those | true"
-                        + " | IllegalArgumentException: a message channel needs a name of 1 to 64 letters, like \"score\"");
+                        + " | IllegalArgumentException: a message channel needs a name of 1 to 64 letters, like \"score\" | true");
         check("broken and made-up messages are refused, not read", failure(() -> ModNet.decode(new byte[] {1})) + " | "
                 + failure(() -> ModNet.decode(new byte[] {1, 1, 'm', 1, 'c', 8, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 0x7F})),
                 "IllegalArgumentException: it ends too soon | IllegalArgumentException: it claims more than it has");
@@ -400,6 +401,17 @@ public class PipelineTest {
         netHeard.clear();
         for (int i = 0; i < 100; i++) ModNet.fromPlayer("Alex", ModNet.encode("net-test", "score", i));
         check("a player flooding the server is held back", netHeard.size(), ModNet.BURST);
+        netMod.onMessage("other", (from, data) -> netHeard.add("other:" + data));
+        new Squid(mod("net-test-2")).onMessage("score", (from, data) -> netHeard.add("second mod:" + data));
+        netHeard.clear();
+        ModNet.fromPlayer("Alex", ModNet.encode("net-test-2", "score", 1));
+        check("a player's limit is for each mod: another mod's messages still get through", netHeard.toString(), "[second mod:1]");
+        ModNet.resetLimits();
+        ModNet.fromPlayer("Alex", ModNet.encode("net-test", "score", 1));
+        int keptBefore = ModNet.limitsKept();
+        ModNet.forget(java.util.UUID.nameUUIDFromBytes("Alex".getBytes()));
+        check("a player who leaves is forgotten", keptBefore + " " + ModNet.limitsKept(), "1 0");
+        Events.remove("net-test-2");
         int[] handlerRuns = {0};
         netMod.onMessage("broken", (from, data) -> {
             handlerRuns[0]++;
@@ -614,6 +626,25 @@ public class PipelineTest {
         check("chat commands and onChat hook into Minecraft's chat classes", Class.forName("net.minecraft.client.multiplayer.ClientPacketListener", false, chatLoader).getClassLoader() == chatLoader
                 && Class.forName("net.minecraft.client.gui.components.ChatComponent", false, chatLoader).getClassLoader() == chatLoader, true);
         check("onBreak hooks into breaking blocks", Class.forName("net.minecraft.client.multiplayer.MultiPlayerGameMode", false, chatLoader).getClassLoader() == chatLoader, true);
+        // hasMod while mods start: the ones starting along with it count (a mod that broke doesn't), and easy mods'
+        // message handlers get each message's own values
+        Path hasFolder = java.nio.file.Files.createTempDirectory("squid-has-mod");
+        java.nio.file.Files.writeString(hasFolder.resolve("HasC.java"), "public class HasC extends EasyMod {\n    void start() {\n        int x = 1 / 0;\n    }\n}\n");
+        java.nio.file.Files.writeString(hasFolder.resolve("HasA.java"), "public class HasA extends EasyMod {\n    void start() {\n"
+                + "        squid.ReloadProbe.value = (hasMod(\"has-b\") ? 1 : 0) + (hasMod(\"has-c\") ? 10 : 0);\n"
+                + "        onMessage(\"add\", (from, data) -> squid.ReloadProbe.hookCalls += (Integer) data);\n    }\n}\n");
+        java.nio.file.Files.writeString(hasFolder.resolve("HasB.java"), "public class HasB extends EasyMod {\n    void start() {\n    }\n}\n");
+        List<ModInfo> hasMods = new ArrayList<>();
+        for (String name : new String[] {"HasC", "HasA", "HasB"}) hasMods.add(sources.compile(hasFolder.resolve(name + ".java")));
+        ReloadProbe.value = -1;
+        Main.start(hasMods, chatLoader, new ArrayList<>());
+        ReloadProbe.hookCalls = 0;
+        ModNet.fromServer(ModNet.encode("has-a", "add", 2));
+        ModNet.fromServer(ModNet.encode("has-a", "add", 40));
+        check("hasMod in start() sees a mod starting after it, but not one that broke, and messages keep their own values",
+                ReloadProbe.value + " " + ReloadProbe.hookCalls + " " + Main.hasMod("has-b"), "1 42 false");
+        for (ModInfo m : hasMods) Events.remove(m.id());
+
         // The easy mod's marks (a block, a waypoint, floating text, a line) and keepDrawing are drawn in the world
         worldDrawn.clear();
         Events.drawWorld(recorder);
@@ -1924,6 +1955,21 @@ public class PipelineTest {
         clientListener.getMethod("handleCustomPayload", clientbound).invoke(inGame, throughTheWire.apply(clientbound.getField("CONFIG_STREAM_CODEC").get(null), news));
         check("a mod's messages go through Minecraft's real packets to the server and to the game", realHeard.toString(), "[Tester:hi server, server:hi game]");
         Events.remove("net-real");
+        Field heldList = netClass.getDeclaredField("playerList");
+        heldList.setAccessible(true);
+        heldList.set(null, new java.lang.ref.WeakReference<>(unsafe.getClass().getMethod("allocateInstance", Class.class)
+                .invoke(unsafe, Class.forName("net.minecraft.client.server.IntegratedPlayerList", false, netLoader))));
+        Object stoppingServer = unsafe.getClass().getMethod("allocateInstance", Class.class)
+                .invoke(unsafe, Class.forName("net.minecraft.client.server.IntegratedServer", true, netLoader));
+        java.lang.reflect.Method stopServer = Class.forName("net.minecraft.server.MinecraftServer", false, netLoader).getDeclaredMethod("stopServer");
+        stopServer.setAccessible(true);
+        try {
+            stopServer.invoke(stoppingServer);
+        } catch (java.lang.reflect.InvocationTargetException expected) {
+            // a server made without its constructor can't really stop: only Squid's hook at the start matters here
+        }
+        check("a stopped server's players are let go, so a world you left isn't kept in memory",
+                ((java.lang.ref.WeakReference<?>) heldList.get(null)).get() == null, true);
         // A mod's resources folder works on its own: resources/assets is a resource pack and resources/data a data
         // pack, always on, through Minecraft's real pack lists (made the way Minecraft makes them)
         Path packMod = java.nio.file.Files.createTempDirectory("squid-pack-mod");
@@ -1931,7 +1977,13 @@ public class PipelineTest {
         java.nio.file.Files.writeString(packMod.resolve("assets/packtest/lang/en_us.json"), "{\"packtest.hello\": \"Hello\"}");
         java.nio.file.Files.createDirectories(packMod.resolve("data/packtest/recipe"));
         java.nio.file.Files.writeString(packMod.resolve("data/packtest/recipe/thing.json"), "{}");
+        java.nio.file.Files.writeString(packMod.resolve("squid.json"), "{\"side\": \"both\"}"); // it runs on servers too
         Main.updateMod(new ModInfo("pack-test", "Pack Test", "1.0", "", List.of(), List.of(), List.of(), "x", packMod));
+        // A mod for the game only: its data folder mustn't be saved into the worlds it visits
+        Path clientMod = java.nio.file.Files.createTempDirectory("squid-pack-client-mod");
+        java.nio.file.Files.createDirectories(clientMod.resolve("data/clienttest/recipe"));
+        java.nio.file.Files.writeString(clientMod.resolve("data/clienttest/recipe/thing.json"), "{}");
+        Main.updateMod(new ModInfo("pack-client", "Pack Client", "1.0", "", List.of(), List.of(), List.of(), "x", clientMod));
         Class<?> packRepository = Class.forName("net.minecraft.server.packs.repository.PackRepository", true, netLoader);
         Class<?> packType = Class.forName("net.minecraft.server.packs.PackType", true, netLoader);
         Object dataPacks = Class.forName("net.minecraft.server.packs.repository.ServerPacksSource", true, netLoader).getMethod("createVanillaTrustedRepository").invoke(null);
@@ -1950,9 +2002,13 @@ public class PipelineTest {
             Object opened = ((java.util.stream.Stream<?>) pack.getClass().getMethod("open").invoke(pack)).findFirst().orElseThrow();
             java.lang.reflect.Method getResource = Class.forName("net.minecraft.server.packs.PackResources", true, netLoader).getMethod("getResource", packType, identifier);
             Object file = getResource.invoke(opened, Enum.valueOf(packType.asSubclass(Enum.class), (String) repo[1]), idOf.invoke(null, "packtest", repo[2]));
-            packResults.add(repo[1] + " " + selected + " " + (file != null));
+            List<String> packOrder = new ArrayList<>();
+            for (Object id : (java.util.Collection<?>) packRepository.getMethod("getSelectedIds").invoke(repo[0])) packOrder.add(String.valueOf(id));
+            packResults.add(repo[1] + " " + selected + " " + (file != null) + " " + packOrder);
         }
-        check("a mod's assets are a resource pack and its data a data pack, always on", packResults.toString(), "[SERVER_DATA true true, CLIENT_RESOURCES true true]");
+        check("a mod's assets are a resource pack just above Minecraft's own, and its data a data pack, only for mods that run on servers",
+                packResults.toString(), "[SERVER_DATA true true [squid/pack-test], CLIENT_RESOURCES true true [vanilla, squid/pack-test]]");
+        Main.removeMod("pack-client");
         java.nio.file.Files.writeString(packMod.resolve("assets/packtest/lang/en_us.json"), "{\"packtest.hello\": \"Hi\"}");
         Main.updateMod(new ModInfo("pack-test", "Pack Test", "1.1", "", List.of(), List.of(), List.of(), "x", packMod));
         boolean changedOnce = ModPacks.assetsChanged();

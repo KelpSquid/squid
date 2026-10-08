@@ -77,9 +77,14 @@ public abstract class EasyMod implements SquidMod {
         }
 
         void run() {
+            run(run);
+        }
+
+        /** Runs this code in its place, counted the same way (for actions that get a different value each time). */
+        void run(Runnable code) {
             if (failures >= 3) return;
             try {
-                run.run();
+                code.run();
             } catch (RuntimeException | LinkageError e) {
                 failures++;
                 if (failures == 1) {
@@ -543,13 +548,11 @@ public abstract class EasyMod implements SquidMod {
      */
     protected void onMessage(String channel, java.util.function.BiConsumer<Sender, Object> action) {
         if (!starting) throw new IllegalStateException(Lang.t("onMessage only works inside start()"));
-        Object[] got = {null, null};
-        Action run = new Action("onMessage(\"" + channel + "\")", () -> action.accept((Sender) got[0], got[1]));
-        squid.onMessage(channel, (from, data) -> {
-            got[0] = from;
-            got[1] = data;
-            run.run();
-        });
+        Action run = new Action("onMessage(\"" + channel + "\")", null);
+        // In single player the message to "the server" is handled on your world's server thread, but say() and the
+        // rest of an easy mod's commands belong on the game's own thread, so it's handed over there (each message
+        // with its own values, so two at once can't mix)
+        squid.onMessage(channel, (from, data) -> Game.onGameThread(() -> run.run(() -> action.accept(from, data))));
     }
 
     /** Server side: sends something to one player's copy of this mod, by their name: sendTo("Steve", "score", 10). */
@@ -575,12 +578,8 @@ public abstract class EasyMod implements SquidMod {
     /** Runs when any mod signals this: onSignal("treasure-found", value -&gt; say("Treasure! " + value)). */
     protected void onSignal(String name, java.util.function.Consumer<Object> action) {
         if (!starting) throw new IllegalStateException(Lang.t("onSignal only works inside start()"));
-        Object[] got = {null};
-        Action run = new Action("onSignal(\"" + name + "\")", () -> action.accept(got[0]));
-        squid.on(name, value -> {
-            got[0] = value;
-            run.run();
-        });
+        Action run = new Action("onSignal(\"" + name + "\")", null);
+        squid.on(name, value -> run.run(() -> action.accept(value)));
     }
 
     /** Whether another mod is running, by its id: if (hasMod("minimap")) ... */

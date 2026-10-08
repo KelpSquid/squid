@@ -35,8 +35,11 @@ public class Net implements SquidMod {
     private static final Map<String, List<BiConsumer<ServerPlayer, byte[]>>> serverHandlers = new ConcurrentHashMap<>();
     /** Players (on this server) whose game has Squid. */
     private static final Set<java.util.UUID> squidPlayers = ConcurrentHashMap.newKeySet();
-    /** The server's player list, once someone has joined (to find players by name, and send to everyone). */
-    private static volatile PlayerList playerList;
+    /**
+     * The server's player list, once someone has joined (to find players by name, and send to everyone). Held weakly
+     * and let go when the server stops, so a single player world you left isn't kept in memory.
+     */
+    private static volatile java.lang.ref.WeakReference<PlayerList> playerList = new java.lang.ref.WeakReference<>(null);
 
     @Override
     public void init(Squid squid) {
@@ -67,11 +70,20 @@ public class Net implements SquidMod {
                 });
         // Say hello to every player who joins, and forget them when they leave
         squid.atEnd("net.minecraft.server.players.PlayerList", "placeNewPlayer", call -> {
-            playerList = (PlayerList) call.self();
+            playerList = new java.lang.ref.WeakReference<>((PlayerList) call.self());
             toPlayer((ServerPlayer) call.args()[1], "hello", new byte[] {1});
         });
         squid.atStart("net.minecraft.server.players.PlayerList", "remove", "(Lnet/minecraft/server/level/ServerPlayer;)V",
-                call -> squidPlayers.remove(((ServerPlayer) call.args()[0]).getUUID()));
+                call -> {
+                    java.util.UUID id = ((ServerPlayer) call.args()[0]).getUUID();
+                    squidPlayers.remove(id);
+                    ModNet.forget(id); // their message limits
+                });
+        // A server stopping (like leaving a single player world) lets go of its players
+        squid.atStart("net.minecraft.server.MinecraftServer", "stopServer", call -> {
+            playerList = new java.lang.ref.WeakReference<>(null);
+            squidPlayers.clear();
+        });
         if (!Main.isServer()) NetClient.init();
         // Mods' own messages
         onClient("mods", ModNet::fromServer);
@@ -103,14 +115,14 @@ public class Net implements SquidMod {
 
         @Override
         public Collection<?> players() {
-            PlayerList list = playerList;
+            PlayerList list = playerList.get();
             if (list == null) return List.of();
             return list.getPlayers().stream().filter(Net::hasSquid).toList();
         }
 
         @Override
         public Object findPlayer(Object nameOrId) {
-            PlayerList list = playerList;
+            PlayerList list = playerList.get();
             if (nameOrId instanceof ServerPlayer p) return p;
             if (list == null || nameOrId == null) return null;
             if (nameOrId instanceof java.util.UUID id) return list.getPlayer(id);

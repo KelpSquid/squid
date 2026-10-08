@@ -56,6 +56,26 @@ public final class Main {
         return mods;
     }
 
+    private static volatile SourceMods sourceMods;
+
+    /** What builds mods from their code (to find where a mod came from), or null before Squid has started. */
+    static SourceMods sourceMods() {
+        return sourceMods;
+    }
+
+    /** The mods being started right now (the list fills in only once they all have), for hasMod while they start. */
+    private static volatile List<ModInfo> starting = List.of();
+
+    /**
+     * Whether a mod with this id is running, or is starting along with the mod asking (so a mod's init or start()
+     * can already see the mods it depends on, and the others found in the mods folder).
+     */
+    public static boolean hasMod(String id) {
+        for (ModInfo mod : mods) if (mod.id().equals(id)) return true;
+        for (ModInfo mod : starting) if (mod.id().equals(id)) return true;
+        return false;
+    }
+
     /** The class loader Minecraft and the mods run in, or null before the game starts. */
     public static ClassLoader gameLoader() {
         return gameLoader;
@@ -116,6 +136,7 @@ public final class Main {
             // .java mods can use Squid (on the normal classpath) and Minecraft
             SourceMods sources = new SourceMods(modsFolder.resolve(".squid-cache"),
                     System.getProperty("java.class.path") + File.pathSeparator + gameClasspath);
+            sourceMods = sources;
             // Safe mode (Kelp's Play Without Mods, after a crash): no mods this time, only Squid's own parts
             Mods.Found found = safeMode() ? new Mods.Found(List.of(), List.of()) : Mods.find(modsFolder, minecraftVersion, sources);
             System.out.println("[Squid] Squid " + VERSION + " found " + found.mods().size() + " mod(s) in " + modsFolder);
@@ -174,6 +195,18 @@ public final class Main {
      */
     static List<ModInfo> start(List<ModInfo> mods, ClassLoader loader, List<Mods.Skipped> skipped) {
         List<ModInfo> started = new ArrayList<>();
+        List<ModInfo> startingNow = new java.util.concurrent.CopyOnWriteArrayList<>(mods);
+        starting = startingNow;
+        try {
+            startAll(mods, loader, skipped, started, startingNow);
+        } finally {
+            starting = List.of();
+        }
+        return started;
+    }
+
+    private static void startAll(List<ModInfo> mods, ClassLoader loader, List<Mods.Skipped> skipped, List<ModInfo> started,
+                                 List<ModInfo> startingNow) {
         for (ModInfo mod : mods) {
             System.out.println("[Squid] Starting " + mod.name() + " " + mod.version());
             Class<?> main = null;
@@ -194,9 +227,9 @@ public final class Main {
                 System.out.println("[Squid] Skipping " + mod.name() + ": " + why);
                 problem.printStackTrace(System.out);
                 skipped.add(new Mods.Skipped(mod.id(), mod.name(), why));
+                startingNow.remove(mod); // it isn't going to be running after all
             }
         }
-        return started;
     }
 
     /** Tells Kelp (through the report) that a mod's hook had to be turned off. */

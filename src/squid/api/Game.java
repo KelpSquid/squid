@@ -92,6 +92,16 @@ public final class Game {
         }
     }
 
+    /**
+     * Runs it on the game's own thread, where say() and the other commands work, or right here on a server (or when
+     * there's no game, like in tests).
+     */
+    static void onGameThread(Runnable task) {
+        Object mc = Main.isServer() ? null : minecraft();
+        if (mc instanceof java.util.concurrent.Executor game) game.execute(task);
+        else task.run();
+    }
+
     static boolean inWorld() {
         return player() != null && world() != null;
     }

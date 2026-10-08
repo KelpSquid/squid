@@ -30,7 +30,7 @@ public final class ModNet {
 
     /** Biggest message a mod can send, in bytes (Minecraft allows a little more for messages to a server). */
     public static final int MAX_BYTES = 30_000;
-    /** How many messages a second each mod can send, and how many more it can send in a burst. */
+    /** How many messages a second each mod (on a server: each player, for each mod) can send, and in a burst. */
     static final int PER_SECOND = 40;
     static final int BURST = 80;
     /** How many bytes a second each mod can send, and in a burst. */
@@ -137,8 +137,11 @@ public final class ModNet {
     public static void fromPlayer(Object player, byte[] message) {
         Transport t = transport;
         if (t == null || message.length > MAX_BYTES + 512) return;
-        String key = t.idOf(player) + "";
-        if (!allowed(INCOMING, key, message.length, t.nameOf(player))) return;
+        // Each player has limits for each mod, so one busy mod doesn't hold back another's messages
+        String modId = modIdOf(message);
+        if (modId == null) return; // broken: nobody could read it anyway
+        String key = t.idOf(player) + " " + modId;
+        if (!allowed(INCOMING, key, message.length, t.nameOf(player) + " (" + modId + ")")) return;
         deliver(player, message);
     }
 
@@ -217,6 +220,18 @@ public final class ModNet {
         }
     }
 
+    /** A player left the server: their limits are forgotten. */
+    public static void forget(java.util.UUID player) {
+        String id = String.valueOf(player);
+        INCOMING.keySet().removeIf(key -> key.startsWith(id + " "));
+        OUTGOING.keySet().removeIf(key -> key.endsWith(" to " + id));
+    }
+
+    /** How many players' limits are kept. Only tests need this. */
+    static int limitsKept() {
+        return INCOMING.size() + OUTGOING.size();
+    }
+
     /** Forgets the limits used so far. Only tests need this. */
     static void resetLimits() {
         OUTGOING.clear();
@@ -287,12 +302,14 @@ public final class ModNet {
                 value(out, entry.getValue(), depth + 1);
             }
         } else if (value instanceof Collection<?> list) {
+            fits(out, list.size()); // every item takes at least a byte
             out.write(LIST);
             size(out, list.size());
             for (Object item : list) value(out, item, depth + 1);
         } else if (value instanceof Object[] array) {
             value(out, java.util.Arrays.asList(array), depth);
         } else if (value.getClass().isArray()) { // int[], double[]...
+            fits(out, java.lang.reflect.Array.getLength(value)); // too long is refused before it's all boxed up
             List<Object> items = new ArrayList<>();
             for (int i = 0; i < java.lang.reflect.Array.getLength(value); i++) items.add(java.lang.reflect.Array.get(value, i));
             value(out, items, depth);
@@ -325,6 +342,17 @@ public final class ModNet {
     private static void fits(ByteArrayOutputStream out, int more) {
         if (out.size() + more > MAX_BYTES) {
             throw new IllegalArgumentException(Lang.t("that message is too big to send ({0} bytes). The most is {1}", out.size() + more, MAX_BYTES));
+        }
+    }
+
+    /** The mod id at the start of a message, read without reading the rest; null if it's broken. */
+    static String modIdOf(byte[] message) {
+        try {
+            ByteBuffer in = ByteBuffer.wrap(message);
+            if (in.get() != 1) return null;
+            return readText(in);
+        } catch (RuntimeException broken) {
+            return null;
         }
     }
 
