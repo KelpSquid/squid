@@ -293,16 +293,19 @@ public final class Game {
 
     /** What the player's crosshair is on: a block like "oak_log", a mob like "cow", or "" for nothing. */
     static String lookingAt() {
+        Object hit = field(minecraft(), "hitResult");
+        if (hit == null) return "";
+        String kind = ((Enum<?>) call(hit, "getType")).name();
+        if (kind.equals("BLOCK")) return blockAt(call(hit, "getBlockPos"));
+        if (kind.equals("ENTITY")) return entityName(call(hit, "getEntity"));
+        return "";
+    }
+
+    /** What kind of mob (or player, or thing) an entity is, like "zombie" or "player". */
+    static String entityName(Object entity) {
         try {
-            Object hit = field(minecraft(), "hitResult");
-            if (hit == null) return "";
-            String kind = ((Enum<?>) call(hit, "getType")).name();
-            if (kind.equals("BLOCK")) return blockAt(call(hit, "getBlockPos"));
-            if (kind.equals("ENTITY")) {
-                Class<?> entityType = type("net.minecraft.world.entity.EntityType");
-                return path(entityType.getMethod("getKey", entityType).invoke(null, call(call(hit, "getEntity"), "getType")));
-            }
-            return "";
+            Class<?> entityType = type("net.minecraft.world.entity.EntityType");
+            return path(entityType.getMethod("getKey", entityType).invoke(null, call(entity, "getType")));
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException(e);
         }

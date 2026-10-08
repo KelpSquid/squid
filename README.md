@@ -47,6 +47,8 @@ public class RainbowSheep extends EasyMod {
 | `onCommand("dance", () -> { ... })` | Your own chat command: typing `!dance` runs it (and isn't sent). `onCommand("shout", words -> ...)` gets what's typed after it |
 | `onChat(text -> { ... })` | Runs for every chat message you see (`"<Steve> hi"`, `"Alex joined the game"`), not mods' own |
 | `onBreak(block -> { ... })` | Runs when you break a block, with its name (`"stone"`, `"diamond_ore"`) |
+| `onAttack(mob -> { ... })` | Runs when you hit a mob, with what it is (`"zombie"`, `"player"`) |
+| `keepShowing(() -> "Diamonds: " + diamonds)` | Text that stays in the top-left corner, always up to date |
 | `remember("diamonds", 5)`, `remembered("diamonds", 0)` | Keeps a number for next time you play, and gets it back (or the starting number) |
 | `onBeat(() -> { ... })` | Runs on every beat of the music: Jukebox songs (Squid finds their beat) and `.sqda` beats |
 | `musicLevel()`, `nowPlaying()` | How loud the music is (0 to 1), and what's playing |

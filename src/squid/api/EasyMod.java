@@ -48,6 +48,10 @@ public abstract class EasyMod implements SquidMod {
     }
 
     /** Something the mod asked to run later. If it keeps going wrong, it's switched off so the game stays fine. */
+    /** The frame keepShowing() lines are being drawn on, and how many lines are on it so far (from every mod). */
+    private static Object cornerFrame;
+    private static int cornerLines;
+
     /** Chat commands like "!dance", and the mod that has each one. */
     private static final java.util.Map<String, String> COMMANDS = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -215,6 +219,44 @@ public abstract class EasyMod implements SquidMod {
         });
         squid.atEnd("net.minecraft.client.multiplayer.MultiPlayerGameMode", "destroyBlock", call -> {
             if (Boolean.TRUE.equals(call.returnValue()) && !block[0].isEmpty()) run.run();
+        });
+    }
+
+    /** Runs when you hit a mob (or a player), with what it is, like onAttack(mob -> { if (mob.equals("zombie")) ... }). */
+    protected void onAttack(java.util.function.Consumer<String> action) {
+        if (!starting) throw new IllegalStateException(Lang.t("onAttack only works inside start()"));
+        String[] mob = {""};
+        Action run = new Action("onAttack", () -> action.accept(mob[0]));
+        squid.atStart("net.minecraft.client.multiplayer.MultiPlayerGameMode", "attack", call -> {
+            try {
+                mob[0] = Game.entityName(call.args()[1]);
+            } catch (RuntimeException e) {
+                return;
+            }
+            run.run();
+        });
+    }
+
+    /**
+     * Text that stays in the top-left corner while you play, kept up to date: keepShowing(() -> "Diamonds: " +
+     * diamonds). Give back "" to hide it for now. Lines from different mods go under each other.
+     */
+    protected void keepShowing(java.util.function.Supplier<Object> text) {
+        if (!starting) throw new IllegalStateException(Lang.t("keepShowing only works inside start()"));
+        String[] shown = {""};
+        Action read = new Action("keepShowing", () -> shown[0] = String.valueOf(text.get()));
+        squid.onHud(hud -> {
+            if (hud != cornerFrame) { // a new frame: the lines start at the top again
+                cornerFrame = hud;
+                cornerLines = 0;
+            }
+            if (!Game.inWorld()) return;
+            shown[0] = "";
+            read.run();
+            if (shown[0].isEmpty() || shown[0].equals("null")) return;
+            int y = 4 + cornerLines++ * 12;
+            hud.box(2, y - 2, hud.textWidth(shown[0]) + 4, 12, 0x80000000);
+            hud.text(shown[0], 4, y, 0xFFFFFFFF);
         });
     }
 

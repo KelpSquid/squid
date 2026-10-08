@@ -270,6 +270,8 @@ public class PipelineTest {
                 "        onCommand(\"shout\", words -> title(words));",
                 "        onChat(text -> { if (text.contains(\"hello\")) say(\"Hi back!\"); });",
                 "        onBreak(block -> { if (block.contains(\"diamond\")) remember(\"diamonds\", remembered(\"diamonds\", 0) + 1); });",
+                "        onAttack(mob -> { if (mob.equals(\"zombie\")) particles(\"crit\", 5); });",
+                "        keepShowing(() -> \"Diamonds: \" + remembered(\"diamonds\", 0));",
                 "        every(1, () -> {",
                 "            if (nearby(\"creeper\", 16) > 0) title(\"Creeper!\");",
                 "            showText(holding() + \" / \" + lookingAt() + \" / \" + biome() + \" / \" + (isNight() ? \"night\" : \"day\"));",
