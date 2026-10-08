@@ -190,12 +190,18 @@ public final class ModStarters {
                     // Try other mobs: "zombie", "skeleton", "pig", or glow two kinds at once.
 
                     public class %2$s extends EasyMod {
+                        int presses; // counts presses, so pressing again starts the 10 seconds over
+
                         void start() {
                             onKey("K", () -> {
+                                presses = presses + 1;
+                                int thisPress = presses;
                                 glow("creeper");
                                 showText("Creeper radar on!");
                                 playSound("block.note_block.chime");
-                                after(10, () -> stopGlowing("creeper"));
+                                after(10, () -> {
+                                    if (thisPress == presses) stopGlowing("creeper"); // only if K wasn't pressed again
+                                });
                             });
                         }
                     }
