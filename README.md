@@ -141,6 +141,10 @@ Everyone gets these, no downloads needed. One **Squid** button on the title scre
 - **Sounds:** resource packs can use `.wav`, `.mp3`, `.flac` and `.sqda` sounds and music, not just `.ogg`. Squid
   has its own decoders for all of them (`squid.audio`), written from scratch. Surround files play as stereo, and a
   damaged file plays what it can instead of breaking the game's sound.
+- **Jukebox:** your own music in the game. Put songs (MP3, FLAC, WAV, Ogg or `.sqda`) in the `music` folder in
+  Kelp's folder, or drop them onto Squid > Jukebox. Play, pause, skip, shuffle and repeat; Minecraft's own music
+  waits while a song plays, a Now Playing card shows the title and artist from the file's tags, and it follows the
+  Music volume slider. Mods can move with it through `SquidAudio.level()`.
 - **120 languages:** Squid's own texts follow Minecraft's language setting (BETA, not checked yet).
 
 ## How it works

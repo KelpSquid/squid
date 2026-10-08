@@ -1,0 +1,8 @@
+{
+    "id": "squid-jukebox",
+    "name": "Squid Jukebox",
+    "version": "1.0.0",
+    "description": "Your own music in the game: put songs in the music folder (or drop them on the Jukebox) and play them from Squid > Jukebox.",
+    "authors": ["Samuel"],
+    "main": "squidjukebox.Jukebox"
+}

@@ -1119,6 +1119,34 @@ public class PipelineTest {
         check("Analysis finds a seamless loop: whole repeats of the tune, after the intro", loopFound != null && loopFound.start() >= 5.5
                 && Math.abs(repeats - Math.rint(repeats)) < 0.02 && repeats >= 2, true);
 
+        // Tags: a song's title and artist, from ID3v2 (MP3), Vorbis comments (FLAC) and a WAV's INFO list
+        java.io.ByteArrayOutputStream id3 = new java.io.ByteArrayOutputStream();
+        byte[] titleFrame = ("Pigstep").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] artistFrame = (" Lena Raine").getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+        int tagSize = 10 + titleFrame.length + 10 + artistFrame.length;
+        id3.write(new byte[] {'I', 'D', '3', 3, 0, 0, 0, 0, (byte) (tagSize >> 7), (byte) (tagSize & 0x7F)});
+        for (Object[] frame : new Object[][] {{"TIT2", titleFrame}, {"TPE1", artistFrame}}) {
+            byte[] body = (byte[]) frame[1];
+            id3.write(((String) frame[0]).getBytes());
+            id3.write(new byte[] {0, 0, 0, (byte) body.length, 0, 0});
+            id3.write(body);
+        }
+        id3.write(new byte[64]);
+        check("an MP3's ID3 tag gives the title and artist", squid.audio.Tags.read(id3.toByteArray()).toString(), "{title=Pigstep, artist=Lena Raine}");
+        java.io.ByteArrayOutputStream flacTags = new java.io.ByteArrayOutputStream();
+        java.nio.ByteBuffer comment = java.nio.ByteBuffer.allocate(64).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        comment.putInt(2).put("me".getBytes()).putInt(2).putInt(9).put("TITLE=Cat".getBytes()).putInt(11).put("artist=C418".getBytes());
+        int commentLength = comment.position();
+        flacTags.write(new byte[] {'f', 'L', 'a', 'C', (byte) 0x84, 0, 0, (byte) commentLength});
+        flacTags.write(comment.array(), 0, commentLength);
+        check("a FLAC's Vorbis comments give the title and artist", squid.audio.Tags.read(flacTags.toByteArray()).toString(), "{title=Cat, artist=C418}");
+        byte[] plainWav = wav(1, 1, 16, new byte[200]);
+        check("a file without tags gives nothing (so its name can stand in)", squid.audio.Tags.read(plainWav).toString(), "{}");
+        byte[] oldTag = new byte[128];
+        System.arraycopy("TAGSweden".getBytes(), 0, oldTag, 0, 9);
+        System.arraycopy("C418".getBytes(), 0, oldTag, 33, 4);
+        check("an MP3's old ID3v1 tag at the end works too", squid.audio.Tags.readEnd(oldTag).toString(), "{title=Sweden, artist=C418}");
+
         // SqdaTool: mono, notes about things that won't work as hoped, and a full --info
         squid.audio.Pcm stereoTone = new squid.audio.Pcm(new short[] {100, 300, -100, -300}, 2, 44100);
         check("--mono mixes both channels into one", java.util.Arrays.toString(squid.audio.SqdaTool.toMono(stereoTone).samples()), "[200, -200]");
@@ -1132,7 +1160,7 @@ public class PipelineTest {
         // Squid Net: Squid's messages ride in Minecraft's own custom payload packets, both ways, through the real
         // packet code. Minecraft throws away channels it doesn't know; Squid keeps its own.
         List<URL> netUrls = new ArrayList<>(urls);
-        for (String part : new String[] {"net", "voice", "voiceserver", "sounds"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
+        for (String part : new String[] {"net", "voice", "voiceserver", "sounds", "jukebox"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
         SquidClassLoader netLoader = new SquidClassLoader(netUrls.toArray(URL[]::new));
         Squid netSquid = new Squid(mod("squid-net"));
         ((SquidMod) netLoader.loadClass("squidnet.Net").getDeclaredConstructor().newInstance()).init(netSquid);
@@ -1205,6 +1233,10 @@ public class PipelineTest {
             soundsLoad &= Class.forName(name, true, netLoader).getClassLoader() == netLoader;
         }
         check("Minecraft's sound classes load with Squid Sounds' .sqda hooks", soundsLoad, true);
+        // The Jukebox's hook goes into Minecraft's music manager (so the game's music waits while a song plays)
+        ((SquidMod) netLoader.loadClass("squidjukebox.Jukebox").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-jukebox")));
+        check("Minecraft's music manager loads with the Jukebox's hook",
+                Class.forName("net.minecraft.client.sounds.MusicManager", true, netLoader).getClassLoader() == netLoader, true);
         check("the server's player list loads with Squid Net's join and leave hooks",
                 Class.forName("net.minecraft.server.players.PlayerList", true, netLoader).getClassLoader() == netLoader, true);
 

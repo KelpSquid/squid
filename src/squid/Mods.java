@@ -53,7 +53,7 @@ final class Mods {
 
     private static final Set<String> BUILT_IN_IDS = Set.of("squid-clips", "squid-count", "squid-mods", "squid-net",
             "squid-panorama", "squid-profile", "squid-replay", "squid-skins", "squid-sounds", "squid-store",
-            "squid-voice", "squid-voice-server");
+            "squid-voice", "squid-voice-server", "squid-jukebox");
 
     /** Why a mod can't use its id, or null if it can. */
     static String reservedReason(ModInfo mod) {
