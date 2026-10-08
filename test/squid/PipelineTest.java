@@ -1522,6 +1522,14 @@ public class PipelineTest {
                 "[ 4.5 Chorus! , 12.0 Second line , 19.5 Chorus! , 61.75 Last");
         check("the line being sung at a time", currentLyric.invoke(null, sung, 3.0) + " " + currentLyric.invoke(null, sung, 12.0) + " "
                 + currentLyric.invoke(null, sung, 15.0) + " " + currentLyric.invoke(null, sung, 999.0), "-1 1 1 3");
+        // Texture pack names become folder names: nothing that could reach another folder, or that Windows refuses
+        java.lang.reflect.Method goodPackName = netLoader.loadClass("squidpaint.Paint").getDeclaredMethod("goodName", String.class);
+        goodPackName.setAccessible(true);
+        StringBuilder packNames = new StringBuilder();
+        for (String name : new String[] {"My Pack", "Sam's Blocks (v2)", "Épée", "../escape", "a/b", "a\b", "", " ", ".hidden", "dot.", "trailing ", "x".repeat(33)}) {
+            packNames.append(goodPackName.invoke(null, name).equals(true) ? "y" : "n");
+        }
+        check("which texture pack names are allowed", packNames.toString(), "yyynnnnnnnnn");
         // The Block Painter starts, and its screens load against Minecraft's classes
         ((SquidMod) netLoader.loadClass("squidpaint.Paint").getDeclaredConstructor().newInstance()).init(new Squid(mod("squid-paint")));
         // Voice chat, Emotes and the Squid menu (with the Mod Maker) start too, like they do when the game opens

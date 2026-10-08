@@ -19,22 +19,96 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The Block Painter (and the Sound Swapper, see {@link SoundSwapScreen}): repaint any block's texture inside the game. Painted textures go into a resource pack Squid
- * makes and keeps for you ("Squid Paint", in the instance's resourcepacks folder), which is switched on and
- * reloaded on every save, so the world changes right away. Reset puts Minecraft's own texture back.
+ * The Block Painter (and the Sound Swapper, see {@link SoundSwapScreen}): repaint any block's texture inside the game.
+ * Painted textures go into a texture pack Squid makes and keeps for you, which is switched on and reloaded on every
+ * save, so the world changes right away. Reset puts Minecraft's own texture back.
+ *
+ * You can have as many packs as you like (Squid > Texture Packs, see {@link PackScreen}), each with its own name and
+ * icon, and pick the one you're painting into. The first one is "Squid Paint". They're normal texture packs in the
+ * instance's resourcepacks folder, so they can be switched on and off and shared like any other.
  */
 public class Paint implements SquidMod {
-    static final String PACK = "Squid Paint";
+    /** The pack you paint into until you make another. */
+    static final String DEFAULT_PACK = "Squid Paint";
+    /** Marks a pack folder as one Squid made (so the Texture Packs screen lists it). */
+    static final String MARKER = "squid-pack.txt";
 
     @Override
     public void init(Squid squid) {
         squid.addMenuButton("Block Painter", false, menu -> Minecraft.getInstance().setScreenAndShow(new BlockPickScreen(menu)));
         squid.addMenuButton("Sound Swapper", false, menu -> Minecraft.getInstance().setScreenAndShow(new SoundSwapScreen(menu)));
+        squid.addMenuButton("Texture Packs", false, menu -> Minecraft.getInstance().setScreenAndShow(new PackScreen(menu)));
+    }
+
+    // ---- Which pack you're painting into ----
+
+    private static Path packsFolder() {
+        return Minecraft.getInstance().getResourcePackDirectory();
+    }
+
+    /** The file that remembers which pack you're painting into. */
+    private static Path choiceFile() {
+        return packsFolder().resolve(".squid-painting-into.txt");
+    }
+
+    /** The pack you're painting into. */
+    static String packName() {
+        try {
+            Path choice = choiceFile();
+            if (Files.exists(choice)) {
+                String name = Files.readString(choice, StandardCharsets.UTF_8).strip();
+                if (goodName(name)) return name;
+            }
+        } catch (IOException e) {
+            // the default, then
+        }
+        return DEFAULT_PACK;
+    }
+
+    /** Paints into this pack from now on. */
+    static void usePack(String name) throws IOException {
+        Files.createDirectories(packsFolder());
+        Files.writeString(choiceFile(), name, StandardCharsets.UTF_8);
+    }
+
+    /** Whether a name can be a pack's: letters, numbers, spaces and a few marks, up to 32 long. */
+    static boolean goodName(String name) {
+        return name != null && name.matches("[\\p{L}\\p{N} _\\-'()!&.]{1,32}") && !name.isBlank() && !name.startsWith(".")
+                && !name.endsWith(".") && !name.endsWith(" ");
+    }
+
+    /** Every pack Squid made in this instance, by name ("Squid Paint" too, once it has something in it). */
+    static List<String> packs() {
+        List<String> names = new ArrayList<>();
+        try (java.util.stream.Stream<Path> folders = Files.isDirectory(packsFolder()) ? Files.list(packsFolder()) : java.util.stream.Stream.empty()) {
+            for (Path folder : folders.filter(Files::isDirectory).toList()) {
+                String name = folder.getFileName().toString();
+                if (Files.exists(folder.resolve(MARKER)) || name.equals(DEFAULT_PACK)) names.add(name);
+            }
+        } catch (IOException e) {
+            // none to show
+        }
+        if (!names.contains(packName())) names.add(packName());
+        names.sort(String.CASE_INSENSITIVE_ORDER);
+        return names;
+    }
+
+    /** Makes a new, empty pack. */
+    static void newPack(String name) throws IOException {
+        Path folder = packsFolder().resolve(name);
+        if (Files.exists(folder)) throw new IOException(squid.Lang.t("There's already a pack called {0}.", name));
+        Files.createDirectories(folder);
+        Files.writeString(folder.resolve(MARKER), "Made with Squid's Texture Pack maker\n", StandardCharsets.UTF_8);
+        writeMeta(folder);
     }
 
     /** The pack's folder. It's only made (by {@link #pack()}) when something is saved into it. */
     static Path folder() {
-        return Minecraft.getInstance().getResourcePackDirectory().resolve(PACK);
+        return packsFolder().resolve(packName());
+    }
+
+    static Path folder(String name) {
+        return packsFolder().resolve(name);
     }
 
     /**
@@ -45,6 +119,14 @@ public class Paint implements SquidMod {
     static Path pack() throws IOException {
         Path folder = folder();
         Files.createDirectories(folder);
+        if (!Files.exists(folder.resolve(MARKER))) {
+            Files.writeString(folder.resolve(MARKER), "Made with Squid's Texture Pack maker\n", StandardCharsets.UTF_8);
+        }
+        writeMeta(folder);
+        return folder;
+    }
+
+    private static void writeMeta(Path folder) throws IOException {
         Path meta = folder.resolve("pack.mcmeta");
         int major = SharedConstants.RESOURCE_PACK_FORMAT_MAJOR;
         int minor = SharedConstants.RESOURCE_PACK_FORMAT_MINOR;
@@ -60,7 +142,6 @@ public class Paint implements SquidMod {
         if (!Files.exists(meta) || !Files.readString(meta, StandardCharsets.UTF_8).equals(wanted)) {
             Files.writeString(meta, wanted, StandardCharsets.UTF_8);
         }
-        return folder;
     }
 
     /** Where a texture like minecraft:block/stone goes in the pack. */
@@ -99,7 +180,7 @@ public class Paint implements SquidMod {
             // shows without the painting, your other resource packs included
             Resource shown = null;
             for (Resource resource : Minecraft.getInstance().getResourceManager().getResourceStack(path)) {
-                if (!resource.sourcePackId().endsWith(PACK)) shown = resource;
+                if (!resource.sourcePackId().equals("file/" + packName())) shown = resource;
             }
             if (shown == null) return null;
             try (InputStream in = shown.open()) {
@@ -236,7 +317,7 @@ public class Paint implements SquidMod {
         Minecraft minecraft = Minecraft.getInstance();
         PackRepository repository = minecraft.getResourcePackRepository();
         repository.reload();
-        String id = "file/" + PACK;
+        String id = "file/" + packName();
         List<String> selected = new ArrayList<>(repository.getSelectedIds());
         boolean onTop = !selected.isEmpty() && selected.getLast().equals(id);
         if (!onTop && repository.getAvailableIds().contains(id)) {
@@ -247,5 +328,64 @@ public class Paint implements SquidMod {
         } else {
             minecraft.reloadResourcePacks();
         }
+    }
+
+    // ---- The Texture Packs screen's buttons ----
+
+    /** Whether a pack is switched on. */
+    static boolean enabled(String name) {
+        return Minecraft.getInstance().getResourcePackRepository().getSelectedIds().contains("file/" + name);
+    }
+
+    /** Switches a pack on (on top of the others) or off, and reloads. */
+    static void setEnabled(String name, boolean on) {
+        Minecraft minecraft = Minecraft.getInstance();
+        PackRepository repository = minecraft.getResourcePackRepository();
+        repository.reload();
+        String id = "file/" + name;
+        List<String> selected = new ArrayList<>(repository.getSelectedIds());
+        selected.remove(id);
+        if (on && repository.getAvailableIds().contains(id)) selected.add(id);
+        repository.setSelected(selected);
+        minecraft.options.updateResourcePacks(repository);
+    }
+
+    /**
+     * A texture's picture as the pack's icon (pack.png): the first frame of it, made 64 pixels square with each pixel
+     * kept sharp.
+     */
+    static void makeIcon(String name, Identifier texture) throws IOException {
+        byte[] picture = current(texture);
+        BufferedImage image = picture == null ? null : javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(picture));
+        if (image == null) throw new IOException(squid.Lang.t("That picture couldn't be read."));
+        int side = Math.min(image.getWidth(), image.getHeight());
+        BufferedImage icon = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 64; y++) {
+            for (int x = 0; x < 64; x++) icon.setRGB(x, y, image.getRGB(x * side / 64, y * side / 64));
+        }
+        Path folder = folder(name);
+        Files.createDirectories(folder);
+        javax.imageio.ImageIO.write(icon, "png", folder.resolve("pack.png").toFile());
+    }
+
+    /**
+     * Saves a pack as a .zip in your Downloads folder (or next to the packs if there isn't one), ready to give to
+     * someone: they drop it in their resourcepacks folder. Gives back where it went.
+     */
+    static Path saveZip(String name) throws IOException {
+        Path folder = folder(name);
+        if (!Files.isDirectory(folder)) throw new IOException(squid.Lang.t("That pack is empty."));
+        Path downloads = Path.of(System.getProperty("user.home"), "Downloads");
+        Path zip = (Files.isDirectory(downloads) ? downloads : packsFolder()).resolve(name + ".zip");
+        try (java.util.zip.ZipOutputStream out = new java.util.zip.ZipOutputStream(Files.newOutputStream(zip));
+             java.util.stream.Stream<Path> files = Files.walk(folder)) {
+            for (Path file : files.filter(Files::isRegularFile).sorted().toList()) {
+                if (file.getFileName().toString().equals(MARKER)) continue;
+                out.putNextEntry(new java.util.zip.ZipEntry(folder.relativize(file).toString().replace('\\', '/')));
+                Files.copy(file, out);
+                out.closeEntry();
+            }
+        }
+        return zip;
     }
 }

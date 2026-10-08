@@ -24,10 +24,17 @@ final class BlockPickScreen extends Screen {
     private EditBox search;
     private String filter = "";
     private int page;
+    /** Set when picking a texture for something else (like a pack's icon) instead of painting it. */
+    private final java.util.function.Consumer<Identifier> picked;
 
     BlockPickScreen(Object back) {
+        this(back, null);
+    }
+
+    BlockPickScreen(Object back, java.util.function.Consumer<Identifier> picked) {
         super(Component.literal(Lang.t("Block Painter")));
         this.back = back instanceof Screen s ? s : null;
+        this.picked = picked;
     }
 
     @Override
@@ -54,7 +61,7 @@ final class BlockPickScreen extends Screen {
 
         List<Identifier> shown = shown();
         int columns = 3;
-        int rows = Math.max(1, (height - 120) / 22);
+        int rows = Math.max(1, (height - 58 - 46) / 22);
         int perPage = columns * rows;
         int pages = Math.max(1, (shown.size() + perPage - 1) / perPage);
         page = Math.min(page, pages - 1);
@@ -66,17 +73,20 @@ final class BlockPickScreen extends Screen {
             int bx = x + (i % columns) * 102;
             int by = y + (i / columns) * 22;
             addRenderableWidget(Button.builder(Component.literal(font.plainSubstrByWidth(name, 92)),
-                    b -> minecraft.setScreenAndShow(new BlockPaintScreen(this, texture))).bounds(bx, by, 98, 20).build());
+                    b -> {
+                        if (picked != null) picked.accept(texture);
+                        else minecraft.setScreenAndShow(new BlockPaintScreen(this, texture));
+                    }).bounds(bx, by, 98, 20).build());
         }
         if (pages > 1) {
             addRenderableWidget(Button.builder(Component.literal("<"), b -> {
                 page = (page + pages - 1) % pages;
                 rebuildWidgets();
-            }).bounds(x, height - 52, 20, 20).build());
+            }).bounds(width / 2 - 126, height - 28, 20, 20).build());
             addRenderableWidget(Button.builder(Component.literal(">"), b -> {
                 page = (page + 1) % pages;
                 rebuildWidgets();
-            }).bounds(x + 280, height - 52, 20, 20).build());
+            }).bounds(width / 2 + 106, height - 28, 20, 20).build());
         }
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
     }
@@ -107,7 +117,7 @@ final class BlockPickScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
-        g.centeredText(font, Lang.t("Block Painter"), width / 2, 12, 0xFFFFFFFF);
+        g.centeredText(font, picked != null ? Lang.t("Pick a picture for the icon") : Lang.t("Block Painter: {0}", Paint.packName()), width / 2, 12, 0xFFFFFFFF);
         if (shown().isEmpty()) {
             String none = switch (KINDS[kind]) {
                 case "block" -> Lang.t("No blocks with that name.");
@@ -116,7 +126,7 @@ final class BlockPickScreen extends Screen {
             };
             g.centeredText(font, none, width / 2, height / 2, 0xFFA0A0A0);
         }
-        g.centeredText(font, Lang.t("Pick something to paint. A * means you've painted it."), width / 2, height - 40, 0xFF808080);
+        g.centeredText(font, font.plainSubstrByWidth(Lang.t("Pick something to paint. A * means you've painted it."), width - 20), width / 2, height - 41, 0xFF808080);
     }
 
     @Override
