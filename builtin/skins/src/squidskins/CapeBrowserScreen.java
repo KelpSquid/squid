@@ -98,8 +98,8 @@ final class CapeBrowserScreen extends Screen {
         }
         int pages = pages();
         if (pages > 1) {
-            addRenderableWidget(Button.builder(Component.literal("<"), b -> turn(-1)).bounds(width / 2 - 100, height - 52, 20, 20).build());
-            addRenderableWidget(Button.builder(Component.literal(">"), b -> turn(1)).bounds(width / 2 + 80, height - 52, 20, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("<"), b -> turn(-1)).bounds(width / 2 - 126, height - 28, 20, 20).build());
+            addRenderableWidget(Button.builder(Component.literal(">"), b -> turn(1)).bounds(width / 2 + 106, height - 28, 20, 20).build());
         }
         addRenderableWidget(Button.builder(Component.literal(Lang.t("Done")), b -> onClose()).bounds(width / 2 - 100, height - 28, 200, 20).build());
         if (tab == Tab.OFFICIAL && !officialRefreshed) loadOfficial();
@@ -162,7 +162,7 @@ final class CapeBrowserScreen extends Screen {
     }
 
     private int rows() {
-        return Math.max(1, (height - 110) / CELL_H);
+        return Math.max(1, (height - 52 - 44) / CELL_H);
     }
 
     private int pages() {
@@ -309,7 +309,7 @@ final class CapeBrowserScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
-        g.centeredText(font, Lang.t("Capes"), width / 2, 10, 0xFFFFFFFF);
+        g.centeredText(font, pages() > 1 ? Lang.t("Capes") + "  (" + (page + 1) + " / " + pages() + ")" : Lang.t("Capes"), width / 2, 10, 0xFFFFFFFF);
         String wearing = Skins.choice(Skins.myId()).cape();
         List<Entry> entries = entries();
         int columns = columns();
@@ -343,8 +343,7 @@ final class CapeBrowserScreen extends Screen {
                 g.fill(px, py, px + PICTURE_W, py + PICTURE_H, 0xFF303030);
                 g.centeredText(font, entry.cape().isEmpty() ? "-" : "...", px + PICTURE_W / 2, py + PICTURE_H / 2 - 4, 0xFF808080);
             }
-            String name = font.plainSubstrByWidth(entry.name(), cellW - 6);
-            g.centeredText(font, name, x + (cellW - 4) / 2, y + PICTURE_H + 6,
+            small(g, entry.name(), x + (cellW - 4) / 2, y + PICTURE_H + 5, cellW - 6,
                     entry.storeItem() != null || needsDownload ? 0xFFA0A0A0 : 0xFFFFFFFF);
         }
 
@@ -356,9 +355,20 @@ final class CapeBrowserScreen extends Screen {
                     : community.isEmpty() ? Lang.t("No community capes yet.") : Lang.t("Approved capes from the Squid Store. Click one to get it and wear it.");
             case YOURS -> Lang.t("Yours: drop pictures on the wardrobe, or paint one.");
         };
-        if (pages() > 1) g.centeredText(font, (page + 1) + " / " + pages(), width / 2, height - 46, 0xFFA0A0A0);
-        g.centeredText(font, font.plainSubstrByWidth(message != null ? message : hint, width - 20), width / 2, height - 64,
+        g.centeredText(font, font.plainSubstrByWidth(message != null ? message : hint, width - 20), width / 2, height - 41,
                 message != null ? messageColor : 0xFF808080);
+    }
+
+    /** Text at three quarters size, centred on x, cut to fit in width. */
+    private void small(GuiGraphicsExtractor g, String text, int x, int y, int width, int color) {
+        float scale = 0.75f;
+        String fits = font.plainSubstrByWidth(text, (int) (width / scale));
+        if (fits.length() < text.length()) fits = font.plainSubstrByWidth(text, (int) (width / scale) - font.width("..")) + "..";
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
+        g.pose().scale(scale, scale);
+        g.centeredText(font, fits, 0, 0, color);
+        g.pose().popMatrix();
     }
 
     private Entry hoveredOfficial(int mouseX, int mouseY) {

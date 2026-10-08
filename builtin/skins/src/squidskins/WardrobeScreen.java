@@ -150,9 +150,13 @@ final class WardrobeScreen extends Screen {
         g.centeredText(font, Lang.t("Skin & Cape"), width / 2, 10, 0xFFFFFFFF);
         int x = width / 2 - 40;
         int y = Math.max(28, height / 2 - 92) + 156;
-        g.text(font, Lang.t("Browse, or drop pictures here."), x, y, 0xFFA0A0A0);
-        g.text(font, Lang.t("Only you see them for now."), x, y + 11, 0xFF808080);
-        if (message != null) g.centeredText(font, font.plainSubstrByWidth(message, width - 20), width / 2, height - 42, messageColor);
+        // A message (like "Added the cape") takes the hint's place, so they never draw over each other
+        if (message != null) {
+            g.textWithWordWrap(font, Component.literal(message), x, y, 200, messageColor);
+        } else {
+            g.text(font, font.plainSubstrByWidth(Lang.t("Browse, or drop pictures here."), 200), x, y, 0xFFA0A0A0);
+            g.text(font, font.plainSubstrByWidth(Lang.t("Only you see them for now."), 200), x, y + 11, 0xFF808080);
+        }
     }
 
     @Override
