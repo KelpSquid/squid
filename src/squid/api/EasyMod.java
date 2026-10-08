@@ -265,7 +265,9 @@ public abstract class EasyMod implements SquidMod {
      * turns it off again. Only you see the outlines.
      */
     protected void glow(String mob) {
-        Events.glow(squid.mod().id(), mob.toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replaceFirst("^minecraft:", ""), true);
+        String kind = mob.toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replaceFirst("^minecraft:", "");
+        if (Game.inWorld() && !Game.isMob(kind)) throw Game.noSuchMob(mob); // a typo says so instead of doing nothing
+        Events.glow(squid.mod().id(), kind, true);
     }
 
     /** Stops outlining a kind of mob (see glow). */

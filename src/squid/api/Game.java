@@ -273,10 +273,27 @@ public final class Game {
                 if (!wanted.isEmpty() && !path(key.invoke(null, call(entity, "getType"))).equals(wanted)) continue;
                 count++;
             }
+            if (count == 0 && !wanted.isEmpty() && !isMob(wanted)) throw noSuchMob(mob);
             return count;
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException(Lang.t("Squid couldn't look around"), e);
         }
+    }
+
+    /** Whether Minecraft has a kind of mob (or other entity) by this name, like "creeper". */
+    static boolean isMob(String name) {
+        try {
+            Object id = type("net.minecraft.resources.Identifier").getMethod("tryParse", String.class).invoke(null, name);
+            Object registry = type("net.minecraft.core.registries.BuiltInRegistries").getField("ENTITY_TYPE").get(null);
+            return id != null && (boolean) call(registry, "containsKey", id);
+        } catch (ReflectiveOperationException e) {
+            return true; // can't tell: don't complain
+        }
+    }
+
+    /** A clear message for a mob name Minecraft doesn't have, so a typo isn't silently ignored. */
+    static IllegalArgumentException noSuchMob(String name) {
+        return new IllegalArgumentException(Lang.t("Minecraft has no mob called \"{0}\". Try \"creeper\", \"zombie\" or \"pig\"", name));
     }
 
     /** The item in the player's main hand, like "diamond_sword", or "" for an empty hand. */
