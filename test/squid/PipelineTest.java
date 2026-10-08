@@ -437,6 +437,15 @@ public class PipelineTest {
                 oddSkipped.get("Loop A") + " | " + oddSkipped.get("After Loop"),
                 "These mods need each other in a loop, so none of them can start first: loop-a -> loop-b -> loop-a | it needs Loop A, which was skipped too.");
         check("a mod can't take Squid's own id", oddSkipped.get("Squid"), "its id \"squid\" belongs to Squid itself. Give the mod another name.");
+        // Every built-in part's id is kept for Squid, so a new part can't be forgotten in the list (a mod could take its id)
+        List<String> unreserved = new ArrayList<>();
+        try (java.util.stream.Stream<Path> parts = java.nio.file.Files.list(Path.of("builtin"))) {
+            for (Path part : parts.filter(p -> java.nio.file.Files.exists(p.resolve("squid.json"))).sorted().toList()) {
+                String partId = String.valueOf(Json.object(Json.parse(SourceMods.text(java.nio.file.Files.readAllBytes(part.resolve("squid.json"))))).get("id"));
+                if (!Mods.reserved(partId)) unreserved.add(partId);
+            }
+        }
+        check("every built-in part's id is kept for Squid", unreserved.toString(), "[]");
         check("of two copies, the newer version wins", oddSkipped.get("Old Version"), "it's another copy of NewVersion. You can delete OldVersion.");
         check("versions compare part by part: 1.10 after 1.9, 1.0 the same as 1.0.0, a beta before its release",
                 Mods.compareVersions("1.10", "1.9") + " " + Mods.compareVersions("1.0", "1.0.0") + " " + Mods.compareVersions("1.0", "1.0.0-beta")
