@@ -23,6 +23,20 @@ public class ModsMenu implements SquidMod {
     public void init(Squid squid) {
         squid.atEnd("net.minecraft.client.gui.screens.TitleScreen", "init", "()V", call -> addButton((Screen) call.self()));
         squid.atEnd("net.minecraft.client.gui.screens.PauseScreen", "init", "()V", call -> addButton((Screen) call.self()));
+        squid.onTick(ModsMenu::tick);
+    }
+
+    private static boolean newsChecked;
+
+    /** The first time the title screen shows after an update: what's new, once. */
+    private static void tick() {
+        if (newsChecked) return;
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft == null || !(minecraft.gui.screen() instanceof net.minecraft.client.gui.screens.TitleScreen title)) return;
+        newsChecked = true;
+        if (WhatsNew.seen(WhatsNew.file())) return;
+        WhatsNew.markSeen(WhatsNew.file());
+        minecraft.setScreenAndShow(new WhatsNewScreen(title));
     }
 
     private static void addButton(Screen screen) {

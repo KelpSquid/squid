@@ -844,6 +844,11 @@ public class PipelineTest {
         check("names Java uses get My in front, and quotes and backslashes in a name can't break the code",
                 squidmods.ModMaker.className("Easy Mod") + " " + (sources.compile(squidmods.ModMaker.create(oddMaker, "Oops \\u0022 \"hi\" \\")).id() != null),
                 "MyEasyMod true");
+        // What's New shows once per update
+        Path newsFile = java.nio.file.Files.createTempDirectory("squid-news").resolve("squid-whats-new.txt");
+        boolean newsBefore = squidmods.WhatsNew.seen(newsFile);
+        squidmods.WhatsNew.markSeen(newsFile);
+        check("What's New shows once per update", newsBefore + " " + squidmods.WhatsNew.seen(newsFile), "false true");
         // Every starter mod the Mod Maker can start from compiles (they're the same as Kelp's)
         Path startersFolder = java.nio.file.Files.createTempDirectory("squid-maker-starters");
         List<String> startersBuilt = new ArrayList<>();
