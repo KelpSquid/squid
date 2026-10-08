@@ -110,49 +110,56 @@ final class Mods {
             candidates.add(new Candidate(file, mod));
         }
 
-        // One copy of each mod: the newest version (see below for a tie)
-        Map<String, Candidate> byId = new LinkedHashMap<>();
-        for (Candidate c : candidates) {
-            Candidate other = byId.get(c.mod().id());
-            if (other == null) {
-                byId.put(c.mod().id(), c);
-                continue;
-            }
-            // The newest version; if they're the same, your own code (a project or .java) over a packed copy
-            int versions = compareVersions(c.mod().version(), other.mod().version());
-            boolean newer = versions > 0 || versions == 0 && source(c.file()) && !source(other.file());
-            Candidate kept = newer ? c : other;
-            Candidate extra = newer ? other : c;
-            skip(skipped, extra.mod(), Lang.t("it's another copy of {0}. You can delete {1}.",
-                    kept.file().getFileName(), extra.file().getFileName()));
-            byId.put(c.mod().id(), kept);
+        // Copies of the same mod, best first: the newest version; if they're the same, your own code (a project or
+        // .java) over a packed copy; then the first by file name
+        Map<String, List<Candidate>> byId = new LinkedHashMap<>();
+        for (Candidate c : candidates) byId.computeIfAbsent(c.mod().id(), k -> new ArrayList<>()).add(c);
+        for (List<Candidate> copies : byId.values()) {
+            copies.sort((a, b) -> {
+                int versions = compareVersions(b.mod().version(), a.mod().version());
+                if (versions != 0) return versions;
+                if (source(a.file()) != source(b.file())) return source(a.file()) ? -1 : 1;
+                return a.file().compareTo(b.file());
+            });
         }
 
+        // The first copy that works is the one that loads. A copy with a mistake says what it is, and the next copy
+        // gets its turn, so a broken folder can't hide a working download of the same mod.
         Map<String, ModInfo> ready = new LinkedHashMap<>();
-        for (Candidate c : byId.values()) {
-            ModInfo mod = c.mod();
-            String taken = reservedReason(mod);
-            if (taken != null) {
-                skip(skipped, mod, taken);
-                continue;
-            }
-            if (!mod.worksOn(minecraftVersion)) {
-                skip(skipped, mod, Lang.t("it was made for Minecraft {0}, not {1}. Look for an update to it.",
-                        String.join(" " + Lang.t("or") + " ", mod.minecraft()), minecraftVersion));
-                continue;
-            }
-            if (!c.file().getFileName().toString().endsWith(".jar")) {
-                try {
-                    mod = sources.build(c.file(), mod);
-                } catch (IOException | RuntimeException e) {
-                    // A mistake in a mod's code only skips that mod. It's named after its file, so it's easy to find.
-                    String fileName = c.file().getFileName().toString();
-                    System.out.println("[Squid] Skipping " + fileName + ": " + reason(e));
-                    skipped.add(new Skipped(mod.id(), fileName, reason(e)));
+        for (List<Candidate> copies : byId.values()) {
+            Candidate loaded = null;
+            for (Candidate c : copies) {
+                if (loaded != null) {
+                    skip(skipped, c.mod(), Lang.t("it's another copy of {0}. You can delete {1}.",
+                            loaded.file().getFileName(), c.file().getFileName()));
                     continue;
                 }
+                ModInfo mod = c.mod();
+                // Squid's own ids are only taken in the mods folder: the built-in parts come from Squid's own folder
+                String taken = sources != null ? reservedReason(mod) : null;
+                if (taken != null) {
+                    skip(skipped, mod, taken);
+                    continue;
+                }
+                if (!mod.worksOn(minecraftVersion)) {
+                    skip(skipped, mod, Lang.t("it was made for Minecraft {0}, not {1}. Look for an update to it.",
+                            String.join(" " + Lang.t("or") + " ", mod.minecraft()), minecraftVersion));
+                    continue;
+                }
+                if (!c.file().getFileName().toString().endsWith(".jar")) {
+                    try {
+                        mod = sources.build(c.file(), mod);
+                    } catch (IOException | RuntimeException e) {
+                        // A mistake in a mod's code only skips that copy. It's named after its file, so it's easy to find.
+                        String fileName = c.file().getFileName().toString();
+                        System.out.println("[Squid] Skipping " + fileName + ": " + reason(e));
+                        skipped.add(new Skipped(mod.id(), fileName, reason(e)));
+                        continue;
+                    }
+                }
+                ready.put(mod.id(), mod);
+                loaded = c;
             }
-            ready.put(mod.id(), mod);
         }
 
         // Skip mods that need a mod that isn't here, or that need each other in a loop. Do it again until nothing

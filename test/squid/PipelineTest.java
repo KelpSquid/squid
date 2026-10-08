@@ -377,6 +377,26 @@ public class PipelineTest {
             oddBuilds = cached.filter(p -> p.getFileName().toString().startsWith("twin-")).count();
         }
         check("only the winning copy is built", oddBuilds, 1L);
+        // Squid's own folder: its parts have Squid's own ids, and they load (only the mods folder keeps those ids for Squid)
+        Path ownParts = java.nio.file.Files.createTempDirectory("squid-own-parts");
+        modJar(ownParts.resolve("store.jar"), "{\"id\": \"squid-store\", \"name\": \"Squid Store\", \"version\": \"1.0\", \"main\": \"x\"}");
+        check("Squid's built-in parts load from its own folder", Mods.find(ownParts, "26.3").mods().stream().map(ModInfo::id).toList().toString(), "[squid-store]");
+        // A broken copy can't hide a working copy of the same mod
+        Path copies = java.nio.file.Files.createTempDirectory("squid-copies");
+        java.nio.file.Files.createDirectories(copies.resolve("Twin/src"));
+        java.nio.file.Files.writeString(copies.resolve("Twin/squid.json"), "{}");
+        java.nio.file.Files.writeString(copies.resolve("Twin/src/Twin.java"), "public class Twin extends EasyMod {\n    void start() {\n        int x = \n    }\n}\n");
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(copies.resolve("Twin.squid")))) {
+            zip.putNextEntry(new java.util.zip.ZipEntry("squid.json"));
+            zip.write("{}".getBytes());
+            zip.putNextEntry(new java.util.zip.ZipEntry("src/Twin.java"));
+            zip.write(hi.formatted("Twin").getBytes());
+            zip.closeEntry();
+        }
+        Mods.Found twins = Mods.find(copies, "26.3", new SourceMods(copies.resolve(".squid-cache"), System.getProperty("java.class.path") + File.pathSeparator + a[0]));
+        check("when your own copy has a mistake, the working download of the same mod loads instead",
+                twins.mods().stream().map(m -> m.id()).toList() + " " + twins.skipped().size(), "[twin] 1");
+
         // A change makes a new build; the old one stays while the game runs, and goes at the next start
         java.nio.file.Files.writeString(odd.resolve("Accent.java"), hi.formatted("Accent") + "\n");
         oddSources.compile(odd.resolve("Accent.java"));
