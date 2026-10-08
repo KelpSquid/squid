@@ -13,7 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Makes .sqda files. Simple, from any sound Squid can read (WAV, FLAC, MP3, Ogg Vorbis):
+ * Makes .sqda files. Simple, from any sound Squid can read (WAV, FLAC, MP3, Ogg Vorbis, AAC):
  *
  *   java -cp squid.jar squid.audio.SqdaTool song.mp3 [song.sqda] [--quality 6] [--loop 12.5 96] [--title "My Song"]
  *        [--artist Me] [--bpm 120 [--offset 0.25] [--beats-per-bar 4]]
@@ -47,7 +47,7 @@ public final class SqdaTool {
     }
 
     static final String HELP = """
-            SqdaTool makes .sqda files (Squid's own sound files) from WAV, FLAC, MP3 or Ogg Vorbis.
+            SqdaTool makes .sqda files (Squid's own sound files) from WAV, FLAC, MP3, Ogg Vorbis or AAC (.m4a).
 
               java -cp squid.jar squid.audio.SqdaTool song.mp3 [song.sqda] [options]
                 --quality 0-10        how good it sounds (default %d; higher is bigger)
@@ -173,7 +173,7 @@ public final class SqdaTool {
                             continue;
                         }
                         bpm = number(args, ++i, option);
-                        if (bpm <= 0 || bpm > 1000) throw new Problem("--bpm should be a tempo like 120");
+                        if (!(bpm > 0 && bpm <= MAX_BPM)) throw new Problem("--bpm should be a tempo like 120");
                     }
                     case "--offset" -> offset = number(args, ++i, option);
                     case "--beats-per-bar" -> perBar = (int) number(args, ++i, option);
@@ -235,11 +235,14 @@ public final class SqdaTool {
 
     private static double number(String[] args, int i, String option) {
         String text = value(args, i, option);
+        double number;
         try {
-            return Double.parseDouble(text);
+            number = Double.parseDouble(text);
         } catch (NumberFormatException e) {
             throw new Problem(option + " needs a number, not \"" + text + "\"");
         }
+        if (!Double.isFinite(number)) throw new Problem(option + " needs a number, not \"" + text + "\"");
+        return number;
     }
 
     private static int variantNamed(Sqda s, String name) {
@@ -302,11 +305,14 @@ public final class SqdaTool {
         return b.toString().stripTrailing();
     }
 
+    /** The fastest tempo that gets beat cues. */
+    static final double MAX_BPM = 1000;
+
     /** A .sqda from one sound, with optional loop points (seconds), info, and beats from a tempo. */
     public static Sqda simple(Pcm pcm, int quality, Double loopStart, Double loopEnd, Map<String, String> info, Double bpm, double offset, int beatsPerBar) {
         Sqda s = Sqda.fromSound(pcm, quality);
         s.info.putAll(info);
-        int rate = pcm.rate();
+        int rate = s.variants.getFirst().rate(); // the sound's own rate, unless it had to change to fit in a .sqda
         if (loopStart != null && loopEnd != null && loopEnd > loopStart) s.loops.add(new Sqda.Loop(0, seconds(loopStart, rate), seconds(loopEnd, rate)));
         if (bpm != null && bpm > 0) beats(s, 0, bpm, offset, beatsPerBar);
         return s;
@@ -314,8 +320,12 @@ public final class SqdaTool {
 
     /** Beat and bar cues all the way through a variant, from its tempo. */
     static void beats(Sqda s, int variant, double bpm, double offset, int beatsPerBar) {
+        // A tempo no music has (a typo like 12000) would make millions of cues: none instead
+        if (!(bpm > 0 && bpm <= MAX_BPM) || !Double.isFinite(offset)) return;
         Sqda.Variant v = s.variants.get(variant);
         double every = 60.0 / bpm;
+        // A first beat before the start: the beats go on from the first one inside the sound
+        if (offset < 0) offset -= Math.floor(offset / every) * every;
         int n = 0;
         for (double t = offset; t < v.seconds(); t += every, n++) {
             s.cues.add(new Sqda.Cue(variant, seconds(t, v.rate()), n % Math.max(1, beatsPerBar) == 0 ? Sqda.BAR : Sqda.BEAT, ""));

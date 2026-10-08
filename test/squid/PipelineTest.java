@@ -1264,10 +1264,13 @@ public class PipelineTest {
                 failure(() -> squid.audio.Audio.decode(ogg(vorbisId, vorbisComments, hugeBook))),
                 "IllegalArgumentException: the Vorbis codebooks are far too big");
         squid.audio.Sqda.Variant real = tiny.variants.getFirst();
-        squid.audio.Sqda bigClaim = squid.audio.Sqda.fromSound(tone, 6);
-        bigClaim.variants.set(0, new squid.audio.Sqda.Variant(real.name(), real.weight(), real.rate(), real.channels(), 1L << 40, real.frames()));
-        check("a .sqda that claims more sound than it has is refused", failure(() -> squid.audio.Sqda.read(bigClaim.write())),
+        // (Squid won't write such a file itself, so it's put together by hand)
+        byte[] bigClaim = oldSqda(new squid.audio.Sqda.Variant(real.name(), real.weight(), real.rate(), real.channels(), 1L << 40, real.frames()));
+        check("a .sqda that claims more sound than it has is refused", failure(() -> squid.audio.Sqda.read(bigClaim)),
                 "IllegalArgumentException: not a .sqda file Squid can read: a variant's format is broken");
+        squid.audio.Sqda handMade = squid.audio.Sqda.fromSound(tone, 6);
+        handMade.variants.set(0, new squid.audio.Sqda.Variant(real.name(), real.weight(), real.rate(), real.channels(), 1L << 40, real.frames()));
+        check("Squid won't write a .sqda it couldn't read back", failure(handMade::write).startsWith("IllegalArgumentException: it's too long for a .sqda"), true);
         // Bytes flipped anywhere in a real .sqda: refused, or played with silent patches, but never a crash
         java.util.Random flips = new java.util.Random(62);
         List<String> crashes = new ArrayList<>();
@@ -1294,27 +1297,56 @@ public class PipelineTest {
         check("a sound from a newer Squid Music asks for an update", failure(() -> squid.audio.Sqda.read(newerCodec)),
                 "IllegalArgumentException: not a .sqda file Squid can read: its sound uses a newer Squid Music (version 9). Update Squid");
         // A file from before the checks (no CRCS or CODC) still plays
-        java.io.ByteArrayOutputStream oldFile = new java.io.ByteArrayOutputStream();
-        java.io.DataOutputStream old = new java.io.DataOutputStream(oldFile);
-        old.writeBytes("SQDA");
-        old.writeByte(1);
-        java.io.ByteArrayOutputStream variantBody = new java.io.ByteArrayOutputStream();
-        java.io.DataOutputStream vb = new java.io.DataOutputStream(variantBody);
-        squid.audio.Sqda.Variant main = made.variants.getFirst();
-        vb.writeUTF(main.name());
-        vb.writeShort(main.weight());
-        vb.writeInt(main.rate());
-        vb.writeByte(main.channels());
-        vb.writeLong(main.samples());
-        vb.writeInt(main.frames().size());
-        for (byte[] f : main.frames()) {
-            vb.writeShort(f.length);
-            vb.write(f);
+        check("a .sqda from before the checks still plays the same", java.util.Arrays.equals(squid.audio.Sqda.read(oldSqda(made.variants.getFirst())).decode(0).samples(), whole.samples()), true);
+
+        // Sample rates a .sqda can't hold are changed to ones it can, so every file Squid makes reads back
+        short[] slow = new short[4000];
+        for (int i = 0; i < slow.length; i++) slow[i] = (short) (Math.sin(i * 0.5) * 8000);
+        squid.audio.Sqda slowBack = squid.audio.Sqda.read(squid.audio.SqdaTool.simple(new squid.audio.Pcm(slow, 1, 4000), 6, 0.25, 0.75,
+                java.util.Map.of(), null, 0, 4).write());
+        squid.audio.Sqda fastBack = squid.audio.Sqda.read(squid.audio.Sqda.fromSound(new squid.audio.Pcm(new short[38400 * 2], 2, 384000), 6).write());
+        check("4000 Hz and 384 kHz sounds become 8000 Hz and 192 kHz, just as long, with the loop where it was",
+                slowBack.variants.getFirst().rate() + " " + slowBack.variants.getFirst().samples() + " " + slowBack.loops.getFirst()
+                        + " | " + fastBack.variants.getFirst().rate() + " " + fastBack.variants.getFirst().samples(),
+                "8000 8000 Loop[variant=0, start=2000, end=6000] | 192000 19200");
+        squid.audio.Sqda oddSqda = squid.audio.Sqda.fromSound(new squid.audio.Pcm(blip, 1, 44100), 6);
+        oddSqda.addVariant("heavy", 100000, new squid.audio.Pcm(blip, 1, 44100), 6);
+        oddSqda.triggers.add(new squid.audio.Sqda.Trigger("*", squid.audio.Sqda.COMES_NEAR, Float.NaN, "variant:heavy", Float.NaN, Float.POSITIVE_INFINITY, 20));
+        squid.audio.Sqda oddBack = squid.audio.Sqda.read(oddSqda.write());
+        check("a weight too big for the file is kept at the most, and a trigger's numbers that aren't real go back to normal",
+                oddBack.variants.get(1).weight() + " " + oddBack.triggers.getFirst(),
+                "65535 Trigger[entity=*, event=2, distance=0.0, sound=variant:heavy, volume=1.0, pitch=1.0, cooldown=20]");
+        check("a tempo no music has makes no beat cues, and a first beat before the start counts on from inside the sound",
+                squid.audio.SqdaTool.simple(tone, 6, null, null, java.util.Map.of(), 50000.0, 0, 4).cues.size() + " "
+                        + squid.audio.SqdaTool.simple(tone, 6, null, null, java.util.Map.of(), 60.0, -0.9, 4).cues.getFirst().at(),
+                "0 " + tone.rate() / 10);
+
+        // Very short sounds keep their length exactly, and a tiny looping one doesn't stall the sound thread (every lap
+        // used to jump back and decode frames again: 1 sample took 4 seconds of work for each second heard)
+        StringBuilder shortSounds = new StringBuilder();
+        for (int length : new int[] {1, 1023, 1024, 1025}) {
+            squid.audio.Sqda fewBack = squid.audio.Sqda.read(squid.audio.Sqda.fromSound(new squid.audio.Pcm(java.util.Arrays.copyOf(blip, length), 1, 44100), 6).write());
+            squid.audio.Sqda.Player once = fewBack.play(0, false);
+            int fewHeard = 0;
+            for (short[] piece = once.read(700); piece != null; piece = once.read(700)) fewHeard += piece.length;
+            shortSounds.append(fewBack.decode(0).samples().length).append('/').append(fewHeard).append(' ');
         }
-        old.writeBytes("VARI");
-        old.writeInt(variantBody.size());
-        variantBody.writeTo(old);
-        check("a .sqda from before the checks still plays the same", java.util.Arrays.equals(squid.audio.Sqda.read(oldFile.toByteArray()).decode(0).samples(), whole.samples()), true);
+        squid.audio.Sqda.Player hum = squid.audio.Sqda.read(squid.audio.Sqda.fromSound(new squid.audio.Pcm(new short[] {1000}, 1, 48000), 6).write()).play(0, true);
+        long humStart = System.nanoTime();
+        short[] humSecond = null;
+        for (int i = 0; i < 10; i++) humSecond = hum.read(48000);
+        double humTook = (System.nanoTime() - humStart) / 1e9;
+        check("very short sounds keep their length, and a 1-sample loop plays 10 seconds in well under a second",
+                shortSounds.toString().strip() + " | " + humSecond.length + " " + (humTook < 1) + " " + (humSecond[0] == humSecond[47999]),
+                "1/1 1023/1023 1024/1024 1025/1025 | 48000 true true");
+        // A short loop is kept decoded: it must sound exactly like the sound itself, after the blend at its start
+        squid.audio.Sqda.Player lapper = squid.audio.Sqda.read(tiny.write()).play(0, true);
+        lapper.read(1600); // the first time through
+        short[] lap = lapper.read(600);
+        squid.audio.Pcm tinyWhole = squid.audio.Sqda.read(tiny.write()).decode(0);
+        check("a kept loop sounds like the sound itself, and goes round and round",
+                java.util.Arrays.equals(java.util.Arrays.copyOfRange(lap, 256 * ch, 600 * ch), java.util.Arrays.copyOfRange(tinyWhole.samples(), 1256 * ch, 1600 * ch))
+                        + " " + lapper.loops() + " " + lapper.position(), "true 2 1000");
 
         // Analysis: a made-up song with a kick drum at 128 BPM, starting 0.3 s in, finds its tempo and first beat
         int beatRate = 22050;
@@ -1763,6 +1795,30 @@ public class PipelineTest {
         } catch (Throwable e) {
             return e.getClass().getSimpleName() + ": " + e.getMessage();
         }
+    }
+
+    /** A .sqda the way the first Squids wrote it (no CRCS or CODC): just one VARI chunk, with nothing checked. */
+    static byte[] oldSqda(squid.audio.Sqda.Variant v) throws java.io.IOException {
+        java.io.ByteArrayOutputStream file = new java.io.ByteArrayOutputStream();
+        java.io.DataOutputStream out = new java.io.DataOutputStream(file);
+        out.writeBytes("SQDA");
+        out.writeByte(1);
+        java.io.ByteArrayOutputStream body = new java.io.ByteArrayOutputStream();
+        java.io.DataOutputStream b = new java.io.DataOutputStream(body);
+        b.writeUTF(v.name());
+        b.writeShort(v.weight());
+        b.writeInt(v.rate());
+        b.writeByte(v.channels());
+        b.writeLong(v.samples());
+        b.writeInt(v.frames().size());
+        for (byte[] f : v.frames()) {
+            b.writeShort(f.length);
+            b.write(f);
+        }
+        out.writeBytes("VARI");
+        out.writeInt(body.size());
+        body.writeTo(out);
+        return file.toByteArray();
     }
 
     /** Numbers packed into bits the way Vorbis packs them: {value, how many bits}, lowest bit first. */

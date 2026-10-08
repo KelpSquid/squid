@@ -122,7 +122,7 @@ Kinds: 0 cue, 1 beat, 2 bar (also a beat), 3 section. Mods hear them through `on
 | count | uint16 | |
 | entity | UTF | like `minecraft:creeper`, or `*` for any |
 | event | uint8 | 0 comes into view, 1 leaves view, 2 comes near |
-| distance | float32 | blocks |
+| distance | float32 | blocks; 0 or less means 32 |
 | sound | UTF | a Minecraft sound, or `variant:name` for one of this file's variants |
 | volume | float32 | |
 | pitch | float32 | |
@@ -149,7 +149,7 @@ while it plays.
 | --- | --- | --- |
 | name | UTF | like `main` or `sting` |
 | weight | uint16 | how often it's picked at random; 0 means it only plays from a trigger |
-| rate | int32 | samples a second, 8000 to 192000 |
+| rate | int32 | samples a second, 8000 to 192000 (see below) |
 | channels | uint8 | 1 or 2 |
 | samples | int64 | how long it is, in samples per channel |
 | frames | int32 | must be `ceil(samples / 1024) + 1` |
@@ -162,6 +162,10 @@ frame `floor(n / 1024 / 16) * 16`, keep going up to frame `floor(n / 1024) + 1`,
 
 A damaged frame plays as silence until the next group.
 
+Squid's writers fit sound with any other sample rate to this range by a whole number of times, so nothing
+drifts: slower sound (like 4000 Hz) is stretched 2, 3... times, and faster sound (like 384 kHz) keeps the
+average of every 2, 3... samples. Loop points, cues and lights are in samples of the rate that's written.
+
 ## Limits readers enforce
 
 So a damaged or made-up file can't freeze the game or take its memory:
@@ -170,6 +174,9 @@ So a damaged or made-up file can't freeze the game or take its memory:
   `samples * channels` at most 2^27
 - a volume track's `count` can't be more than its chunk
 - settings that aren't real numbers go back to normal; volume is kept between 0 and 10, pitch between 0.05 and 10,
-  and distance between 1 and 1024 blocks
+  and distance between 1 and 1024 blocks. A trigger's volume and pitch are kept the same way, and a distance that
+  isn't a real number counts as 0 (the normal 32 blocks)
 
-Writers keep every text to at most 21845 characters, so it always fits its 65535-byte limit.
+Writers keep every text to at most 21845 characters, so it always fits its 65535-byte limit, and refuse to write
+anything readers would refuse (a rate outside 8000 to 192000, more than 2 channels, `samples * channels` over
+2^27, a weight over 65535).

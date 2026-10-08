@@ -124,13 +124,72 @@ public final class Sqda {
         return s;
     }
 
-    /** Adds a variant (and its volume track). Returns its number. */
+    /**
+     * Adds a variant (and its volume track). Returns its number. Sound at a sample rate a .sqda can't hold is changed
+     * to one it can first (see {@link #holdable}), so every file this makes can be read back.
+     */
     public int addVariant(String name, int weight, Pcm pcm, int quality) {
+        pcm = holdable(pcm);
+        long samples = pcm.samples().length / Math.max(1, pcm.channels());
+        if (samples * pcm.channels() > Audio.MAX_SAMPLES) throw new IllegalArgumentException(tooLong(samples, pcm.rate(), pcm.channels()));
         MusicCodec.Encoded e = MusicCodec.encode(pcm, quality);
-        variants.add(new Variant(name, Math.max(0, weight), e.rate(), e.channels(), e.samples(), e.frames()));
+        variants.add(new Variant(name, Math.clamp(weight, 0, 65535), e.rate(), e.channels(), e.samples(), e.frames()));
         int index = variants.size() - 1;
         levels.add(measure(index, pcm));
         return index;
+    }
+
+    /** The slowest and fastest sample rates a .sqda holds. Readers refuse others, as a sign of a damaged file. */
+    public static final int MIN_RATE = 8000;
+    public static final int MAX_RATE = 192000;
+
+    /**
+     * The sound at a sample rate a .sqda can hold. Slower sound (like an old 4000 Hz recording) is stretched a whole
+     * number of times, with straight lines between its samples. Faster sound (like a 384 kHz studio file) keeps the
+     * average of every few samples, which also takes out the highs the slower rate couldn't carry anyway. Whole
+     * numbers keep it simple and exact: nothing drifts, so loop points and beats stay where they were.
+     */
+    static Pcm holdable(Pcm pcm) {
+        int rate = pcm.rate();
+        if (rate >= MIN_RATE && rate <= MAX_RATE) return pcm;
+        if (rate <= 0) throw new IllegalArgumentException("the sound has no sample rate");
+        int ch = Math.max(1, pcm.channels());
+        short[] in = pcm.samples();
+        int moments = in.length / ch;
+        if (rate < MIN_RATE) {
+            int times = (MIN_RATE + rate - 1) / rate;
+            if ((long) moments * times * ch > Audio.MAX_SAMPLES) throw new IllegalArgumentException(tooLong((long) moments * times, rate * times, ch));
+            short[] out = new short[moments * times * ch];
+            for (int i = 0; i < moments; i++) {
+                int next = Math.min(moments - 1, i + 1);
+                for (int k = 0; k < times; k++) {
+                    for (int c = 0; c < ch; c++) {
+                        int a = in[i * ch + c];
+                        out[(i * times + k) * ch + c] = (short) Math.round(a + (in[next * ch + c] - a) * k / (double) times);
+                    }
+                }
+            }
+            return new Pcm(out, ch, rate * times);
+        }
+        int every = (rate + MAX_RATE - 1) / MAX_RATE;
+        int count = (moments + every - 1) / every; // a last, shorter group still counts, so nothing is cut off
+        short[] out = new short[count * ch];
+        for (int i = 0; i < count; i++) {
+            int from = i * every;
+            int to = Math.min(moments, from + every);
+            for (int c = 0; c < ch; c++) {
+                long sum = 0;
+                for (int j = from; j < to; j++) sum += in[j * ch + c];
+                out[i * ch + c] = (short) Math.round(sum / (double) (to - from));
+            }
+        }
+        return new Pcm(out, ch, rate / every);
+    }
+
+    private static String tooLong(long samples, int rate, int channels) {
+        double most = Audio.MAX_SAMPLES / (double) channels / rate / 60;
+        return String.format(java.util.Locale.ROOT, "it's too long for a .sqda (%.0f minutes; at this sample rate the most is %.0f minutes)",
+                samples / (double) rate / 60, Math.floor(most));
     }
 
     /** The volume track: the loudness of every 1024 samples, in 96 dB from silent to full. */
@@ -299,8 +358,17 @@ public final class Sqda {
             text(t.entity(), "a trigger's entity");
             text(t.sound(), "a trigger's sound");
         }
+        if (variants.size() > 65535) throw new IllegalArgumentException("too many variants");
         for (Variant v : variants) {
             text(v.name(), "a variant's name");
+            // What readers check, so a file that writes is always a file that reads (addVariant takes care of it;
+            // this catches variants put together by hand)
+            if (v.rate() < MIN_RATE || v.rate() > MAX_RATE) {
+                throw new IllegalArgumentException("a variant's sample rate (" + v.rate() + ") isn't " + MIN_RATE + " to " + MAX_RATE);
+            }
+            if (v.channels() < 1 || v.channels() > 2) throw new IllegalArgumentException("a variant has to be mono or stereo");
+            if (v.samples() < 0 || v.samples() * v.channels() > Audio.MAX_SAMPLES) throw new IllegalArgumentException(tooLong(v.samples(), v.rate(), v.channels()));
+            if (v.weight() < 0 || v.weight() > 65535) throw new IllegalArgumentException("a variant's weight has to be 0 to 65535");
             for (byte[] f : v.frames()) {
                 if (f.length > 65535) throw new IllegalArgumentException("a frame of sound is too big");
             }
@@ -409,7 +477,11 @@ public final class Sqda {
                 case "TRIG" -> {
                     int n = d.readUnsignedShort();
                     for (int i = 0; i < n; i++) {
-                        s.triggers.add(new Trigger(d.readUTF(), d.readUnsignedByte(), d.readFloat(), d.readUTF(), d.readFloat(), d.readFloat(), d.readInt()));
+                        Trigger t = new Trigger(d.readUTF(), d.readUnsignedByte(), d.readFloat(), d.readUTF(), d.readFloat(), d.readFloat(), d.readInt());
+                        // Like the settings: numbers that aren't real would reach the sound engine as errors
+                        s.triggers.add(new Trigger(t.entity(), t.event(), Float.isFinite(t.distance()) ? t.distance() : 0, t.sound(),
+                                Float.isFinite(t.volume()) ? Math.clamp(t.volume(), 0f, 10f) : 1f,
+                                Float.isFinite(t.pitch()) ? Math.clamp(t.pitch(), 0.05f, 10f) : 1f, t.cooldown()));
                     }
                 }
                 case "LEVL" -> {
@@ -456,6 +528,8 @@ public final class Sqda {
      */
     public static final class Player {
         private static final int FADE = 256;
+        /** Loops up to this long (about a second and a half) are kept decoded, instead of decoded again every time round. */
+        private static final int KEPT = 1 << 16;
         private final Variant variant;
         private final boolean looping;
         private final long loopStart;
@@ -466,6 +540,14 @@ public final class Sqda {
         private long chunkStart;
         private long position;
         private int loops;
+        /**
+         * A short loop as it sounds every time round after the first (its start already blended with the sound after
+         * its end), or null. A tiny looping sound would otherwise jump back and decode frames again hundreds of times
+         * a second, more than the sound thread can keep up with.
+         */
+        private short[] cycle;
+        /** Whether playback is going round the kept loop now. */
+        private boolean cycling;
 
         Player(Variant variant, Loop loop, boolean looping) {
             this.variant = variant;
@@ -479,7 +561,28 @@ public final class Sqda {
             loopStart = start;
             loopEnd = end;
             decoder = new MusicCodec.Decoder(variant.channels());
+            if (looping && end - start <= KEPT && end > start) keepCycle();
             seek(0);
+        }
+
+        /** Decodes the loop once, the way every lap after the first sounds: see {@link #cycle}. */
+        private void keepCycle() {
+            int ch = variant.channels();
+            int length = (int) (loopEnd - loopStart);
+            seek(loopEnd);
+            short[] tail = null;
+            if (variant.samples() - loopEnd >= FADE) {
+                tail = new short[FADE * ch];
+                if (take(tail, 0, FADE) < FADE) tail = null;
+            }
+            seek(loopStart);
+            short[] kept = new short[length * ch];
+            if (take(kept, 0, length) < length) return; // the sound runs out early (a damaged file): played as usual
+            fade = tail;
+            faded = 0;
+            blend(kept, 0, length);
+            fade = null;
+            cycle = kept;
         }
 
         public int rate() {
@@ -524,6 +627,7 @@ public final class Sqda {
             nextChunk();
             position = sample;
             fade = null;
+            cycling = false;
         }
 
         private void nextChunk() {
@@ -556,7 +660,26 @@ public final class Sqda {
             int done = 0;
             int stuck = 0;
             while (done < count) {
+                if (cycling) {
+                    int at = (int) (position - loopStart);
+                    int n = (int) Math.min(count - done, loopEnd - position);
+                    System.arraycopy(cycle, at * ch, out, done * ch, n * ch);
+                    done += n;
+                    position += n;
+                    if (position >= loopEnd) {
+                        position = loopStart;
+                        loops++;
+                    }
+                    continue;
+                }
                 if (position >= loopEnd) {
+                    if (cycle != null) {
+                        // From the second time round, the kept loop plays: no jumping back, no decoding
+                        cycling = true;
+                        position = loopStart;
+                        loops++;
+                        continue;
+                    }
                     jumpBack();
                     continue;
                 }
