@@ -1903,6 +1903,9 @@ public class PipelineTest {
         String levelRendererLoad = failure(() -> Class.forName("net.minecraft.client.renderer.LevelRenderer", true, startLoader));
         check("chunk drawing that skips empty layers first still passes Java's checks", levelRendererLoad.contains("VerifyError")
                 || levelRendererLoad.contains("ClassFormatError"), false);
+        String clientLevelLoad = failure(() -> Class.forName("net.minecraft.client.multiplayer.ClientLevel", true, startLoader));
+        check("chunk building that keeps biome answers still passes Java's checks", clientLevelLoad.contains("VerifyError")
+                || clientLevelLoad.contains("ClassFormatError") || clientLevelLoad.contains("NoSuchMethod"), false);
 
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         System.exit(failures == 0 ? 0 : 1);

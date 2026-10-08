@@ -16,6 +16,7 @@ public class Speed implements SquidMod {
     public void init(Squid squid) {
         settings = squid.settings();
         if (settings.toggle("Faster chunk drawing", true)) ChunkDrawing.install(squid);
+        if (settings.toggle("Faster chunk building", true)) BiomeCache.install(squid);
         // Minecraft only slows down when the window is minimized; in the background behind other windows it kept
         // drawing as fast as it could, heating the computer for nobody
         squid.atEnd("com.mojang.blaze3d.platform.FramerateLimitTracker", "getFramerateLimit", call -> {
