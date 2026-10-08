@@ -127,7 +127,8 @@ final class SourceMods {
         if (!Files.isDirectory(src)) throw new MistakeException(Lang.t("it needs a src folder with its code in it."));
         List<Source> sources = new ArrayList<>();
         try (Stream<Path> walk = Files.walk(src)) {
-            for (Path file : walk.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+            // A Mac leaves "._Name.java" files next to every file on a USB stick: they aren't code, so they're skipped
+            for (Path file : walk.filter(p -> p.toString().endsWith(".java") && !p.getFileName().toString().startsWith("._")).sorted().toList()) {
                 sources.add(new Source(folder.relativize(file).toString().replace('\\', '/'), text(Files.readAllBytes(file))));
             }
         }

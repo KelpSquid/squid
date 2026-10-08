@@ -336,6 +336,8 @@ public class PipelineTest {
         java.nio.file.Files.writeString(mega.resolve("src/parts/Greeting.java"), "package parts;\n\npublic class Greeting {\n"
                 + "    public static String text() {\n        return \"Hi from a project!\";\n    }\n}\n");
         java.nio.file.Files.writeString(mega.resolve("resources/megamod/hello.txt"), "a picture would go here");
+        // What a Mac leaves next to each file on a USB stick: not code, and it mustn't stop the mod
+        java.nio.file.Files.write(mega.resolve("src/._MegaMod.java"), new byte[] {0, 5, 22, 7, 0, 2, 0, 0, 'M', 'a', 'c'});
         Path brokenProject = projects.resolve("Broken");
         java.nio.file.Files.createDirectories(brokenProject.resolve("src"));
         java.nio.file.Files.writeString(brokenProject.resolve("squid.json"), "{}");
@@ -347,6 +349,7 @@ public class PipelineTest {
                     {"src/MegaMod.java", java.nio.file.Files.readString(mega.resolve("src/MegaMod.java"))},
                     {"src/parts/Greeting.java", java.nio.file.Files.readString(mega.resolve("src/parts/Greeting.java"))},
                     {"resources/megamod/hello.txt", "a picture would go here"},
+                    {"src/parts/._Greeting.java", " Mac"},
             };
             for (String[] entry : packed) {
                 zip.putNextEntry(new java.util.zip.ZipEntry(entry[0]));
@@ -356,7 +359,7 @@ public class PipelineTest {
         }
         SourceMods projectSources = new SourceMods(projects.resolve(".squid-cache"), System.getProperty("java.class.path") + File.pathSeparator + a[0]);
         Mods.Found projectFound = Mods.find(projects, "26.3", projectSources);
-        check("a project folder and a .squid file are mods", projectFound.mods().stream()
+        check("a project folder and a .squid file are mods (a Mac's ._ files beside the code are skipped)", projectFound.mods().stream()
                 .map(m -> m.id() + " " + m.name() + " " + m.version()).sorted().toList().toString(), "[mega-mod Mega Mod 1.0, tiny Tiny 2.0]");
         check("a project's resources come with it", projectFound.mods().stream()
                 .allMatch(m -> java.nio.file.Files.exists(m.jar().resolve("megamod/hello.txt"))), true);
