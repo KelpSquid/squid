@@ -100,9 +100,9 @@ public final class Catalog {
         };
     }
 
-    /** An icon's link, if it's one the store may load: https (or a file, for test lists). */
+    /** An icon's link, if it's one the store may load: https only (a file: link could reach into the computer or network). */
     static String iconLink(String link) {
-        return link.startsWith("https://") || link.startsWith("file:") ? link : "";
+        return link.startsWith("https://") ? link : "";
     }
 
     private static String string(Map<String, Object> json, String key) {

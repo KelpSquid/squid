@@ -198,7 +198,12 @@ public final class Game {
 
     /** Big text in the middle of the screen, with smaller text under it (either can be ""). */
     static void title(String big, String small) {
-        Object hud = field(minecraft(), "hud");
+        Object hud;
+        try {
+            hud = field(gui.get(minecraft()), "hud"); // Minecraft's titles live on the Gui's Hud
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(e);
+        }
         call(hud, "setTimes", 10, 60, 20);
         call(hud, "setSubtitle", text(small, "WHITE"));
         call(hud, "setTitle", text(big, "WHITE"));

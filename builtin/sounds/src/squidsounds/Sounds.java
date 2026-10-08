@@ -64,6 +64,12 @@ public class Sounds implements SquidMod {
         squid.atStart("net.minecraft.client.sounds.SoundBufferLibrary", "getCompleteBuffer", call -> {
             Identifier asked = (Identifier) call.args()[0];
             Identifier path = basePath(asked);
+            // A sound already made into a buffer (not a .sqda, which picks a variant each time) isn't read again
+            CompletableFuture<SoundBuffer> made = sqdas.containsKey(path) ? null : buffers.get(path + "#0");
+            if (made != null) {
+                call.cancel(made);
+                return;
+            }
             byte[] data = ours(path);
             if (data == null) return;
             int variant = Sqda.is(data) ? variantFor(asked, path, data) : 0;

@@ -51,11 +51,6 @@ final class StoreIcons {
 
     private static byte[] download(String link) {
         try {
-            if (link.startsWith("file:")) {
-                try (InputStream in = URI.create(link).toURL().openStream()) {
-                    return in.readNBytes(MOST + 1);
-                }
-            }
             HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL)
                     .connectTimeout(Duration.ofSeconds(10)).build();
             HttpResponse<InputStream> response = client.send(HttpRequest.newBuilder(URI.create(link))

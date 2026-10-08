@@ -43,8 +43,8 @@ public class Jukebox implements SquidMod {
     private volatile Song current;
     /** The player whose song just ended by itself (finished, or couldn't play), for the game thread to move on. */
     private volatile SongPlayer ended;
-    /** Songs in a row that couldn't play. Once every song has failed, the Jukebox stops instead of trying forever. */
-    private int failures;
+    /** Songs that couldn't play since one last did. Once every song is in here, the Jukebox stops instead of trying forever. */
+    private final java.util.Set<Path> failed = new java.util.HashSet<>();
     private volatile long shownAt;
     private boolean gameMusicStopped;
     private final Random random = new Random();
@@ -274,13 +274,15 @@ public class Jukebox implements SquidMod {
                     // A song that can't play: shown for a moment, then on to the next one, unless they all fail
                     problem = Lang.t("Couldn't play {0}: {1}", current == null ? "?" : current.shown(), finished.problem);
                     problemAt = System.currentTimeMillis();
-                    if (++failures >= Math.max(1, songs().size())) {
-                        failures = 0;
+                    if (current != null) failed.add(current.file());
+                    List<Song> all = songs();
+                    if (all.isEmpty() || all.stream().allMatch(s -> failed.contains(s.file()))) {
+                        failed.clear();
                         stop();
                         return;
                     }
                 } else {
-                    failures = 0;
+                    failed.clear();
                 }
                 next();
             }
@@ -292,6 +294,7 @@ public class Jukebox implements SquidMod {
             return;
         }
         p.volume = gain();
+        p.wantBars = musicBars();
         SquidAudio.updateJukebox(song.shown(), p.paused ? 0 : p.level);
         if (!gameMusicStopped && pauseGameMusic()) {
             Minecraft.getInstance().getMusicManager().stopPlaying();

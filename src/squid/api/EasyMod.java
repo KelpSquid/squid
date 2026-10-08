@@ -34,6 +34,7 @@ public abstract class EasyMod implements SquidMod {
     private final List<Action> hurts = new ArrayList<>();
     private final List<Action> deaths = new ArrayList<>();
     private double lastHealth = -1; // health last tick, to notice getting hurt and dying
+    private int ticksInWorld; // since joining: your real health arrives from the server a moment after you join
     private final List<Timer> timers = new ArrayList<>();
     private final List<KeyAction> keys = new ArrayList<>();
     private final List<String[]> waitingMessages = new ArrayList<>(); // text and color, said before joining a world
@@ -311,6 +312,7 @@ public abstract class EasyMod implements SquidMod {
         if (now != world) {
             if (world != null) leaves.forEach(Action::run);
             world = now;
+            ticksInWorld = 0;
             if (now != null) {
                 for (String[] message : waitingMessages) Game.chat(message[0], message[1]);
                 waitingMessages.clear();
@@ -326,9 +328,11 @@ public abstract class EasyMod implements SquidMod {
         }
         if (Game.paused()) return;
         // Getting hurt and dying, noticed from your health going down
+        ticksInWorld++;
         if (!hurts.isEmpty() || !deaths.isEmpty()) {
             double health = Game.health();
-            if (lastHealth > 0 && health < lastHealth) {
+            // The first two seconds don't count: joining starts at full health until the server says the real one
+            if (ticksInWorld > 40 && lastHealth > 0 && health < lastHealth) {
                 hurts.forEach(Action::run);
                 if (health <= 0) deaths.forEach(Action::run);
             }
