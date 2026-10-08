@@ -99,10 +99,12 @@ final class Playing {
             }
             if (s.firstRead == 0) continue; // not started yet
             if (t.lastClock == 0) t.lastClock = s.firstRead;
-            if (!minecraft.isPaused()) t.heard += (now - t.lastClock) / 1e9 * s.player.rate();
+            // A higher pitch plays faster, so its cues come sooner (the file's own pitch; sounds.json's adds on top)
+            if (!minecraft.isPaused()) t.heard += (now - t.lastClock) / 1e9 * s.player.rate() * s.file.settings.pitch();
             t.lastClock = now;
             long position = t.position();
-            if (t.lastPosition >= 0 && position != t.lastPosition) cuesBetween(t, t.lastPosition, position);
+            if (t.lastPosition < 0) fire(t, -1, position); // the first tick: a cue right at the start counts too
+            else if (position != t.lastPosition) cuesBetween(t, t.lastPosition, position);
             t.lastPosition = position;
             Sqda.Levels levels = s.file.levelsOf(s.variant);
             float level = levels == null ? 0 : levels.at(position);

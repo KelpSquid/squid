@@ -154,6 +154,8 @@ public final class Vorbis {
                 float delta = float32(r.readLong(32));
                 int valueBits = r.read(4) + 1;
                 boolean sequence = r.read(1) == 1;
+                // Real codebooks are small: a damaged header can't make Squid reserve gigabytes for one
+                if ((long) b.entries * b.dimensions > 1 << 22) throw new IllegalArgumentException("a codebook is far too big");
                 int lookupValues = lookup == 1 ? lookup1Values(b.entries, b.dimensions) : b.entries * b.dimensions;
                 int[] multiplicands = new int[lookupValues];
                 for (int i = 0; i < lookupValues; i++) multiplicands[i] = r.read(valueBits);
@@ -342,7 +344,9 @@ public final class Vorbis {
         for (int p = 3; p < packets.size(); p++) {
             Reader r = new Reader(packets.get(p));
             if (r.read(1) != 0) continue; // not an audio packet
-            Mode mode = modes[r.read(ilog(modes.length - 1))];
+            int modeNumber = r.read(ilog(modes.length - 1));
+            if (modeNumber >= modes.length) continue; // a damaged packet: skipped, like MP3 and FLAC skip bad frames
+            Mode mode = modes[modeNumber];
             int n = blocksize[mode.longBlock() ? 1 : 0];
             boolean previousLong = true;
             boolean nextLong = true;
@@ -350,7 +354,12 @@ public final class Vorbis {
                 previousLong = r.read(1) == 1;
                 nextLong = r.read(1) == 1;
             }
-            float[][] block = decodeBlock(r, n, channels, books, floors, residues, mappings[mode.mapping()]);
+            float[][] block;
+            try {
+                block = decodeBlock(r, n, channels, books, floors, residues, mappings[mode.mapping()]);
+            } catch (RuntimeException damaged) {
+                block = new float[channels][n]; // a damaged packet is a moment of silence, not the end of the song
+            }
             float[] window = window(n, mode.longBlock(), previousLong, nextLong, blocksize[0]);
             // Where this block goes: its center is a quarter of each block's size after the last center
             long blockCenter = firstBlock ? n / 2 : center + previousSize / 4 + n / 4;

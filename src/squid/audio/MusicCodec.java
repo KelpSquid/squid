@@ -200,6 +200,7 @@ public final class MusicCodec {
             for (int k = from; k < to; k++) biggest = Math.max(biggest, Math.abs(block.levels[k]));
             // How many bits the biggest level needs
             int bits = rc.tree(m.width, Math.min(16, belowWidth) * 32, 5, 32 - Integer.numberOfLeadingZeros(biggest));
+            if (bits > 16) throw new CorruptFrame(); // the encoder never writes more than 16, so the frame is damaged
             belowWidth = bits;
             // The levels
             int previous = 0;
@@ -546,6 +547,8 @@ public final class MusicCodec {
         private Models models;
         private int frame;
         private long noise = 0x5EED5EEDL;
+        /** A frame in this group was damaged: the rest of the group is silent. */
+        private boolean broken;
 
         public Decoder(int channels) {
             this.channels = channels;
@@ -562,13 +565,26 @@ public final class MusicCodec {
 
         /** One frame into 1024 samples per channel, channel after channel for each moment. */
         public short[] decode(byte[] data) {
-            if (frame % GROUP == 0 || models == null) models = new Models();
+            if (frame % GROUP == 0 || models == null) {
+                models = new Models();
+                broken = false; // a new group starts fresh, so playback recovers here
+            }
             noise = 0x5EED5EEDL ^ (frame * 0x9E3779B97F4A7C15L); // the same noise for a frame however playback got there
             frame++;
+            if (broken) return new short[FRAME * channels];
             RangeCoder.Decoder rc = new RangeCoder.Decoder(data);
             boolean[] middleSide = new boolean[LONG_BANDS.length];
             Block[][] coded = new Block[SHORTS][channels];
-            int type = codeFrame(rc, models, 0, middleSide, coded, channels);
+            int type;
+            try {
+                type = codeFrame(rc, models, 0, middleSide, coded, channels);
+            } catch (RuntimeException damaged) {
+                // A damaged frame (a bad download, or a file made to break things) plays as silence until the next
+                // group, since every frame in a group builds on the ones before it
+                broken = true;
+                for (float[] o : overlap) Arrays.fill(o, 0);
+                return new short[FRAME * channels];
+            }
             boolean isShort = type == SHORT;
             int blocks = isShort ? SHORTS : 1;
             int[] edges = isShort ? SHORT_BANDS : LONG_BANDS;
@@ -632,6 +648,13 @@ public final class MusicCodec {
         private double nextNoise() {
             noise = noise * 6364136223846793005L + 1442695040888963407L;
             return ((noise >>> 40) / (double) (1L << 24)) * 2 - 1;
+        }
+    }
+
+    /** A frame whose numbers can't be right, so it was damaged after it was made. */
+    static final class CorruptFrame extends RuntimeException {
+        CorruptFrame() {
+            super("damaged frame", null, false, false);
         }
     }
 

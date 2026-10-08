@@ -1004,6 +1004,62 @@ public class PipelineTest {
         for (int i = ch; i < 9000 * ch; i++) normalStep = Math.max(normalStep, Math.abs(whole.samples()[i] - whole.samples()[i - ch]));
         check("looping jumps back to the loop's start smoothly, over and over", looper.loops() + " " + (biggestStep <= normalStep * 2 + 200), "2 true");
 
+        // A loop shorter than one read (Minecraft asks for about a second at a time) still loops, and never plays past its end
+        squid.audio.Sqda tiny = squid.audio.Sqda.fromSound(tone, 6);
+        tiny.loops.add(new squid.audio.Sqda.Loop(0, 1000, 1600));
+        squid.audio.Sqda.Player tinyLoop = squid.audio.Sqda.read(tiny.write()).play(0, true);
+        short[] second = tinyLoop.read(44100);
+        check("a loop shorter than one read fills the read and stays inside the loop", second.length / ch + " " + (tinyLoop.loops() >= 70)
+                + " " + (tinyLoop.position() >= 1000 && tinyLoop.position() <= 1600), "44100 true true");
+
+        // Broken and made-up files: each fails safely or plays what it can, and never hangs or runs out of memory
+        java.nio.ByteBuffer badWav = java.nio.ByteBuffer.allocate(44).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        badWav.put("RIFF".getBytes()).putInt(36).put("WAVE".getBytes()).put("junk".getBytes()).putInt(-8);
+        String wavLoop;
+        try {
+            squid.audio.Audio.decode(badWav.array());
+            wavLoop = "decoded";
+        } catch (IllegalArgumentException e) {
+            wavLoop = e.getMessage();
+        }
+        check("a WAV chunk with a size of -8 doesn't loop forever", wavLoop, "the WAV file has no sound data");
+        check("a mu-law WAV is refused instead of playing as noise", failure(() -> squid.audio.Audio.decode(wav(7, 1, 8, new byte[100]))),
+                "IllegalArgumentException: WAV format 7 isn't supported: save it as plain PCM");
+        byte[] surround = new byte[6 * 2 * 100];
+        java.nio.ByteBuffer six = java.nio.ByteBuffer.wrap(surround).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        for (int i = 0; i < 100; i++) six.putShort((short) 1000).putShort((short) -1000).putShort((short) 0).putShort((short) 0).putShort((short) 0).putShort((short) 0);
+        squid.audio.Pcm folded = squid.audio.Audio.decode(wav(1, 6, 16, surround));
+        check("5.1 sound comes back as stereo, left still left", folded.channels() + " " + folded.samples()[0] + " " + folded.samples()[1], "2 1000 -1000");
+        // A FLAC header that claims 68 billion samples, in a 42-byte file
+        java.math.BigInteger info = java.math.BigInteger.ZERO;
+        long[][] fields = {{4096, 16}, {4096, 16}, {0, 24}, {0, 24}, {44100, 20}, {1, 3}, {15, 5}, {(1L << 36) - 1, 36}, {0, 64}, {0, 64}};
+        for (long[] f : fields) info = info.shiftLeft((int) f[1]).or(java.math.BigInteger.valueOf(f[0]));
+        byte[] infoBytes = info.toByteArray();
+        byte[] liar = new byte[8 + 34];
+        System.arraycopy(new byte[] {'f', 'L', 'a', 'C', (byte) 0x80, 0, 0, 34}, 0, liar, 0, 8);
+        System.arraycopy(infoBytes, Math.max(0, infoBytes.length - 34), liar, 8 + Math.max(0, 34 - infoBytes.length), Math.min(34, infoBytes.length));
+        check("a tiny FLAC that claims hours of sound doesn't take the memory", failure(() -> squid.audio.Audio.decode(liar)).contains("OutOfMemory"), false);
+        squid.audio.Sqda.Variant real = tiny.variants.getFirst();
+        squid.audio.Sqda bigClaim = squid.audio.Sqda.fromSound(tone, 6);
+        bigClaim.variants.set(0, new squid.audio.Sqda.Variant(real.name(), real.weight(), real.rate(), real.channels(), 1L << 40, real.frames()));
+        check("a .sqda that claims more sound than it has is refused", failure(() -> squid.audio.Sqda.read(bigClaim.write())),
+                "IllegalArgumentException: not a .sqda file Squid can read: a variant's format is broken");
+        // Bytes flipped anywhere in a real .sqda: refused, or played with silent patches, but never a crash
+        java.util.Random flips = new java.util.Random(62);
+        List<String> crashes = new ArrayList<>();
+        for (int i = 0; i < 300; i++) {
+            byte[] damaged = sqdaBytes.clone();
+            for (int k = 0; k < 3; k++) damaged[5 + flips.nextInt(damaged.length - 5)] ^= (byte) (1 << flips.nextInt(8));
+            String result = failure(() -> {
+                squid.audio.Sqda file = squid.audio.Sqda.read(damaged);
+                squid.audio.Sqda.Player player = file.play(0, true);
+                for (int r = 0; r < 20; r++) player.read(4410);
+                return file;
+            });
+            if (!result.isEmpty() && !result.startsWith("IllegalArgumentException")) crashes.add(result);
+        }
+        check("300 damaged .sqda files never crash the player", crashes.stream().distinct().toList(), List.of());
+
         // Squid Net: Squid's messages ride in Minecraft's own custom payload packets, both ways, through the real
         // packet code. Minecraft throws away channels it doesn't know; Squid keeps its own.
         List<URL> netUrls = new ArrayList<>(urls);
@@ -1174,6 +1230,25 @@ public class PipelineTest {
     /** The {0}, {1}... in a text, sorted. */
     static List<String> placeholders(String text) {
         return java.util.regex.Pattern.compile("\\{\\d}").matcher(text).results().map(r -> r.group()).sorted().toList();
+    }
+
+    /** What went wrong running it, as "Kind: message", or "" if it worked. */
+    static String failure(java.util.concurrent.Callable<?> task) {
+        try {
+            task.call();
+            return "";
+        } catch (Throwable e) {
+            return e.getClass().getSimpleName() + ": " + e.getMessage();
+        }
+    }
+
+    /** A WAV file's bytes: format 1 is plain samples, 3 decimals, 7 mu-law. */
+    static byte[] wav(int format, int channels, int bits, byte[] data) {
+        java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(44 + data.length).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        b.put("RIFF".getBytes()).putInt(36 + data.length).put("WAVE".getBytes()).put("fmt ".getBytes()).putInt(16)
+                .putShort((short) format).putShort((short) channels).putInt(44100).putInt(44100 * channels * bits / 8)
+                .putShort((short) (channels * bits / 8)).putShort((short) bits).put("data".getBytes()).putInt(data.length).put(data);
+        return b.array();
     }
 
     /** A jar with one text file in it. */

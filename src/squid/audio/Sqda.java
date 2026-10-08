@@ -181,6 +181,7 @@ public final class Sqda {
     // ---- Writing ----
 
     public byte[] write() {
+        check();
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(bytes);
@@ -263,6 +264,38 @@ public final class Sqda {
         }
     }
 
+    /** The most a text in the file can be: names, subtitles and info fit easily, but not, say, a whole book of lyrics. */
+    static final int MAX_TEXT = 65535 / 3;
+
+    /** Things the file can't hold, said clearly before writing instead of failing halfway. */
+    private void check() {
+        for (Map.Entry<String, String> e : info.entrySet()) {
+            text(e.getKey(), "an info name");
+            text(e.getValue(), "info \"" + e.getKey() + "\"");
+        }
+        if (info.size() > 65535) throw new IllegalArgumentException("too many info entries");
+        text(settings.subtitle(), "the subtitle");
+        for (Cue c : cues) text(c.name(), "a cue's name");
+        for (Light l : lights) text(l.group(), "a light's group");
+        if (triggers.size() > 65535) throw new IllegalArgumentException("too many triggers");
+        for (Trigger t : triggers) {
+            text(t.entity(), "a trigger's entity");
+            text(t.sound(), "a trigger's sound");
+        }
+        for (Variant v : variants) {
+            text(v.name(), "a variant's name");
+            for (byte[] f : v.frames()) {
+                if (f.length > 65535) throw new IllegalArgumentException("a frame of sound is too big");
+            }
+        }
+    }
+
+    private static void text(String value, String what) {
+        if (value != null && value.length() > MAX_TEXT) {
+            throw new IllegalArgumentException(what + " is too long (" + value.length() + " letters, the most is " + MAX_TEXT + ")");
+        }
+    }
+
     private interface Body {
         void write(DataOutputStream d) throws IOException;
     }
@@ -294,7 +327,7 @@ public final class Sqda {
         byte[] magic = new byte[5];
         in.readFully(magic);
         if (!is(magic)) throw new IOException("it isn't a .sqda file");
-        if (magic[4] > VERSION) throw new IOException("it's from a newer Squid (version " + magic[4] + ")");
+        if ((magic[4] & 0xFF) > VERSION) throw new IOException("it's from a newer Squid (version " + (magic[4] & 0xFF) + ")");
         Sqda s = new Sqda();
         while (true) {
             byte[] name = new byte[4];
@@ -313,7 +346,14 @@ public final class Sqda {
                     int n = d.readUnsignedShort();
                     for (int i = 0; i < n; i++) s.info.put(d.readUTF(), d.readUTF());
                 }
-                case "SNDS" -> s.settings = new Settings(d.readUTF(), d.readFloat(), d.readFloat(), d.readInt(), d.readUnsignedByte());
+                case "SNDS" -> {
+                    Settings read = new Settings(d.readUTF(), d.readFloat(), d.readFloat(), d.readInt(), d.readUnsignedByte());
+                    // Numbers a damaged file could have that would break the sound engine: back to normal
+                    float volume = Float.isFinite(read.volume()) ? Math.clamp(read.volume(), 0f, 10f) : 1f;
+                    float pitch = Float.isFinite(read.pitch()) ? Math.clamp(read.pitch(), 0.05f, 10f) : 1f;
+                    int distance = read.distance() > 0 ? Math.min(read.distance(), 1024) : Settings.DEFAULT.distance();
+                    s.settings = new Settings(read.subtitle(), volume, pitch, distance, read.stream());
+                }
                 case "LOOP" -> s.loops.add(new Loop(d.readUnsignedShort(), d.readLong(), d.readLong()));
                 case "CUES" -> {
                     int n = d.readInt();
@@ -335,7 +375,9 @@ public final class Sqda {
                     int variant = d.readUnsignedShort();
                     int step = d.readUnsignedShort();
                     int channels = d.readUnsignedByte();
-                    byte[] values = d.readNBytes(d.readInt());
+                    int count = d.readInt();
+                    if (count < 0 || count > body.length) throw new IOException("the volume track is broken");
+                    byte[] values = d.readNBytes(count);
                     s.levels.add(new Levels(variant, Math.max(1, step), Math.max(1, channels), values));
                 }
                 case "VARI" -> {
@@ -345,7 +387,11 @@ public final class Sqda {
                     int channels = d.readUnsignedByte();
                     long samples = d.readLong();
                     int count = d.readInt();
-                    if (rate <= 0 || channels < 1 || channels > 2 || samples < 0 || count < 0 || count > body.length / 2) {
+                    // Every frame holds 1024 moments, and the first one is a warm-up: a sound that says it's longer
+                    // than its frames would make players reserve memory for sound that isn't there
+                    long needed = (samples + MusicCodec.FRAME - 1) / MusicCodec.FRAME + 1;
+                    if (rate < 8000 || rate > 192000 || channels < 1 || channels > 2 || samples < 0 || count < 0
+                            || count > body.length / 2 || count != needed || samples * channels > Audio.MAX_SAMPLES) {
                         throw new IOException("a variant's format is broken");
                     }
                     List<byte[]> frames = new ArrayList<>(count);
@@ -436,6 +482,7 @@ public final class Sqda {
             while (nextFrame < frame && nextFrame < variant.frames().size()) decoder.decode(variant.frames().get(nextFrame++));
             nextChunk();
             position = sample;
+            fade = null;
         }
 
         private void nextChunk() {
@@ -448,18 +495,76 @@ public final class Sqda {
             nextFrame++;
         }
 
-        /** Up to `count` moments of sound (channel after channel), or null when it has ended. */
+        /**
+         * Up to `count` moments of sound (channel after channel), or null when it has ended. A looping sound always
+         * gives the whole `count`, going round the loop as many times as it takes, even when the loop is shorter
+         * than one read.
+         */
         public short[] read(int count) {
-            long end = looping ? loopEnd : variant.samples();
-            if (position >= end) {
-                if (!looping) return null;
-                return seam(count);
+            int ch = variant.channels();
+            if (!looping) {
+                if (position >= variant.samples()) return null;
+                int n = (int) Math.min(count, variant.samples() - position);
+                short[] out = new short[n * ch];
+                int filled = take(out, 0, n);
+                if (filled < n) return filled == 0 ? null : java.util.Arrays.copyOf(out, filled * ch);
+                return out;
             }
-            int n = (int) Math.min(count, end - position);
-            short[] out = new short[n * variant.channels()];
-            int filled = take(out, 0, n);
-            if (filled < n) return filled == 0 ? null : java.util.Arrays.copyOf(out, filled * variant.channels());
+            short[] out = new short[count * ch];
+            int done = 0;
+            int stuck = 0;
+            while (done < count) {
+                if (position >= loopEnd) {
+                    jumpBack();
+                    continue;
+                }
+                int n = (int) Math.min(count - done, loopEnd - position);
+                int got = take(out, done, n);
+                blend(out, done, got);
+                done += got;
+                if (got < n) {
+                    // The sound ran out before the loop's end (a damaged file): loop from here, unless it never plays
+                    if (got == 0 && ++stuck > 2) return done == 0 ? null : java.util.Arrays.copyOf(out, done * ch);
+                    position = loopEnd;
+                }
+            }
             return out;
+        }
+
+        /** The sound just after the loop's end, fading out under the loop's start. Null when there's no fade going. */
+        private short[] fade;
+        private int faded;
+
+        /**
+         * The jump from the loop's end back to its start. When there's real sound after the end, it fades out as the
+         * start fades in, so the seam doesn't click. A loop to the very end of the sound has only silence after it,
+         * so it joins straight on instead of dipping to silence each time round.
+         */
+        private void jumpBack() {
+            int ch = variant.channels();
+            short[] tail = null;
+            if (variant.samples() - loopEnd >= FADE) {
+                tail = new short[FADE * ch];
+                if (take(tail, 0, FADE) < FADE) tail = null;
+            }
+            seek(loopStart);
+            loops++;
+            fade = tail;
+            faded = 0;
+        }
+
+        /** Mixes the fading-out tail into sound just read from the loop's start. */
+        private void blend(short[] out, int at, int n) {
+            if (fade == null) return;
+            int ch = variant.channels();
+            for (int i = 0; i < n && faded < FADE; i++, faded++) {
+                float in = (faded + 0.5f) / FADE;
+                for (int c = 0; c < ch; c++) {
+                    int v = Math.round(out[(at + i) * ch + c] * in + fade[faded * ch + c] * (1 - in));
+                    out[(at + i) * ch + c] = (short) Math.clamp(v, Short.MIN_VALUE, Short.MAX_VALUE);
+                }
+            }
+            if (faded >= FADE) fade = null;
         }
 
         /** Copies the next moments into out, decoding frames as needed. Returns how many it got. */
@@ -479,25 +584,6 @@ public final class Sqda {
                 position += count;
             }
             return done;
-        }
-
-        /** The jump from the loop's end back to its start: the sound after the end fades out as the start fades in. */
-        private short[] seam(int count) {
-            int ch = variant.channels();
-            short[] tail = new short[FADE * ch];
-            int got = take(tail, 0, FADE);
-            seek(loopStart);
-            loops++;
-            short[] out = new short[Math.max(FADE, count) * ch];
-            int head = take(out, 0, Math.max(FADE, count));
-            for (int i = 0; i < Math.min(got, FADE); i++) {
-                float in = (i + 0.5f) / FADE;
-                for (int c = 0; c < ch; c++) {
-                    int v = Math.round(out[i * ch + c] * in + tail[i * ch + c] * (1 - in));
-                    out[i * ch + c] = (short) Math.clamp(v, Short.MIN_VALUE, Short.MAX_VALUE);
-                }
-            }
-            return head == out.length / ch ? out : java.util.Arrays.copyOf(out, head * ch);
         }
     }
 }

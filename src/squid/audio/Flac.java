@@ -44,7 +44,10 @@ public final class Flac {
         }
         if (rate == 0) throw new IllegalArgumentException("the FLAC file has no STREAMINFO");
 
-        int capacity = totalSamples > 0 ? (int) Math.min(Integer.MAX_VALUE / 2, totalSamples * channels) : 1 << 20;
+        // The header's sample count sizes the first buffer, but never past what the file could hold: FLAC can't
+        // squeeze a sample into less than about a bit, so a tiny file claiming hours of sound can't take the memory
+        long mostPossible = Math.max(1 << 16, (long) data.length * 8 + 4096 * channels);
+        int capacity = totalSamples > 0 ? (int) Math.min(Integer.MAX_VALUE / 2, Math.min(totalSamples * channels, mostPossible)) : 1 << 20;
         short[] out = new short[capacity];
         int written = 0;
         Bits bits = new Bits(data, at, data.length);
@@ -66,7 +69,11 @@ public final class Flac {
                 continue;
             }
             int n = frame.samples[0].length;
-            if (written + n * channels > out.length) out = java.util.Arrays.copyOf(out, Math.max(out.length * 2, written + n * channels));
+            if (written + n * channels > out.length) {
+                // Silence packs very small in FLAC, so a small file could still unpack to more than any real sound
+                if ((long) written + n * channels > Audio.MAX_SAMPLES) throw new IllegalArgumentException("the FLAC file is far too long");
+                out = java.util.Arrays.copyOf(out, (int) Math.min(Audio.MAX_SAMPLES, Math.max(out.length * 2L, written + n * channels)));
+            }
             int shift = frame.bitsPerSample - 16;
             for (int i = 0; i < n; i++) {
                 for (int c = 0; c < channels; c++) {

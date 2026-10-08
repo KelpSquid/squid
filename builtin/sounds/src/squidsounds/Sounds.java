@@ -49,7 +49,8 @@ public class Sounds implements SquidMod {
     static final Pattern VARIANT = Pattern.compile("^(.*)\\.squidvariant(\\d+)(\\.ogg)?$");
 
     private final Set<Identifier> plainOgg = ConcurrentHashMap.newKeySet(); // checked already: Minecraft's own
-    private final Map<Identifier, Pcm> decoded = new ConcurrentHashMap<>();
+    /** Each sound file's bytes, read from the resource packs once instead of on every play. Empty: Minecraft's own. */
+    private final Map<Identifier, Optional<byte[]>> files = new ConcurrentHashMap<>();
     private final Map<Identifier, Sqda> sqdas = new ConcurrentHashMap<>();
     private final Map<Identifier, Optional<Sqda>> headers = new ConcurrentHashMap<>();
     private final Map<String, CompletableFuture<SoundBuffer>> buffers = new ConcurrentHashMap<>();
@@ -67,7 +68,7 @@ public class Sounds implements SquidMod {
             if (data == null) return;
             int variant = Sqda.is(data) ? variantFor(asked, path, data) : 0;
             call.cancel(buffers.computeIfAbsent(path + "#" + variant, key -> CompletableFuture.supplyAsync(() -> {
-                Pcm pcm = Sqda.is(data) ? sqda(path, data).decode(variant) : decode(path, data);
+                Pcm pcm = Sqda.is(data) ? sqda(path, data).decode(variant) : Audio.decode(data); // kept as a buffer, below
                 return new SoundBuffer(bytes(pcm), format(pcm));
             }, Util.nonCriticalIoPool())));
         });
@@ -88,14 +89,15 @@ public class Sounds implements SquidMod {
                 }, Util.nonCriticalIoPool()));
                 return;
             }
-            call.cancel(CompletableFuture.supplyAsync(() -> (AudioStream) new Stream(decode(path, data), looping), Util.nonCriticalIoPool()));
+            // Not kept after it plays: a pack replacing all the music would otherwise hold every song in memory
+            call.cancel(CompletableFuture.supplyAsync(() -> (AudioStream) new Stream(Audio.decode(data), looping), Util.nonCriticalIoPool()));
         });
         // When resource packs change, everything is looked up again (and our sound buffers let go)
         squid.atStart("net.minecraft.client.sounds.SoundBufferLibrary", "clear", call -> {
             for (CompletableFuture<SoundBuffer> f : buffers.values()) f.thenAccept(SoundBuffer::discardAlBuffer);
             buffers.clear();
             plainOgg.clear();
-            decoded.clear();
+            files.clear();
             sqdas.clear();
             headers.clear();
         });
@@ -161,6 +163,10 @@ public class Sounds implements SquidMod {
     /** The file to decode ourselves for a sound Minecraft wants, or null to let Minecraft load its .ogg as usual. */
     private byte[] ours(Identifier path) {
         if (plainOgg.contains(path)) return null;
+        return files.computeIfAbsent(path, p -> Optional.ofNullable(find(p))).orElse(null);
+    }
+
+    private byte[] find(Identifier path) {
         var resources = Minecraft.getInstance().getResourceManager();
         try {
             Optional<Resource> ogg = resources.getResource(path);
@@ -243,10 +249,6 @@ public class Sounds implements SquidMod {
         return sqdas.computeIfAbsent(path, p -> Sqda.read(data));
     }
 
-    private Pcm decode(Identifier path, byte[] data) {
-        return decoded.computeIfAbsent(path, p -> Audio.decode(data));
-    }
-
     static AudioFormat format(Pcm pcm) {
         return new AudioFormat(pcm.rate(), 16, pcm.channels(), true, false);
     }
@@ -326,7 +328,15 @@ public class Sounds implements SquidMod {
         @Override
         public ByteBuffer read(int size) {
             if (firstRead == 0) firstRead = System.nanoTime();
-            short[] s = player.read(Math.max(1, size / 2 / player.channels()));
+            short[] s;
+            try {
+                s = player.read(Math.max(1, size / 2 / player.channels()));
+            } catch (RuntimeException damaged) {
+                // A damaged file ends the sound quietly, instead of an error on Minecraft's sound thread every tick
+                if (!closed) System.out.println("[Squid] Stopped " + sound + ": the .sqda file is damaged (" + damaged + ")");
+                closed = true;
+                return null;
+            }
             if (s == null) return null;
             return bytes(s, s.length);
         }
