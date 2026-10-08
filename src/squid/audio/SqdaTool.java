@@ -52,8 +52,10 @@ public final class SqdaTool {
               java -cp squid.jar squid.audio.SqdaTool song.mp3 [song.sqda] [options]
                 --quality 0-10        how good it sounds (default %d; higher is bigger)
                 --loop START END      loop points, in seconds (END can be "end")
+                --loop auto           find a seamless loop by listening (on whole bars if it finds the beat)
                 --title "My Song"     --artist "Me"
                 --bpm 120             add beat and bar cues  [--offset 0.25] [--beats-per-bar 4]
+                --bpm auto            find the tempo and the first beat by listening
                 --mono                mix down to one channel (Minecraft only places mono sounds in the world)
 
               java -cp squid.jar squid.audio.SqdaTool recipe.json [out.sqda]    everything, from a recipe
@@ -138,6 +140,8 @@ public final class SqdaTool {
             double offset = 0;
             int perBar = 4;
             boolean mono = false;
+            boolean autoLoop = false;
+            boolean autoBpm = false;
             Map<String, String> info = new java.util.LinkedHashMap<>();
             for (int i = next; i < args.length; i++) {
                 String option = args[i];
@@ -147,6 +151,11 @@ public final class SqdaTool {
                         if (quality < 0 || quality > 10) throw new Problem("--quality goes from 0 to 10");
                     }
                     case "--loop" -> {
+                        if (i + 1 < args.length && args[i + 1].equalsIgnoreCase("auto")) {
+                            autoLoop = true;
+                            i++;
+                            continue;
+                        }
                         loopStart = number(args, ++i, option);
                         if (i + 1 < args.length && args[i + 1].equalsIgnoreCase("end")) {
                             loopToEnd = true;
@@ -158,6 +167,11 @@ public final class SqdaTool {
                     case "--title" -> info.put("title", value(args, ++i, option));
                     case "--artist" -> info.put("artist", value(args, ++i, option));
                     case "--bpm" -> {
+                        if (i + 1 < args.length && args[i + 1].equalsIgnoreCase("auto")) {
+                            autoBpm = true;
+                            i++;
+                            continue;
+                        }
                         bpm = number(args, ++i, option);
                         if (bpm <= 0 || bpm > 1000) throw new Problem("--bpm should be a tempo like 120");
                     }
@@ -169,6 +183,28 @@ public final class SqdaTool {
             }
             Pcm pcm = Audio.decode(Files.readAllBytes(in));
             if (mono) pcm = toMono(pcm);
+            if (autoBpm || autoLoop) {
+                Analysis.Tempo tempo = Analysis.tempo(pcm);
+                if (autoBpm) {
+                    if (tempo == null) {
+                        System.out.println("Note: no steady beat found, so no beat cues");
+                    } else {
+                        bpm = tempo.bpm();
+                        offset = tempo.offset();
+                        System.out.printf(Locale.ROOT, "Found the tempo: %s BPM, first beat at %.2f s%n", fmt(bpm), offset);
+                    }
+                }
+                if (autoLoop) {
+                    Analysis.LoopPoints found = Analysis.loop(pcm, tempo, 10);
+                    if (found == null) {
+                        System.out.println("Note: it's too short to find a loop in, so it loops from start to end");
+                    } else {
+                        loopStart = found.start();
+                        loopEnd = found.end();
+                        System.out.printf(Locale.ROOT, "Found a loop: %.2f s back to %.2f s%n", loopEnd, loopStart);
+                    }
+                }
+            }
             double seconds = pcm.samples().length / (double) pcm.channels() / pcm.rate();
             if (loopToEnd) loopEnd = seconds;
             if (loopStart != null) {
@@ -186,6 +222,10 @@ public final class SqdaTool {
         Files.write(out, bytes);
         System.out.println("Made " + out + " (" + bytes.length / 1024 + " KB)");
         System.out.println(describe(made));
+    }
+
+    private static String fmt(double number) {
+        return number == Math.rint(number) ? String.valueOf((long) number) : String.format(Locale.ROOT, "%.2f", number);
     }
 
     private static String value(String[] args, int i, String option) {

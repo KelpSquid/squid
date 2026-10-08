@@ -1092,6 +1092,33 @@ public class PipelineTest {
         variantBody.writeTo(old);
         check("a .sqda from before the checks still plays the same", java.util.Arrays.equals(squid.audio.Sqda.read(oldFile.toByteArray()).decode(0).samples(), whole.samples()), true);
 
+        // Analysis: a made-up song with a kick drum at 128 BPM, starting 0.3 s in, finds its tempo and first beat
+        int beatRate = 22050;
+        short[] drums = new short[beatRate * 30];
+        double beatEvery = 60.0 / 128;
+        for (double at = 0.3; at < 30; at += beatEvery) {
+            int start = (int) (at * beatRate);
+            for (int i = 0; i < 2000 && start + i < drums.length; i++) drums[start + i] += (short) (Math.sin(i * 0.05) * 20000 * Math.exp(-i / 400.0));
+        }
+        squid.audio.Analysis.Tempo foundTempo = squid.audio.Analysis.tempo(new squid.audio.Pcm(drums, 1, beatRate));
+        double beatMiss = foundTempo == null ? 1 : ((foundTempo.offset() - 0.3) % beatEvery + beatEvery) % beatEvery;
+        check("Analysis finds a song's tempo and first beat", foundTempo == null ? "nothing" : foundTempo.bpm() + " " + (Math.min(beatMiss, beatEvery - beatMiss) < 0.03),
+                "128.0 true");
+        // A song with a 6-second intro, then the same 4-second tune over and over: the loop is whole repeats, after the intro
+        java.util.Random noise = new java.util.Random(4);
+        short[] song = new short[beatRate * 40];
+        for (int i = 0; i < beatRate * 6; i++) song[i] = (short) (noise.nextGaussian() * 3000);
+        double[] notes = {220, 277, 330, 440, 330, 277, 247, 196};
+        for (int i = beatRate * 6; i < song.length; i++) {
+            double inTune = (i - beatRate * 6) % (beatRate * 4) / (double) beatRate; // where in the tune
+            double hz = notes[(int) (inTune / 0.5)];
+            song[i] = (short) (Math.sin(2 * Math.PI * hz * inTune) * 9000 * Math.exp(-(inTune % 0.5) * 3));
+        }
+        squid.audio.Analysis.LoopPoints loopFound = squid.audio.Analysis.loop(new squid.audio.Pcm(song, 1, beatRate), null, 8);
+        double repeats = loopFound == null ? 0 : (loopFound.end() - loopFound.start()) / 4;
+        check("Analysis finds a seamless loop: whole repeats of the tune, after the intro", loopFound != null && loopFound.start() >= 5.5
+                && Math.abs(repeats - Math.rint(repeats)) < 0.02 && repeats >= 2, true);
+
         // SqdaTool: mono, notes about things that won't work as hoped, and a full --info
         squid.audio.Pcm stereoTone = new squid.audio.Pcm(new short[] {100, 300, -100, -300}, 2, 44100);
         check("--mono mixes both channels into one", java.util.Arrays.toString(squid.audio.SqdaTool.toMono(stereoTone).samples()), "[200, -200]");
