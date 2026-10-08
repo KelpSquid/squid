@@ -195,7 +195,6 @@ final class SoundSwapScreen extends Screen {
                 rebuildWidgets();
                 return;
             }
-            squid.Events.fire("achievement", "record");
             swapIn(sound, () -> new Pcm(samples, 1, Recorder.RATE), Lang.t("Recorded in Squid"));
         }), problem -> minecraft.execute(() -> {
             if (id != recordingId) return;
@@ -276,6 +275,7 @@ final class SoundSwapScreen extends Screen {
     /** Squeezes a sound into the pack in place of this one, in the background, then reloads so it's heard. */
     private void swapIn(Identifier sound, SoundReader read, String title) {
         String withEffect = effect;
+        boolean recorded = title.equals(Lang.t("Recorded in Squid"));
         boolean song = isSong(sound);
         boolean stereo = sound.getPath().startsWith("sounds/music/") && withEffect.equals("None"); // effects work in mono
         working = true;
@@ -315,6 +315,7 @@ final class SoundSwapScreen extends Screen {
                 }
                 say(Lang.t("Swapped! Reloading so you can hear it..."), 0xFF55FF55);
                 squid.Events.fire("achievement", "sound");
+                if (recorded) squid.Events.fire("achievement", "record");
                 Paint.apply();
                 rebuildWidgets();
             });

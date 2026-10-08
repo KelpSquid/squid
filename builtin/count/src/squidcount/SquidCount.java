@@ -33,6 +33,8 @@ public class SquidCount implements SquidMod {
     /** The milestone being celebrated, and when it started (ms), or 0 for none. */
     private volatile int celebrating;
     private volatile long celebratedAt;
+    /** An achievement earned outside a world, shown when one is joined. */
+    private volatile String waitingAchievement;
 
     @Override
     public void init(Squid squid) {
@@ -118,8 +120,10 @@ public class SquidCount implements SquidMod {
         int total = count.player(uuid).points;
         int milestone = milestoneBetween(before, total);
         if (milestone > 0 && celebrations()) celebrate(milestone);
-        minecraft.gui.chatListener().handleOverlay(Component.literal(Lang.t("{0}! +{1} Squid Count  ({2} total)",
-                Lang.t(achievement[1]), points, total)).withStyle(ChatFormatting.GOLD));
+        String text = Lang.t("{0}! +{1} Squid Count  ({2} total)", Lang.t(achievement[1]), points, total);
+        // Earned outside a world (the Mod Maker or Painter from the title screen): it's shown on joining one
+        if (minecraft.level == null) waitingAchievement = text;
+        else minecraft.gui.chatListener().handleOverlay(Component.literal(text).withStyle(ChatFormatting.GOLD));
         if (milestone == 0) {
             minecraft.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
                     net.minecraft.sounds.SoundEvents.PLAYER_LEVELUP, 1.4f, 0.6f));
@@ -156,6 +160,12 @@ public class SquidCount implements SquidMod {
     }
 
     private void tick() {
+        String waiting = waitingAchievement;
+        Minecraft game = Minecraft.getInstance();
+        if (waiting != null && game.level != null && game.player != null) {
+            waitingAchievement = null;
+            game.gui.chatListener().handleOverlay(Component.literal(waiting).withStyle(ChatFormatting.GOLD));
+        }
         if (celebrating == 0) return;
         long age = System.currentTimeMillis() - celebratedAt;
         if (age > 5000) {

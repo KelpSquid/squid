@@ -265,14 +265,17 @@ public abstract class EasyMod implements SquidMod {
      * turns it off again. Only you see the outlines.
      */
     protected void glow(String mob) {
-        String kind = mob.toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replaceFirst("^minecraft:", "");
-        if (Game.inWorld() && !Game.isMob(kind)) throw Game.noSuchMob(mob); // a typo says so instead of doing nothing
+        String full = mob.toLowerCase(java.util.Locale.ROOT).replace(' ', '_');
+        String kind = full.substring(full.indexOf(':') + 1); // mobs are matched by their short name, like "creeper"
+        if (kind.equals("player")) throw new IllegalArgumentException(Lang.t("glow can't outline players, only mobs"));
+        if (Game.inWorld() && !Game.isMob(full)) throw Game.noSuchMob(mob); // a typo says so instead of doing nothing
         Events.glow(squid.mod().id(), kind, true);
     }
 
     /** Stops outlining a kind of mob (see glow). */
     protected void stopGlowing(String mob) {
-        Events.glow(squid.mod().id(), mob.toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replaceFirst("^minecraft:", ""), false);
+        String full = mob.toLowerCase(java.util.Locale.ROOT).replace(' ', '_');
+        Events.glow(squid.mod().id(), full.substring(full.indexOf(':') + 1), false);
     }
 
     /** Runs 20 times a second while you're in a world. */
@@ -426,6 +429,11 @@ public abstract class EasyMod implements SquidMod {
     /** Whether it's night (or dark from a storm) where you are. */
     protected boolean isNight() {
         return Game.inWorld() && Game.dark();
+    }
+
+    /** The dimension you're in: "overworld", "the_nether" or "the_end". */
+    protected String dimension() {
+        return Game.inWorld() ? Game.dimension() : "";
     }
 
     /** Whether it's raining (or snowing) in the world right now. */

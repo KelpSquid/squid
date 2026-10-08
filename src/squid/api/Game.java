@@ -273,7 +273,7 @@ public final class Game {
                 if (!wanted.isEmpty() && !path(key.invoke(null, call(entity, "getType"))).equals(wanted)) continue;
                 count++;
             }
-            if (count == 0 && !wanted.isEmpty() && !isMob(wanted)) throw noSuchMob(mob);
+            if (count == 0 && !wanted.isEmpty() && !isMob(mob)) throw noSuchMob(mob);
             return count;
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException(Lang.t("Squid couldn't look around"), e);
@@ -359,7 +359,9 @@ public final class Game {
             }
         }
         Object server = call(mc, "getCurrentServer");
-        if (server == null || ((Enum<?>) call(server, "type")).name().equals("REALM")) return null;
+        // Not Realms (Kelp can't join those by itself), and not LAN games (their address changes every time)
+        String kind = server == null ? "" : ((Enum<?>) call(server, "type")).name();
+        if (server == null || kind.equals("REALM") || kind.equals("LAN")) return null;
         String address = String.valueOf(field(server, "ip")).strip();
         String name = String.valueOf(field(server, "name")).strip().replace('\n', ' ');
         return address.isEmpty() ? null : "server\n" + address + "\n" + name + "\n";
@@ -414,6 +416,11 @@ public final class Game {
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    /** The dimension the player is in: "overworld", "the_nether" or "the_end". */
+    static String dimension() {
+        return path(call(call(world(), "dimension"), "identifier"));
     }
 
     /** The biome the player is in, like "plains" or "deep_dark". */

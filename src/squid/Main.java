@@ -66,12 +66,12 @@ public final class Main {
         return gameFolder;
     }
 
-    /** Whether Squid is running a Minecraft server (started by {@link ServerLauncher}) rather than the game. */
     /** Safe mode: the game starts with no mods (only Squid's own parts), so a broken mod can't stop it. */
     public static boolean safeMode() {
         return Boolean.getBoolean("squid.safeMode");
     }
 
+    /** Whether Squid is running a Minecraft server (started by {@link ServerLauncher}) rather than the game. */
     public static boolean isServer() {
         return "server".equals(System.getProperty("squid.side"));
     }

@@ -202,6 +202,9 @@ final class CodeScreen extends Screen {
         if (problem != null) {
             status = problem;
             color = 0xFFFF5555;
+        } else if (savedAt != 0 && squid.Main.safeMode()) {
+            status = Lang.t("Saved. Mods are off this time (safe mode), so it runs when you play from Kelp again.");
+            color = 0xFFFFFF55;
         } else if (savedAt == 0) {
             status = "";
             color = 0;

@@ -1,7 +1,7 @@
 {
     "id": "whereidied",
     "name": "Where I Died",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "When you die, it remembers where and shows how far away your things are until you get them back. !died says where.",
     "authors": ["Samuel"],
     "minecraft": "26.3.x",
