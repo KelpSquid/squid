@@ -31,6 +31,7 @@ final class VoiceScreen extends Screen {
     }
 
     private int listTop = 94; // where the list of players starts, worked out in init()
+    private int membersY = -1; // where "In your group" goes, when there are groups
 
     @Override
     protected void init() {
@@ -66,7 +67,10 @@ final class VoiceScreen extends Screen {
                 groupBox.setValue("");
                 v.joinGroup("");
             }).bounds(x + 168, y, 32, 20).build());
-            y += 30;
+            membersY = y + 24;
+            y += 42;
+        } else {
+            membersY = -1;
         }
         // Everyone else here, with a Mute button each (their names are drawn from the same spot)
         listTop = y;
@@ -133,6 +137,13 @@ final class VoiceScreen extends Screen {
         g.centeredText(font, mode, width / 2, 26, 0xFFA0A0A0);
         if (v.mic.problem() != null && !Voice.LISTEN.equals(v.talk())) {
             g.centeredText(font, Lang.t("No microphone: {0}", v.mic.problem()), width / 2, height - 66, 0xFFFF7777);
+        }
+        // Who's in your group, so nobody can listen in without everyone seeing their name
+        List<String> members = v.members;
+        if (membersY >= 0 && !v.group.isEmpty() && !members.isEmpty()) {
+            String names = String.join(", ", members.subList(0, Math.min(6, members.size())))
+                    + (members.size() > 6 ? " +" + (members.size() - 6) : "");
+            g.text(font, Lang.t("In your group: {0}", names), x, membersY, 0xFFA0A0A0, true);
         }
         int y = listTop;
         List<PlayerInfo> others = others();

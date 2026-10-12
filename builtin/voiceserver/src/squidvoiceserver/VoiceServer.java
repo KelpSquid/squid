@@ -31,6 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * The messages (all on "squid:" channels):
  *   voice        game to server: sequence (2 bytes), then one Squid Voice packet
  *   voice        server to game: speaker id (16), kind (1: 0 near, 1 group/world), sequence (2), x y z (3 floats), packet
+ *                (x y z are 0 for kind 1, which is heard as if on a call, so nobody far away learns where you are)
+ *   voice_members server to game: the names of everyone in your group, one per line (sent whenever it changes)
  *   voice_config server to game: version (1), enabled (1), mode (1: 0 proximity, 1 world, 2 groups), distance (2), groups (1)
  *   voice_group  game to server: the group name to join, as UTF-8 (empty leaves)
  *   voice_group  server to game: the group you're in now, as UTF-8 (empty for none)
@@ -41,6 +43,38 @@ public class VoiceServer implements SquidMod {
 
     volatile Config config;
     final Map<UUID, String> groups = new ConcurrentHashMap<>();
+    /** Voice packets a player may send: 60 a second (a bit over the 50 that talking makes), up to 30 at once. */
+    final Limit limit = new Limit(60, 30);
+    /** Joining or leaving a group: once a second, a few at once. */
+    final Limit groupLimit = new Limit(1, 3);
+
+    /** A token bucket for each player: it fills at perSecond, holds up to burst, and each packet takes one. */
+    static final class Limit {
+        private final double perSecond;
+        private final double burst;
+        private final Map<UUID, double[]> buckets = new ConcurrentHashMap<>(); // tokens, last time (ns)
+
+        Limit(double perSecond, double burst) {
+            this.perSecond = perSecond;
+            this.burst = burst;
+        }
+
+        boolean allow(UUID player) {
+            double[] b = buckets.computeIfAbsent(player, p -> new double[] {burst, System.nanoTime()});
+            synchronized (b) {
+                double now = System.nanoTime();
+                b[0] = Math.min(burst, b[0] + (now - b[1]) / 1e9 * perSecond);
+                b[1] = now;
+                if (b[0] < 1) return false;
+                b[0] -= 1;
+                return true;
+            }
+        }
+
+        void forget(UUID player) {
+            buckets.remove(player);
+        }
+    }
 
     record Config(boolean enabled, int mode, int distance, boolean groups) {
     }

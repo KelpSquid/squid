@@ -49,6 +49,8 @@ public class Voice implements SquidMod {
     /** What the server said about its voice chat, or null if it hasn't (no Squid there, or not joined yet). */
     volatile Config config;
     volatile String group = "";
+    /** Everyone in your group (you too), as the server last said. Shown in Voice Chat, so nobody listens in unseen. */
+    volatile List<String> members = List.of();
     private boolean wasTalking;
 
     record Config(boolean enabled, int mode, int distance, boolean groups) {
@@ -83,6 +85,7 @@ public class Voice implements SquidMod {
             speakers.start();
         });
         Net.onClient("voice_group", data -> group = new String(data, StandardCharsets.UTF_8));
+        Net.onClient("voice_members", data -> Minecraft.getInstance().execute(() -> membersChanged(data)));
         squid.onTick(this::tick);
         squid.onHud(this::hud);
         squid.addMenuButton("Voice Chat", true, menu -> Minecraft.getInstance().setScreenAndShow(new VoiceScreen(menu)));
@@ -145,6 +148,7 @@ public class Voice implements SquidMod {
             if (config != null || mic.isOpen()) {
                 config = null;
                 group = "";
+                members = List.of();
                 mic.close();
                 speakers.clear();
             }
@@ -196,6 +200,23 @@ public class Voice implements SquidMod {
             hud.box(hud.width() - hud.textWidth(name) - 11, ty + 1, 3, 5, 0xFF55FF55);
             hud.text(name, hud.width() - hud.textWidth(name) - 5, ty, 0xFFFFFFFF);
             ty += 12;
+        }
+    }
+
+    /** The server says who's in your group now: anyone who came or went is said in chat. */
+    private void membersChanged(byte[] data) {
+        String text = new String(data, StandardCharsets.UTF_8);
+        List<String> now = text.isEmpty() ? List.of() : List.of(text.split("\n"));
+        List<String> before = members;
+        members = now;
+        Minecraft minecraft = Minecraft.getInstance();
+        String me = minecraft.player == null ? "" : minecraft.player.getGameProfile().name();
+        if (before.isEmpty() || now.isEmpty()) return; // you just joined or left: Voice Chat lists who's there
+        for (String name : now) {
+            if (!before.contains(name) && !name.equals(me)) squid.api.Game.chat(Lang.t("{0} joined your voice group.", name), "YELLOW");
+        }
+        for (String name : before) {
+            if (!now.contains(name) && !name.equals(me)) squid.api.Game.chat(Lang.t("{0} left your voice group.", name), "YELLOW");
         }
     }
 
