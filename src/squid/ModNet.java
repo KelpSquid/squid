@@ -140,6 +140,9 @@ public final class ModNet {
         // Each player has limits for each mod, so one busy mod doesn't hold back another's messages
         String modId = modIdOf(message);
         if (modId == null) return; // broken: nobody could read it anyway
+        // Only mods that are listening get limits kept for them. Otherwise a made-up mod id in every message would get
+        // a fresh, full limit each time, and keeping all of them would fill the server's memory.
+        if (!modId.matches("[a-z0-9_-]{1,64}") || !LISTENERS.containsKey(modId)) return;
         String key = t.idOf(player) + " " + modId;
         if (!allowed(INCOMING, key, message.length, t.nameOf(player) + " (" + modId + ")")) return;
         deliver(player, message);

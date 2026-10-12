@@ -411,6 +411,9 @@ public class PipelineTest {
         int keptBefore = ModNet.limitsKept();
         ModNet.forget(java.util.UUID.nameUUIDFromBytes("Alex".getBytes()));
         check("a player who leaves is forgotten", keptBefore + " " + ModNet.limitsKept(), "1 0");
+        for (int i = 0; i < 5000; i++) ModNet.fromPlayer("Alex", ModNet.encode("made-up-" + i, "score", i));
+        ModNet.fromPlayer("Alex", ModNet.encode("NOT A MOD ID", "score", 1));
+        check("messages for mods that aren't here keep no limits, so made-up ids can't fill the server's memory", ModNet.limitsKept(), 0);
         Events.remove("net-test-2");
         int[] handlerRuns = {0};
         netMod.onMessage("broken", (from, data) -> {
