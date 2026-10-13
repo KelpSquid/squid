@@ -7,8 +7,12 @@ import java.util.Map;
 
 /** A tiny JSON reader (the same one Kelp uses). Objects become Maps, arrays become Lists, and numbers become Doubles. */
 public final class Json {
+    /** Deeper than this is never a real file, and would run Java out of room to keep reading it. */
+    private static final int MAX_DEPTH = 512;
+
     private final String text;
     private int pos;
+    private int depth;
 
     private Json(String text) {
         this.text = text;
@@ -48,9 +52,11 @@ public final class Json {
     private Map<String, Object> readObject() {
         Map<String, Object> map = new LinkedHashMap<>();
         pos++; // skip the {
+        if (++depth > MAX_DEPTH) throw error(Lang.t("nested too deep"));
         skipSpace();
         if (peek() == '}') {
             pos++;
+            depth--;
             return map;
         }
         while (true) {
@@ -61,7 +67,10 @@ public final class Json {
             map.put(key, value());
             skipSpace();
             char c = next();
-            if (c == '}') return map;
+            if (c == '}') {
+                depth--;
+                return map;
+            }
             if (c != ',') throw error(Lang.t("expected , or }"));
         }
     }
@@ -69,16 +78,21 @@ public final class Json {
     private List<Object> readArray() {
         List<Object> list = new ArrayList<>();
         pos++; // skip the [
+        if (++depth > MAX_DEPTH) throw error(Lang.t("nested too deep"));
         skipSpace();
         if (peek() == ']') {
             pos++;
+            depth--;
             return list;
         }
         while (true) {
             list.add(value());
             skipSpace();
             char c = next();
-            if (c == ']') return list;
+            if (c == ']') {
+                depth--;
+                return list;
+            }
             if (c != ',') throw error(Lang.t("expected , or ]"));
         }
     }
@@ -103,7 +117,11 @@ public final class Json {
                 case 'f' -> sb.append('\f');
                 case 'u' -> {
                     if (pos + 4 > text.length()) throw error(Lang.t("unexpected end"));
-                    sb.append((char) Integer.parseInt(text.substring(pos, pos + 4), 16));
+                    try {
+                        sb.append((char) Integer.parseInt(text.substring(pos, pos + 4), 16));
+                    } catch (NumberFormatException notHex) {
+                        throw error(Lang.t("bad \\u escape"));
+                    }
                     pos += 4;
                 }
                 default -> throw error(Lang.t("unknown escape \\{0}", escaped));
@@ -115,7 +133,11 @@ public final class Json {
         int start = pos;
         while (pos < text.length() && "+-0123456789.eE".indexOf(text.charAt(pos)) >= 0) pos++;
         if (start == pos) throw error(Lang.t("unexpected character"));
-        return Double.parseDouble(text.substring(start, pos));
+        try {
+            return Double.parseDouble(text.substring(start, pos));
+        } catch (NumberFormatException notANumber) {
+            throw error(Lang.t("bad number"));
+        }
     }
 
     private Object word(String word, Object value) {
