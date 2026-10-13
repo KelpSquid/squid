@@ -586,3 +586,6 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 {0} where {1} is needed => {0} lle mae angen {1}
 {0}: its data => {0}: ei ddata
 {0}: its pictures and sounds => {0}: ei luniau a'i synau
+nested too deep => wedi'i nythu'n rhy ddwfn
+bad \u escape => dihangiad \u gwael
+bad number => rhif gwael

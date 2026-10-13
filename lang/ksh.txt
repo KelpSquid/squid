@@ -586,3 +586,6 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 {0} where {1} is needed => {0}, wo {1} jebruch weed
 {0}: its data => {0}: sing Date
 {0}: its pictures and sounds => {0}: sing Beldcher un Tön
+nested too deep => zo deef eneinander
+bad \u escape => kapodd \u-Escape
+bad number => kapodde Zahl

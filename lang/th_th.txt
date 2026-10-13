@@ -586,3 +586,6 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 {0} where {1} is needed => ได้ {0} แต่ต้องการ {1}
 {0}: its data => {0}: ข้อมูลของมัน
 {0}: its pictures and sounds => {0}: รูปภาพและเสียงของมัน
+nested too deep => ซ้อนกันลึกเกินไป
+bad \u escape => escape \u ไม่ถูกต้อง
+bad number => ตัวเลขไม่ถูกต้อง

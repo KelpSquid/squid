@@ -586,3 +586,6 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 {0} where {1} is needed => {1}이(가) 필요한 곳에 {0}
 {0}: its data => {0}: 데이터
 {0}: its pictures and sounds => {0}: 그림과 소리
+nested too deep => 너무 깊이 겹쳐 있어요
+bad \u escape => 잘못된 \u 이스케이프
+bad number => 잘못된 숫자
