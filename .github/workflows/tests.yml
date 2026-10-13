@@ -1,0 +1,34 @@
+# Builds Squid and runs its tests (the same as "build.bat test") on every push, so a change that breaks
+# something shows up as a red X on the commit. GitHub's computer has no Kelp, so Minecraft's jar and
+# libraries are downloaded from Mojang first, into the folders Kelp would use.
+
+name: tests
+
+on:
+  push:
+    branches: ['**']
+    paths-ignore: ['**.md', 'docs/**', 'branding/**']
+  workflow_dispatch:
+
+concurrency: # a newer push replaces a run still going: only the latest code gets tested
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Download Minecraft from Mojang
+        shell: bash
+        run: java tools/FetchMinecraft.java 26.3
+      - name: Build and test
+        shell: bash
+        run: |
+          java tools/Build.java test | tee test-output.txt
+          grep -q "ALL PASSED" test-output.txt
