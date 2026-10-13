@@ -262,7 +262,9 @@ The Squid Store is built into Squid (`builtin/store`), so everyone has it: a **S
 
 The store reads one list, `store.json`, from the [squid-store](https://github.com/KelpSquid/squid-store) repo. Every item has a fingerprint (sha256), and a download that doesn't match it is thrown away. Nothing gets in the list without being approved; submissions will come through submit.kelplauncher.org.
 
-`build.bat` makes `build/store`: a `store.json` and a `files` folder with every first-party mod. Upload both to the squid-store repo and the store shows them. To test with another list, start the game with `-Dsquid.store=<link to a store.json>`.
+The list is also signed: next to `store.json` is `store.json.sig`, made with Kelp & Squid's signing key, which is only on Samuel's laptop. Squid checks the signature against the list's exact bytes before reading it, and a list that isn't signed (or was changed after it was signed) is turned down, so nothing from it can be installed. `official-capes.json` is signed the same way.
+
+`build.bat` makes `build/store`: a `store.json`, its `store.json.sig` and a `files` folder with every first-party mod. Upload them to the squid-store repo and the store shows them. After changing a list in squid-store by hand, sign it again with `build.bat sign` before pushing. To test with another list, start the game with `-Dsquid.store=<link to a store.json>` (it has to be signed too).
 
 ## Making a mod
 

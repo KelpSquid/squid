@@ -2,6 +2,7 @@ package squidskins;
 
 import squid.Json;
 import squid.Lang;
+import squid.Signatures;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -25,7 +26,8 @@ import java.util.Map;
  * Mojang's own texture server, the same place the game gets capes for the players who own them. Capes that server
  * doesn't have (Bedrock and console capes, old holiday capes, skin pack capes) come from the Minecraft Wiki's copy, and
  * each of those has a fingerprint of its pixels in the list, so a different picture is never kept. A downloaded
- * picture is kept in Kelp's official-capes folder so it only downloads once.
+ * picture is kept in Kelp's official-capes folder so it only downloads once. The list from the squid-store repo has to be
+ * signed by Kelp & Squid (official-capes.json.sig, next to it; see {@link Signatures}); if it isn't, Squid's own is used.
  * Wearing one you don't own shows a tag next to your name.
  */
 public final class OfficialCapes {
@@ -116,11 +118,17 @@ public final class OfficialCapes {
         return null;
     }
 
-    /** The list from the Store, which can have capes newer than this Squid. */
+    /**
+     * The list from the Store, which can have capes newer than this Squid. Unless it's signed by Kelp & Squid, it throws
+     * {@link Signatures.Unsigned} before reading anything in it.
+     */
     public static List<Cape> load() throws IOException, InterruptedException {
-        HttpResponse<String> response = client().send(request(list), HttpResponse.BodyHandlers.ofString());
+        HttpResponse<byte[]> response = client().send(request(list), HttpResponse.BodyHandlers.ofByteArray());
         if (response.statusCode() != 200) throw new IOException(Lang.t("The list of official capes didn't load (error {0}).", response.statusCode()));
-        List<Cape> capes = parse(response.body());
+        HttpResponse<byte[]> sig = client().send(request(list + ".sig"), HttpResponse.BodyHandlers.ofByteArray());
+        Signatures.check(response.body(), sig.statusCode() == 200 ? sig.body() : null,
+                Lang.t("The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used."));
+        List<Cape> capes = parse(new String(response.body(), java.nio.charset.StandardCharsets.UTF_8));
         remember(capes);
         return capes;
     }

@@ -2,6 +2,7 @@ package squidstore;
 
 import squid.Json;
 import squid.Lang;
+import squid.Signatures;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,6 +11,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +19,8 @@ import java.util.Map;
 
 /**
  * The store's list of everything Samuel has approved, read from store.json. Each item is a mod, a resource pack
- * or a cape (there's no skin store: skins are your own).
+ * or a cape (there's no skin store: skins are your own). The list has to be signed by Kelp & Squid (store.json.sig,
+ * next to it; see {@link Signatures}), or nothing in it is read.
  *
  * <pre>
  * {"items": [{"id": "xray", "type": "mod", "name": "X-Ray", "version": "1.0.0", "author": "Samuel", "description": "...",
@@ -60,9 +63,20 @@ public final class Catalog {
     private Catalog() {
     }
 
-    /** Downloads the list (or reads it, for a file: link). */
+    /**
+     * Downloads the list (or reads it, for a file: link) and its .sig. Unless the list is signed by Kelp & Squid, it
+     * throws {@link Signatures.Unsigned} before reading anything in it, so nothing from it can be installed.
+     */
     public static List<Item> load(String url) throws IOException, InterruptedException {
-        return parse(text(url));
+        byte[] list = bytes(url);
+        byte[] sig;
+        try {
+            sig = bytes(url + ".sig");
+        } catch (Missing e) {
+            sig = null;
+        }
+        Signatures.check(list, sig, Lang.t("The Store list isn't signed by Kelp & Squid, so nothing was installed."));
+        return parse(new String(list, StandardCharsets.UTF_8));
     }
 
     /** Reads store.json. Items that are missing something important, or have an unsafe file name, are left out. */
@@ -109,16 +123,26 @@ public final class Catalog {
         return json.get(key) instanceof String s ? s : "";
     }
 
-    static String text(String url) throws IOException, InterruptedException {
+    /** A file that isn't there (a 404, or no such file for a file: link). */
+    static final class Missing extends IOException {
+        Missing(String message) {
+            super(message);
+        }
+    }
+
+    static byte[] bytes(String url) throws IOException, InterruptedException {
         if (url.startsWith("file:")) {
             try (InputStream in = URI.create(url).toURL().openStream()) {
-                return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                return in.readAllBytes();
+            } catch (NoSuchFileException | java.io.FileNotFoundException e) {
+                throw new Missing(e.getMessage());
             }
         }
         HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL)
                 .connectTimeout(Duration.ofSeconds(15)).build();
-        HttpResponse<String> response = client.send(HttpRequest.newBuilder(URI.create(url)).header("User-Agent", USER_AGENT)
-                .timeout(Duration.ofSeconds(30)).build(), HttpResponse.BodyHandlers.ofString());
+        HttpResponse<byte[]> response = client.send(HttpRequest.newBuilder(URI.create(url)).header("User-Agent", USER_AGENT)
+                .timeout(Duration.ofSeconds(30)).build(), HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() == 404) throw new Missing(Lang.t("the store answered with error {0}", 404));
         if (response.statusCode() != 200) throw new IOException(Lang.t("the store answered with error {0}", response.statusCode()));
         return response.body();
     }

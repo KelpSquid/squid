@@ -918,6 +918,33 @@ public class PipelineTest {
         check("the Store knows a hand-zipped .squid of a mod", squidstore.Installer.installed(dice, storeGame) + " "
                 + squidstore.Installer.updateAvailable(dice, storeGame), "true true");
 
+        // The Store's list only counts with Kelp & Squid's signature (store.json.sig, next to it). The tests sign with a
+        // key of their own: only a test can swap it in, a player's Squid only has the real one
+        check("Squid has Kelp & Squid's public key (Ed25519)", Signatures.publicKey(Signatures.PUBLIC_KEY).getEncoded().length, 44);
+        java.security.KeyPairGenerator keyMaker = java.security.KeyPairGenerator.getInstance("Ed25519");
+        java.security.KeyPair testKey = keyMaker.generateKeyPair();
+        java.security.KeyPair someoneElse = keyMaker.generateKeyPair();
+        Signatures.trusted = testKey.getPublic();
+        byte[] listBytes = storeList.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        check("a list with its signature is accepted", Signatures.valid(listBytes, signature(testKey, listBytes)), true);
+        byte[] oneByteOff = listBytes.clone();
+        oneByteOff[storeList.indexOf("X-Ray") + 4] = 'z';
+        check("one changed byte and it's turned down", Signatures.valid(oneByteOff, signature(testKey, listBytes)), false);
+        check("a signature made with a different key is turned down", Signatures.valid(listBytes, signature(someoneElse, listBytes)), false);
+        check("a .sig that isn't a signature is turned down", Signatures.valid(listBytes, "hello".getBytes()) + " " + Signatures.valid(listBytes, new byte[0]), "false false");
+        Path signedStore = java.nio.file.Files.createTempDirectory("squid-signed-store");
+        String storeUrl = signedStore.resolve("store.json").toUri().toString();
+        String storeNotSigned = "The Store list isn't signed by Kelp & Squid, so nothing was installed.";
+        java.nio.file.Files.write(signedStore.resolve("store.json"), listBytes);
+        check("a store list without store.json.sig is turned down", storeLoadProblem(storeUrl), storeNotSigned);
+        java.nio.file.Files.write(signedStore.resolve("store.json.sig"), signature(testKey, listBytes));
+        check("a signed store list is read", squidstore.Catalog.load(storeUrl).stream().map(squidstore.Catalog.Item::id).toList().toString(), "[xray, old]");
+        java.nio.file.Files.write(signedStore.resolve("store.json"), oneByteOff);
+        check("a signed store list changed afterwards (one byte) is turned down", storeLoadProblem(storeUrl), storeNotSigned);
+        java.nio.file.Files.write(signedStore.resolve("store.json"), listBytes);
+        java.nio.file.Files.write(signedStore.resolve("store.json.sig"), signature(someoneElse, listBytes));
+        check("a store list signed with any other key is turned down", storeLoadProblem(storeUrl), storeNotSigned);
+
         List<URL> storeUrls = new ArrayList<>(urls);
         storeUrls.add(Path.of(a[3]).toUri().toURL());
         SquidClassLoader storeLoader = new SquidClassLoader(storeUrls.toArray(URL[]::new));
@@ -1030,6 +1057,15 @@ public class PipelineTest {
             capePng = png.toByteArray();
         }
         java.util.concurrent.atomic.AtomicInteger textureAsks = new java.util.concurrent.atomic.AtomicInteger();
+        byte[][] capeList = {("{\"capes\": [{\"id\": \"migrator\", \"name\": \"Migrator\", \"texture\": "
+                + "\"https://textures.minecraft.net/texture/2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933\"}]}\n").getBytes(), null};
+        textureServer.createContext("/lists/", exchange -> {
+            String path = exchange.getRequestURI().getPath();
+            byte[] body = path.endsWith("/official-capes.json") ? capeList[0] : path.endsWith("/official-capes.json.sig") ? capeList[1] : null;
+            exchange.sendResponseHeaders(body == null ? 404 : 200, body == null ? -1 : body.length);
+            if (body != null) exchange.getResponseBody().write(body);
+            exchange.close();
+        });
         textureServer.createContext("/texture/", exchange -> {
             textureAsks.incrementAndGet();
             byte[] body = exchange.getRequestURI().getPath().endsWith("aaaa") ? "not a picture".getBytes() : capePng;
@@ -1040,7 +1076,20 @@ public class PipelineTest {
         textureServer.start();
         String realTextures = squidskins.OfficialCapes.mojangTextures;
         squidskins.OfficialCapes.mojangTextures = "http://127.0.0.1:" + textureServer.getAddress().getPort() + "/texture/";
+        String realCapeList = squidskins.OfficialCapes.list;
+        squidskins.OfficialCapes.list = "http://127.0.0.1:" + textureServer.getAddress().getPort() + "/lists/official-capes.json";
         try {
+            String capesNotSigned = "The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used.";
+            check("an official capes list without official-capes.json.sig is turned down", capeLoadProblem(), capesNotSigned);
+            capeList[1] = signature(testKey, capeList[0]);
+            check("a signed official capes list is read", squidskins.OfficialCapes.load().stream().map(squidskins.OfficialCapes.Cape::id).toList().toString(), "[migrator]");
+            byte[] signedCapes = capeList[0];
+            capeList[0] = new String(signedCapes).replace("Migrator", "Migratos").getBytes();
+            check("a signed official capes list changed afterwards is turned down", capeLoadProblem(), capesNotSigned);
+            capeList[0] = signedCapes;
+            capeList[1] = signature(someoneElse, signedCapes);
+            check("an official capes list signed with any other key is turned down", capeLoadProblem(), capesNotSigned);
+
             String hash = "2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933";
             Path got = squidskins.OfficialCapes.fetch(wardrobe.officialCapes(), hash);
             squidskins.OfficialCapes.fetch(wardrobe.officialCapes(), hash);
@@ -1055,6 +1104,7 @@ public class PipelineTest {
             check("something that isn't a cape picture is thrown away", notCape, "That isn't a cape picture. false");
         } finally {
             squidskins.OfficialCapes.mojangTextures = realTextures;
+            squidskins.OfficialCapes.list = realCapeList;
             textureServer.stop(0);
         }
 
@@ -2395,6 +2445,34 @@ public class PipelineTest {
     }
 
     /** Stops a Speakers' sound thread, so the test doesn't play anything. */
+    /** A .sig file's contents: the base64 signature of exactly these bytes. */
+    static byte[] signature(java.security.KeyPair key, byte[] bytes) throws java.security.GeneralSecurityException {
+        java.security.Signature signer = java.security.Signature.getInstance("Ed25519");
+        signer.initSign(key.getPrivate());
+        signer.update(bytes);
+        return (java.util.Base64.getEncoder().encodeToString(signer.sign()) + "\n").getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+    }
+
+    /** Why the Store's list at this link wasn't read, or "read". */
+    static String storeLoadProblem(String url) throws InterruptedException {
+        try {
+            squidstore.Catalog.load(url);
+            return "read";
+        } catch (java.io.IOException e) {
+            return e.getMessage();
+        }
+    }
+
+    /** Why the official capes list wasn't read, or "read". */
+    static String capeLoadProblem() throws InterruptedException {
+        try {
+            squidskins.OfficialCapes.load();
+            return "read";
+        } catch (java.io.IOException e) {
+            return e.getMessage();
+        }
+    }
+
     static void clearSpeakers(Class<?> speakersClass, Object speakers) throws ReflectiveOperationException {
         java.lang.reflect.Method clear = speakersClass.getDeclaredMethod("clear");
         clear.setAccessible(true);

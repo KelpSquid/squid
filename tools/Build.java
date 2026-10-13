@@ -10,7 +10,13 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
@@ -25,6 +31,11 @@ import java.util.stream.Stream;
  *
  *   build         builds build/squid.jar and the example mods, and copies Squid into Kelp's folder
  *   build test    also runs the tests (they load real Minecraft classes, without opening the game)
+ *   build sign    signs the lists in the squid-store folder next to this one (store.json and official-capes.json),
+ *                 after changing them by hand. "build sign some\list.json" signs just that file.
+ *
+ * Lists that lead to installing something are signed with Kelp & Squid's signing key, which is only on Samuel's laptop
+ * (in .kelp-signing in his user folder; Kelp's tools/SigningKey.java makes it). Squid only uses a list whose .sig matches.
  */
 public class Build {
     static final String MINECRAFT = "26.3";
@@ -38,6 +49,17 @@ public class Build {
     static final Path BUILD = Path.of("build");
 
     public static void main(String[] args) throws Exception {
+        if (args.length > 0 && args[0].equals("sign")) {
+            List<Path> lists = new ArrayList<>();
+            for (int i = 1; i < args.length; i++) lists.add(Path.of(args[i]));
+            if (lists.isEmpty()) lists = List.of(STORE_REPO.resolve("store.json"), STORE_REPO.resolve("official-capes.json"));
+            PrivateKey key = signingKey();
+            for (Path list : lists) sign(key, list);
+            return;
+        }
+        // The store folder's store.json is signed as it's made, so a missing key stops the build before anything else.
+        // GitHub's test computer never has the key (and never makes a Store), so there store.json is left unsigned.
+        PrivateKey signingKey = System.getenv("GITHUB_ACTIONS") != null ? null : signingKey();
         List<Path> libraries = downloadLibraries();
         String squidClasspath = joinPaths(libraries);
 
@@ -87,7 +109,7 @@ public class Build {
         serverZip(squidJar, libraries, builtInJars);
 
         // 5. The store folder: store.json plus the files, ready to upload to the squid-store repo as they are
-        storeFolder(examplesFolder);
+        storeFolder(examplesFolder, signingKey);
 
         // 6. Put Squid where Kelp looks for it. While Minecraft is open its files are in use, so then it's skipped
         //    (and the tests still run); the next build puts it in.
@@ -243,12 +265,16 @@ public class Build {
     /** Where the store's files are downloaded from: the squid-store repo on GitHub. */
     static final String STORE_FILES = "https://raw.githubusercontent.com/KelpSquid/squid-store/main/files/";
 
+    /** The squid-store repo, next to this one: where the Store's lists live. */
+    static final Path STORE_REPO = Path.of("..", "squid-store");
+
     /**
-     * Writes build/store: a files folder with each first-party mod (named like xray-1.0.0.jar) and a store.json
-     * listing them with their fingerprints. Upload both to the squid-store repo and the in-game Store shows them.
-     * Every first-party mod starts out Dev-picked; take "devPicked" off any you don't want there.
+     * Writes build/store: a files folder with each first-party mod (named like xray-1.0.0.jar), a store.json listing
+     * them with their fingerprints, and store.json.sig. Upload them to the squid-store repo and the in-game Store shows
+     * them. Every first-party mod starts out Dev-picked; take "devPicked" off any you don't want there. Any change to
+     * store.json (even one space) needs a new signature: run "build sign" afterwards.
      */
-    static void storeFolder(Path examplesFolder) throws Exception {
+    static void storeFolder(Path examplesFolder, PrivateKey signingKey) throws Exception {
         Path store = BUILD.resolve("store");
         Path files = store.resolve("files");
         Files.createDirectories(files);
@@ -290,7 +316,45 @@ public class Build {
         }
         json.append("\n    ]\n}\n");
         Files.writeString(store.resolve("store.json"), json);
+        if (signingKey != null) sign(signingKey, store.resolve("store.json"));
+        else System.out.println("store.json wasn't signed: there's no signing key on GitHub's computer");
         System.out.println("Made the store folder in " + store);
+    }
+
+    // ---- Signing the lists ----
+
+    /** Where Kelp & Squid's private signing key is kept: only on Samuel's laptop. */
+    static final Path SIGNING_KEY = Path.of(System.getProperty("user.home"), ".kelp-signing", "signing-key.pk8");
+
+    static PrivateKey signingKey() throws Exception {
+        if (!Files.exists(SIGNING_KEY)) {
+            throw new IOException("There's no signing key on this computer (" + SIGNING_KEY + "), so the Store's list can't be signed"
+                    + " and Squid wouldn't use it. Copy the .kelp-signing folder back from your backup.");
+        }
+        return KeyFactory.getInstance("Ed25519").generatePrivate(new PKCS8EncodedKeySpec(Files.readAllBytes(SIGNING_KEY)));
+    }
+
+    /**
+     * Writes list.sig next to the list: the signature of its exact bytes, in base64. It's checked first with the public
+     * key in src/squid/Signatures.java (the one every Squid has), so a wrong key is caught here, not by players.
+     */
+    static void sign(PrivateKey key, Path list) throws Exception {
+        byte[] bytes = Files.readAllBytes(list);
+        Signature signer = Signature.getInstance("Ed25519");
+        signer.initSign(key);
+        signer.update(bytes);
+        byte[] signature = signer.sign();
+        Matcher trusted = Pattern.compile("PUBLIC_KEY = \"([A-Za-z0-9+/=]+)\"").matcher(Files.readString(Path.of("src", "squid", "Signatures.java")));
+        if (!trusted.find()) throw new IOException("Couldn't find PUBLIC_KEY in src/squid/Signatures.java");
+        Signature verifier = Signature.getInstance("Ed25519");
+        verifier.initVerify(KeyFactory.getInstance("Ed25519").generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(trusted.group(1)))));
+        verifier.update(bytes);
+        if (!verifier.verify(signature)) {
+            throw new IOException("The signing key on this computer isn't the one Squid trusts (PUBLIC_KEY in src/squid/Signatures.java)");
+        }
+        Path sig = list.resolveSibling(list.getFileName() + ".sig");
+        Files.writeString(sig, Base64.getEncoder().encodeToString(signature) + "\n");
+        System.out.println("Signed " + list + " -> " + sig.getFileName());
     }
 
     /**

@@ -50,6 +50,8 @@ final class StoreScreen extends Screen {
                     if (item.worksOn(Main.minecraftVersion())) all.add(item);
                 }
                 items = all;
+            } catch (squid.Signatures.Unsigned e) {
+                problem = e.getMessage();
             } catch (Exception e) {
                 problem = Lang.t("Couldn't reach the store. Check your internet and try again.");
             }
