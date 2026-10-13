@@ -7,7 +7,6 @@ import net.minecraft.network.chat.Component;
 import squid.Lang;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 
 /**
@@ -51,7 +50,7 @@ final class SavedReplaysScreen extends Screen {
 
     private void delete(ReplayFile.Info info) {
         try {
-            Files.deleteIfExists(info.file());
+            ReplayFile.delete(info.file());
         } catch (IOException e) {
             message = Lang.t("Couldn't delete it: {0}", e.getMessage());
         }

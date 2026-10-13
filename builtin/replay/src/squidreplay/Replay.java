@@ -20,6 +20,9 @@ import squid.api.SquidMod;
  * and watch it again from any angle, in slow motion or backwards, with its sounds. Nothing is saved to disk yet.
  */
 public class Replay implements SquidMod {
+    /** The most minutes a replay keeps (and so the longest a saved one can be). */
+    static final int MOST_MINUTES = 5;
+
     // Made when first used, after the game has started: loading Recorder loads Minecraft's player classes, which
     // must wait until every part's hooks into them are in (Squid Skins' are, after this part starts)
     private Recorder recorder;
@@ -80,7 +83,7 @@ public class Replay implements SquidMod {
     }
 
     private int keepTicks() {
-        return settings.number("Minutes kept", 2, 1, 5) * 60 * 20;
+        return settings.number("Minutes kept", 2, 1, MOST_MINUTES) * 60 * 20;
     }
 
     private void tick() {

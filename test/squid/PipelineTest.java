@@ -1923,7 +1923,7 @@ public class PipelineTest {
         // Squid Net: Squid's messages ride in Minecraft's own custom payload packets, both ways, through the real
         // packet code. Minecraft throws away channels it doesn't know; Squid keeps its own.
         List<URL> netUrls = new ArrayList<>(urls);
-        for (String part : new String[] {"net", "voice", "voiceserver", "sounds", "jukebox", "mods", "paint", "emotes"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
+        for (String part : new String[] {"net", "voice", "voiceserver", "sounds", "jukebox", "mods", "paint", "emotes", "replay"}) netUrls.add(Path.of("build", "builtin", part + ".jar").toUri().toURL());
         SquidClassLoader netLoader = new SquidClassLoader(netUrls.toArray(URL[]::new));
         Squid netSquid = new Squid(mod("squid-net"));
         ((SquidMod) netLoader.loadClass("squidnet.Net").getDeclaredConstructor().newInstance()).init(netSquid);
@@ -1970,6 +1970,12 @@ public class PipelineTest {
         // Players need Minecraft's registries, so Minecraft starts them up first, like it does when it opens.
         Class.forName("net.minecraft.SharedConstants", true, netLoader).getMethod("tryDetectVersion").invoke(null);
         Class.forName("net.minecraft.server.Bootstrap", true, netLoader).getMethod("bootStrap").invoke(null);
+        // Saved replays (.sqreplay): one saved and opened again is the same, and a cut-off, damaged, made-up or huge file
+        // is refused with a message instead of crashing the game. It runs inside this loader, with Minecraft's registries.
+        for (Object replayCheck : (List<?>) netLoader.loadClass("squidreplay.SavedReplayCheck").getMethod("run").invoke(null)) {
+            String[] c = (String[]) replayCheck;
+            check(c[0], c[1], c[2]);
+        }
         Class<?> gameListener = Class.forName("net.minecraft.server.network.ServerGamePacketListenerImpl", true, netLoader);
         Object listener = unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, gameListener);
         Object fakePlayer = unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, serverPlayerClass);
