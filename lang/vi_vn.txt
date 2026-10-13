@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => lồng nhau quá sâu
 bad \u escape => ký tự thoát \u sai
 bad number => số sai
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Danh sách Cửa hàng không có chữ ký của Kelp & Squid, nên không có gì được cài.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Danh sách áo choàng chính thức không có chữ ký của Kelp & Squid, nên đang dùng danh sách có sẵn của Squid.

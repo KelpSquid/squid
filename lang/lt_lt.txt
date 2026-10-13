@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => sudėta per giliai
 bad \u escape => neteisingas \u ženklas
 bad number => neteisingas skaičius
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Parduotuvės sąrašas nepasirašytas Kelp & Squid, todėl niekas nebuvo įdiegta.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Oficialių skraisčių sąrašas nepasirašytas Kelp & Squid, todėl naudojamas paties Squid sąrašas.

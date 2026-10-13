@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => aad u qoto dheer oo midba midka kale ku jira
 bad \u escape => escape \u khaldan
 bad number => tiro khaldan
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Liiska Dukaanka ma saxeexin Kelp & Squid, markaa waxba lama rakibin.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Liiska cape-yada rasmiga ah ma saxeexin Kelp & Squid, markaa waxaa la isticmaalayaa liiska Squid laftiisa.

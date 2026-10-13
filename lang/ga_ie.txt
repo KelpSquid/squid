@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => neadaithe ró-dhomhain
 bad \u escape => éalú \u lochtach
 bad number => uimhir lochtach
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Níl liosta an tSiopa sínithe ag Kelp & Squid, mar sin níor suiteáladh aon rud.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Níl liosta na gcábaí oifigiúla sínithe ag Kelp & Squid, mar sin úsáidtear liosta Squid féin.

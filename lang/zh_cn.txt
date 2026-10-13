@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => 嵌套太深
 bad \u escape => \u 转义符有误
 bad number => 数字有误
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => 商店列表没有 Kelp & Squid 的签名，所以什么都没有安装。
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => 官方披风列表没有 Kelp & Squid 的签名，所以使用 Squid 自带的列表。

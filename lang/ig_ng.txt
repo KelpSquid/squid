@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => dị n'ime ibe ha miri emi nke ukwuu
 bad \u escape => escape \u na-ezighi ezi
 bad number => nọmba na-ezighi ezi
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Kelp & Squid abịanyeghị aka na ndepụta Ụlọ Ahịa, ya mere a wụnyeghị ihe ọ bụla.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Kelp & Squid abịanyeghị aka na ndepụta cape nke Mojang, ya mere a na-eji ndepụta nke Squid n'onwe ya.

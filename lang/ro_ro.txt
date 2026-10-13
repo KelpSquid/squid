@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => imbricat prea adânc
 bad \u escape => escape \u greșit
 bad number => număr greșit
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Lista Magazinului nu este semnată de Kelp & Squid, așa că nu s-a instalat nimic.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Lista de mantii oficiale nu este semnată de Kelp & Squid, așa că se folosește lista proprie a lui Squid.

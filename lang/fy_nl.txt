@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => te djip yninoar
 bad \u escape => ferkearde \u-escape
 bad number => ferkeard getal
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => De list fan de Winkel is net ûndertekene troch Kelp & Squid, dus der is neat ynstallearre.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => De list mei offisjele capes is net ûndertekene troch Kelp & Squid, dus Squid brûkt syn eigen list.

@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => ndërfutur shumë thellë
 bad \u escape => escape \u i gabuar
 bad number => numër i gabuar
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Lista e Dyqanit nuk është e nënshkruar nga Kelp & Squid, ndaj nuk u instalua asgjë.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Lista e pelerinave zyrtare nuk është e nënshkruar nga Kelp & Squid, ndaj përdoret lista e vetë Squid.

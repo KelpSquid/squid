@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => nimis alte inclusum
 bad \u escape => effugium \u pravum
 bad number => numerus pravus
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Index Tabernae a Kelp & Squid non signatus est, itaque nihil institutum est.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Index capparum publicarum a Kelp & Squid non signatus est, itaque index ipsius Squid adhibetur.

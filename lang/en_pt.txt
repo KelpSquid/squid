@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => stowed too deep
 bad \u escape => cursed \u escape
 bad number => cursed number
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => The Tradin' Post's chart don't bear the seal o' Kelp & Squid, so nothin' was brought aboard.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => The chart o' official capes don't bear the seal o' Kelp & Squid, so Squid's own chart be used.

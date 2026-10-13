@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => nested o'er deep
 bad \u escape => a foul \u escape
 bad number => a foul number
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => The Market's list beareth not the seal of Kelp & Squid, and so naught was installed.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => The list of official cloaks beareth not the seal of Kelp & Squid, and so Squid's own list is used.

@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => liiga sügavalt pesastatud
 bad \u escape => vigane \u escape-märk
 bad number => vigane number
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Poe nimekiri pole Kelp & Squidi allkirjastatud, seega midagi ei paigaldatud.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Ametlike keepide nimekiri pole Kelp & Squidi allkirjastatud, seega kasutatakse Squidi enda nimekirja.

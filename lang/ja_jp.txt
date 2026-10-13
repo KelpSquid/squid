@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => 入れ子が深すぎます
 bad \u escape => \u エスケープが正しくありません
 bad number => 数字が正しくありません
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => ストアの一覧に Kelp & Squid の署名がないので、何もインストールしませんでした。
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => 公式マントの一覧に Kelp & Squid の署名がないので、Squid に入っている一覧を使います。

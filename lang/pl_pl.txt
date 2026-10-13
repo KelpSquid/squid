@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => zagnieżdżone zbyt głęboko
 bad \u escape => błędna sekwencja \u
 bad number => błędna liczba
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Lista Sklepu nie jest podpisana przez Kelp & Squid, więc nic nie zostało zainstalowane.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Lista oficjalnych peleryn nie jest podpisana przez Kelp & Squid, więc używana jest własna lista Squida.

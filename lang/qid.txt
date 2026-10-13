@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => bersarang terlaloe dalam
 bad \u escape => escape \u jang salah
 bad number => angka jang salah
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Daftar Toko tidak ditandatangani oleh Kelp & Squid, djadi tidak ada jang dipasang.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Daftar mantel resmi tidak ditandatangani oleh Kelp & Squid, djadi daftar milik Squid sendiri jang dipakai.

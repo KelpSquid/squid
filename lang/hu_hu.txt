@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => túl mélyen egymásba ágyazva
 bad \u escape => hibás \u escape karakter
 bad number => hibás szám
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => A Bolt listáját nem írta alá a Kelp & Squid, ezért semmi sem lett telepítve.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => A hivatalos köpenyek listáját nem írta alá a Kelp & Squid, ezért a Squid saját listája van használatban.

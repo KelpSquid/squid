@@ -589,3 +589,5 @@ there's no class called "{0}". Class names are written in full, like "net.minecr
 nested too deep => re dhown an eyl yn y gila
 bad \u escape => diank \u drog
 bad number => niver drog
+The Store list isn't signed by Kelp & Squid, so nothing was installed. => Nyns yw rol an Gwerthji sinys gans Kelp & Squid, ytho ny veu travyth ynstallys.
+The list of official capes isn't signed by Kelp & Squid, so Squid's own list is used. => Nyns yw rol an mantelyow soedhogel sinys gans Kelp & Squid, ytho rol Squid y honan yw usys.
